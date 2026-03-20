@@ -1,0 +1,1 @@
+console.log("BookStore carregada com sucesso!");

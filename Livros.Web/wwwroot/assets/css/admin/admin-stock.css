@@ -1,0 +1,23 @@
+/* STATUS DE ESTOQUE */
+
+.stock-status {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.stock-status.ok {
+    background-color: #dcfce7;
+    color: #16a34a;
+}
+
+.stock-status.low {
+    background-color: #fef9c3;
+    color: #ca8a04;
+}
+
+.stock-status.empty {
+    background-color: #fee2e2;
+    color: #dc2626;
+}

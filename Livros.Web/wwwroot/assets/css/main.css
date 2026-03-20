@@ -1,0 +1,64 @@
+@import url('base/reset.css');
+@import url('base/typography.css');
+@import url('base/variables.css');
+
+@import url('layout/header.css');
+@import url('layout/footer.css');
+
+@import url('components/buttons.css');
+@import url('components/cards.css');
+@import url('components/forms.css');
+@import url('components/modal.css');
+@import url('components/status.css');
+
+@import url('pages/account.css');
+@import url('pages/auth.css');
+@import url('pages/book-detail.css');
+@import url('pages/cadastro.css');
+@import url('pages/cart.css');
+@import url('pages/checkout.css');
+@import url('pages/edit-profile.css');
+@import url('pages/home.css');
+@import url('pages/order-detail.css');
+@import url('pages/order.css');
+@import url('pages/search.css');
+
+@import url('admin/admin-cards.css');
+@import url('admin/admin-dashboard.css');
+@import url('admin/admin-forms.css');
+@import url('admin/admin-header.css');
+@import url('admin/admin-layout.css');
+@import url('admin/admin-modal.css');
+@import url('admin/admin-sidebar.css');
+@import url('admin/admin-stock.css');
+@import url('admin/admin-table.css');
+
+@media (max-width: 768px) {
+    .header .container {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .search-box {
+        order: 3;
+        width: 100%;
+    }
+
+    .banner {
+        padding: 60px 15px;
+    }
+
+    .banner h1 {
+        font-size: 2.2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-icons {
+        gap: 15px;
+    }
+
+    .product-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+}

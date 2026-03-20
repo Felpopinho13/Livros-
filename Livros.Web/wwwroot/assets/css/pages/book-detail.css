@@ -1,0 +1,139 @@
+/* =========================
+   BOOK DETAIL PAGE
+========================= */
+
+.book-detail {
+    padding: 50px 20px;
+}
+
+.book-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr 0.8fr;
+    gap: 40px;
+    align-items: start;
+}
+
+/* IMAGEM */
+.book-gallery img {
+    width: 100%;
+    max-width: 450px;
+    object-fit: contain;
+}
+
+/* INFO */
+.book-info h1 {
+    font-size: 28px;
+    margin-bottom: 10px;
+}
+
+.author {
+    color: #0066c0;
+    margin-bottom: 20px;
+}
+
+.description {
+    margin-top: 20px;
+    line-height: 1.6;
+    color: #444;
+}
+
+/* BOX DIREITA */
+.book-buy-box {
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.book-buy-box .price {
+    font-size: 26px;
+    color: #b12704;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.stock {
+    color: #007600;
+    margin-bottom: 15px;
+}
+
+.book-buy-box input {
+    margin-bottom: 15px;
+}
+
+.book-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.book-title-row .btn-wishlist {
+    position: static; /* diferente do card */
+}
+
+.reviews-section {
+    background: #f3f3f3;
+    padding: 50px 20px;
+}
+
+.reviews-summary {
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.average-rating span {
+    font-size: 32px;
+    font-weight: 700;
+    color: #ffa41c;
+}
+
+.stars {
+    margin: 10px 0;
+    font-size: 20px;
+    color: #ffa41c;
+}
+
+.reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.review-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.review-card .stars {
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.review-form {
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.review-form select,
+.review-form textarea {
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.review-form textarea {
+    resize: none;
+    min-height: 120px;
+}

@@ -1,0 +1,19 @@
+.admin-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.admin-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.admin-modal.large {
+    width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+}

@@ -22,5 +22,9 @@ namespace Livros.Infrastructure.Services
             _context.Clientes.Add(cliente);
             _context.SaveChanges();
         }
+        public Cliente BuscarPorEmailESenha(string email, string senha) {
+            return _context.Clientes
+                .FirstOrDefault(c => c.Email == email && c.Senha == senha);
+        }
     }
 }

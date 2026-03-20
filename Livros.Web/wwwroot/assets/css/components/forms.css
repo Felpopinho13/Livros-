@@ -1,0 +1,30 @@
+/* =========================
+   INPUT PADRÃO
+========================= */
+
+.input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+}
+
+.input:focus {
+    border-color: var(--color-primary);
+}
+
+/* Grupo de campos */
+.form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+/* Quantity box */
+.quantity-box {
+    display: flex;
+    gap: 10px;
+}
+
+.quantity-box input {
+    width: 60px;
+}

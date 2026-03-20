@@ -1,0 +1,247 @@
+/* HEADER DA PÁGINA */
+
+.admin-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.admin-page-header h2 {
+    margin: 0;
+}
+
+/* FILTROS */
+
+.admin-filters {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.admin-input,
+.admin-select {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+/* TABELA */
+
+.admin-table-wrapper {
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    overflow: hidden;
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    /*min-width: 1100px; Ajuste conforme necessário para evitar quebra em telas menores*/
+    border-collapse: collapse;
+}
+
+.admin-table thead {
+    background-color: #f9fafb;
+}
+
+.admin-table th {
+    text-align: left;
+    padding: 14px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #555;
+}
+
+.admin-table td {
+    padding: 14px;
+    font-size: 14px;
+    border-top: 1px solid #f1f1f1;
+}
+
+/* Zebra */
+.admin-table tbody tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+/* Hover */
+.admin-table tbody tr:hover {
+    background-color: #f3f4f6;
+    transition: 0.2s;
+}
+
+/* AÇÕES */
+
+.admin-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* BOTÕES */
+
+.btn-primary {
+    background-color: #ff9900;
+    border: none;
+    padding: 9px 16px;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-primary:hover {
+    background-color: #e68a00;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: #2563eb;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+.btn-danger {
+    background: none;
+    border: none;
+    color: #dc2626;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.btn-danger:hover {
+    text-decoration: underline;
+}
+
+/* AÇÕES */
+
+.admin-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* BOTÕES */
+
+.btn-primary {
+    background-color: #ff9900;
+    border: none;
+    padding: 8px 14px;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: #2563eb;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.btn-danger {
+    background: none;
+    border: none;
+    color: #dc2626;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.admin-pagination {
+    display: flex;
+    justify-content: flex-end;
+    padding: 15px;
+    gap: 8px;
+    background: #fff;
+}
+
+.page-btn,
+.page-number {
+    padding: 6px 10px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.page-number.active {
+    background: #232f3e;
+    color: white;
+    border-color: #232f3e;
+}
+
+/* STATUS PEDIDOS */
+
+.order-status {
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.order-status.paid {
+    background-color: #dcfce7;
+    color: #16a34a;
+}
+
+.order-status.shipped {
+    background-color: #dbeafe;
+    color: #2563eb;
+}
+
+.order-status.delivered {
+    background-color: #ede9fe;
+    color: #7c3aed;
+}
+
+.order-status.canceled {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+/* Valor do pedido */
+
+.order-total {
+    font-weight: 700;
+    color: #232f3e;
+}
+
+/* STATUS TROCAS */
+
+.exchange-status {
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.exchange-status.requested {
+    background-color: #fef9c3;
+    color: #ca8a04;
+}
+
+.exchange-status.approved {
+    background-color: #dcfce7;
+    color: #16a34a;
+}
+
+.exchange-status.refused {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+.exchange-status.finished {
+    background-color: #e0e7ff;
+    color: #4338ca;
+}

@@ -1,0 +1,85 @@
+.admin-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;   /* ALTERADO AQUI */
+
+    padding: 40px 20px;        /* espaço superior e lateral */
+    overflow-y: auto;          /* permite scroll da tela */
+
+    z-index: 9999;
+}
+
+.admin-modal {
+    background: #ffffff;
+    width: 500px;
+    max-width: 95%;
+    border-radius: 10px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+
+    animation: modalFade 0.2s ease;
+}
+
+.admin-modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.admin-modal-body {
+    padding: 20px;
+}
+
+.admin-modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.admin-form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}
+
+.admin-form-group label {
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+/* Modal grande */
+.admin-modal.large {
+    width: 900px;
+    max-width: 95%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Área do corpo com scroll */
+.admin-modal.large .admin-modal-body {
+    overflow-y: auto;
+    max-height: 70vh;
+    padding-right: 10px;
+}
+
+@keyframes modalFade {
+    from { transform: translateY(-10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
