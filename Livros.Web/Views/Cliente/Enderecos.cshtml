@@ -1,0 +1,88 @@
+﻿@model List<Endereco>
+
+<section class="address-page">
+
+    <div class="address-container">
+
+        <div class="breadcrumb">
+            Central Minha Conta / <strong>Endereços</strong>
+        </div>
+
+        <div class="address-header">
+            <h2>Endereços</h2>
+
+            <button class="btn-primary" id="openModal">
+                + Cadastrar Novo Endereço
+            </button>
+        </div>
+
+        <div class="address-grid">
+
+            @foreach (var e in Model) {
+                <div class="address-card">
+
+                    <div class="address-top">
+                        <h4>@e.NomeEndereco</h4>
+                        <!-- depois podemos fazer padrão -->
+                    </div>
+
+                    <p>@e.Logradouro, @e.Numero</p>
+                    <p>@e.Bairro.Nome - @e.Cidade.Nome/@e.Cidade.Estado.Sigla</p>
+                    <p>CEP: @e.CEP</p>
+
+                    <div class="address-actions">
+                        <a href="#">Excluir</a>
+
+                        <a asp-action="EditarEndereco" asp-route-id="@e.Id">
+                            Editar
+                        </a>
+                    </div>
+
+                </div>
+            }
+
+        </div>
+    </div>
+</section>
+
+<!-- 🔥 MODAL NOVO ENDEREÇO -->
+<div class="modal-overlay" id="addressModal">
+    <div class="modal">
+
+        <h3>Novo Endereço</h3>
+
+        <form asp-action="CadastrarEndereco" method="post">
+
+            <input type="text" name="nomeEndereco" placeholder="Nome do endereço (Ex: Casa)" required>
+            <input type="text" name="cep" placeholder="CEP" required>
+            <input type="text" name="logradouro" placeholder="Logradouro" required>
+            <input type="text" name="numero" placeholder="Número" required>
+            <input type="text" name="complemento" placeholder="Complemento">
+            <input type="text" name="bairro" placeholder="Bairro" required>
+            <input type="text" name="cidade" placeholder="Cidade" required>
+            <input type="text" name="estado" placeholder="Estado" required>
+
+            <div class="modal-actions">
+                <button type="button" id="closeModal" class="btn-secondary">Cancelar</button>
+                <button type="submit" class="btn-primary">Salvar</button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById("addressModal");
+    const openBtn = document.getElementById("openModal");
+    const closeBtn = document.getElementById("closeModal");
+
+    openBtn.onclick = () => modal.style.display = "flex";
+    closeBtn.onclick = () => modal.style.display = "none";
+
+    window.onclick = (e) => {
+        if (e.target == modal) {
+            modal.style.display = "none";
+        }
+    };
+</script>
