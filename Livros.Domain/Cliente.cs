@@ -13,5 +13,7 @@
 
         // RELACIONAMENTO
         public List<Endereco>? Enderecos { get; set; }
+
+        public bool IsAdmin { get; set; } = false;
     }
 }

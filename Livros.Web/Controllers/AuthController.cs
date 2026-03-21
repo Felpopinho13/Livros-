@@ -1,6 +1,7 @@
 ﻿using Livros.Domain;
 using Livros.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 
 public class AuthController : Controller {
     private readonly ClienteService _service;
@@ -74,6 +75,37 @@ public class AuthController : Controller {
             return View();
         }
 
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(senha)) {
+            ViewBag.Erro = "Preencha todos os campos";
+            return View();
+        }
+
+        HttpContext.Session.SetString("Usuario", cliente.Email);
+        HttpContext.Session.SetString("IsAdmin", cliente.IsAdmin.ToString());
+
+        return RedirectToAction("Index", "Home");
+    }
+
+    [HttpPost]
+    public IActionResult Cadastro(string nome, string email, string senha) {
+        if (_service.EmailExiste(email)) {
+            ViewBag.Erro = "Email já cadastrado";
+            return View();
+        }
+
+        var cliente = new Cliente {
+            Nome = nome,
+            Email = email,
+            Senha = senha
+        };
+
+        _service.Adicionar(cliente);
+
+        return RedirectToAction("Login");
+    }
+
+    public IActionResult Logout() {
+        HttpContext.Session.Clear();
         return RedirectToAction("Index", "Home");
     }
 }

@@ -1,0 +1,28 @@
+﻿@{
+    ViewData["Title"] = "Área do Cliente";
+}
+
+<section class="account-page">
+    <div class="container account-layout">
+
+        <aside class="account-menu">
+            <h3>Minha Conta</h3>
+            <ul>
+                <li><a href="#">Meus pedidos</a></li>
+                <li><a asp-controller="Cliente" asp-action="Editar">Meus dados</a></li>
+                <li><a href="#">Endereços</a></li>
+                <li><a href="#">Cartões</a></li>
+                <li><a href="#">Trocas</a></li>
+            </ul>
+        </aside>
+
+        <div class="account-content card">
+            <div class="account-inner">
+                <h2>Bem-vindo, @ViewBag.Usuario 👋</h2>
+                <p><strong>Pedidos realizados:</strong> 3</p>
+                <p><strong>Último pedido:</strong> #123456</p>
+            </div>
+        </div>
+
+    </div>
+</section>

@@ -26,5 +26,27 @@ namespace Livros.Infrastructure.Services
             return _context.Clientes
                 .FirstOrDefault(c => c.Email == email && c.Senha == senha);
         }
+
+        public Cliente BuscarPorEmail(string email) {
+            return _context.Clientes.FirstOrDefault(c => c.Email == email);
+        }
+
+        public void Atualizar(Cliente clienteAtualizado) {
+            var cliente = _context.Clientes
+                .FirstOrDefault(c => c.Id == clienteAtualizado.Id);
+
+            if (cliente == null) return;
+
+            cliente.Nome = clienteAtualizado.Nome;
+            cliente.Email = clienteAtualizado.Email;
+            cliente.Telefone = clienteAtualizado.Telefone;
+            cliente.CPF = clienteAtualizado.CPF;
+
+            _context.SaveChanges();
+        }
+
+        public bool EmailExiste(string email) {
+            return _context.Clientes.Any(c => c.Email == email);
+        }
     }
 }

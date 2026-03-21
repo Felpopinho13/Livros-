@@ -4,6 +4,7 @@ using Livros.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 🔥 SERVICES (ANTES DO BUILD)
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -11,13 +12,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<ClienteService>();
 
+builder.Services.AddSession(); // ✅ AQUI
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
+// 🔥 MIDDLEWARE
+
+if (!app.Environment.IsDevelopment()) {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -25,6 +27,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseSession(); // ✅ AQUI
 
 app.UseAuthorization();
 
