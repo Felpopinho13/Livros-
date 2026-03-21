@@ -36,6 +36,16 @@
                         <a asp-action="EditarEndereco" asp-route-id="@e.Id">
                             Editar
                         </a>
+
+                        @if (e.IsPadrao) {
+                            <span class="badge">Padrão</span>
+                        }
+
+                        @if (!e.IsPadrao) {
+                            <a asp-action="TornarPadrao" asp-route-id="@e.Id" class="make-default">
+                                Tornar padrão
+                            </a>
+                        }
                     </div>
 
                 </div>

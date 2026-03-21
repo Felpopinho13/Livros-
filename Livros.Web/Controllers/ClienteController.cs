@@ -206,4 +206,31 @@ public class ClienteController : Controller {
 
         return RedirectToAction("Enderecos");
     }
+
+    public IActionResult TornarPadrao(int id) {
+        var email = HttpContext.Session.GetString("Usuario");
+
+        var cliente = _context.Clientes
+            .Include(c => c.Enderecos)
+            .FirstOrDefault(c => c.Email == email);
+
+        if (cliente == null)
+            return RedirectToAction("Login", "Auth");
+
+        // 🔥 remove padrão atual
+        foreach (var e in cliente.Enderecos) {
+            e.IsPadrao = false;
+        }
+
+        // 🔥 define novo padrão
+        var endereco = cliente.Enderecos.FirstOrDefault(e => e.Id == id);
+
+        if (endereco != null) {
+            endereco.IsPadrao = true;
+        }
+
+        _context.SaveChanges();
+
+        return RedirectToAction("Enderecos");
+    }
 }

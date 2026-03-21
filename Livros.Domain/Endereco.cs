@@ -9,6 +9,8 @@ public class Endereco {
     public string Numero { get; set; }
     public string? Complemento { get; set; }
 
+    public bool IsPadrao { get; set; } = false;
+
     // RELACIONAMENTOS
     public int CidadeId { get; set; }
     public Cidade Cidade { get; set; }
