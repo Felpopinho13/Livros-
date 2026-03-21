@@ -255,4 +255,70 @@ public class ClienteController : Controller {
 
         return RedirectToAction("Enderecos");
     }
+
+    public IActionResult Cartoes() {
+        var email = HttpContext.Session.GetString("Usuario");
+
+        var cliente = _context.Clientes
+            .Include(c => c.Cartoes)
+            .FirstOrDefault(c => c.Email == email);
+
+        return View(cliente.Cartoes.ToList());
+    }
+
+    [HttpPost]
+    public IActionResult CadastrarCartao(
+    string nome,
+    string numero,
+    string validade,
+    string cvv) {
+        var email = HttpContext.Session.GetString("Usuario");
+
+        var cliente = _context.Clientes.FirstOrDefault(c => c.Email == email);
+
+        var cartao = new Cartao {
+            NomeImpresso = nome,
+            Numero = numero,
+            Validade = validade,
+            CVV = cvv,
+            ClienteId = cliente.Id
+        };
+
+        _context.Cartoes.Add(cartao);
+        _context.SaveChanges();
+
+        return RedirectToAction("Cartoes");
+    }
+
+    public IActionResult TornarCartaoPadrao(int id) {
+        var email = HttpContext.Session.GetString("Usuario");
+
+        var cliente = _context.Clientes
+            .Include(c => c.Cartoes)
+            .FirstOrDefault(c => c.Email == email);
+
+        foreach (var c in cliente.Cartoes)
+            c.IsPadrao = false;
+
+        var cartao = cliente.Cartoes.FirstOrDefault(c => c.Id == id);
+
+        if (cartao != null)
+            cartao.IsPadrao = true;
+
+        _context.SaveChanges();
+
+        return RedirectToAction("Cartoes");
+    }
+
+    [HttpPost]
+    public IActionResult ExcluirCartao(int id) {
+        var cartao = _context.Cartoes.FirstOrDefault(c => c.Id == id);
+
+        if (cartao != null) {
+            _context.Cartoes.Remove(cartao);
+            _context.SaveChanges();
+        }
+
+        return RedirectToAction("Cartoes");
+    }
 }
