@@ -156,20 +156,22 @@
     gap: 15px;
 }
 
-.btn-logout {
+.nav-icons .btn-logout {
     background: transparent;
-    border: 1px solid #d33;
-    color: #d33;
-    padding: 6px 12px;
+    border: 1px solid #ff4d4f;
+    color: #ff4d4f;
+    padding: 4px 10px;
+    font-size: 13px;
     border-radius: 6px;
     cursor: pointer;
     transition: 0.3s;
+    text-decoration: none;
 }
 
-.btn-logout:hover {
-    background: #d33;
-    color: #fff;
-}
+    .nav-icons .btn-logout:hover {
+        background: #ff4d4f;
+        color: #fff;
+    }
 
 .btn-wishlist {
     position: absolute;
