@@ -233,4 +233,26 @@ public class ClienteController : Controller {
 
         return RedirectToAction("Enderecos");
     }
+
+    [HttpPost]
+    public IActionResult ExcluirEndereco(int id) {
+        var email = HttpContext.Session.GetString("Usuario");
+
+        if (email == null)
+            return RedirectToAction("Login", "Auth");
+
+        var endereco = _context.Enderecos
+            .Include(e => e.Cliente)
+            .FirstOrDefault(e => e.Id == id && e.Cliente.Email == email);
+
+        if (endereco == null)
+            return NotFound();
+
+        _context.Enderecos.Remove(endereco);
+        _context.SaveChanges();
+
+        TempData["Sucesso"] = "Endereço excluído com sucesso!";
+
+        return RedirectToAction("Enderecos");
+    }
 }

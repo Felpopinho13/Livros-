@@ -31,7 +31,13 @@
                     <p>CEP: @e.CEP</p>
 
                     <div class="address-actions">
-                        <a href="#">Excluir</a>
+                        <form asp-action="ExcluirEndereco" method="post" style="display:inline;">
+                            <input type="hidden" name="id" value="@e.Id" />
+                            <button type="submit" class="link-button"
+                                    onclick="return confirm('Tem certeza que deseja excluir este endereço?');">
+                                Excluir
+                            </button>
+                        </form>
 
                         <a asp-action="EditarEndereco" asp-route-id="@e.Id">
                             Editar

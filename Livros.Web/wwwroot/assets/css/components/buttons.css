@@ -196,7 +196,6 @@
     color: red;
 }
 
-/* Botão Outline Secundário */
 .btn-outline {
     background: transparent;
     border: 1px solid #007185;
@@ -209,11 +208,18 @@
     border-color: #bbb;
 }
 
-/* Tamanho menor */
 .btn-sm {
     padding: 10px 18px;
     font-size: 14px;
     border-radius: 8px;
+}
+
+.link-button {
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    padding: 0;
 }
 
 /* Responsividade para botões em coluna */

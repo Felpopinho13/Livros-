@@ -4,8 +4,6 @@
 
 }
 
-
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -21,7 +19,9 @@
 
     <header class="header">
         <div class="container">
-            <div class="logo">BookStore</div>
+            <a asp-controller="Home" asp-action="Index" class="logo">
+                BookStore
+            </a>
 
             <form class="search-box">
                 <input type="text" placeholder="Buscar livros..." class="input">
