@@ -5,6 +5,7 @@
 }
 
 <section class="edit-profile-page">
+
     <div class="edit-profile-container">
         <h2>Editar Dados</h2>
         @if (TempData["Sucesso"] != null) {
@@ -12,6 +13,13 @@
                 @TempData["Sucesso"]
             </div>
         }
+
+        <div class="breadcrumb">
+            <a asp-controller="Cliente" asp-action="AreaCliente">
+                Central Minha Conta
+            </a>
+            / <strong>Meus dados</strong>
+        </div>
 
         <form asp-action="Editar" method="post" class="edit-profile-form">
 

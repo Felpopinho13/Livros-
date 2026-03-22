@@ -5,7 +5,10 @@
     <div class="address-container">
 
         <div class="breadcrumb">
-            Central Minha Conta / <strong>Endereços</strong>
+            <a asp-controller="Cliente" asp-action="AreaCliente">
+                Central Minha Conta
+            </a>
+            / <strong>Endereços</strong>
         </div>
 
         <div class="address-header">
@@ -23,7 +26,6 @@
 
                     <div class="address-top">
                         <h4>@e.NomeEndereco</h4>
-                        <!-- depois podemos fazer padrão -->
                     </div>
 
                     <p>@e.Logradouro, @e.Numero</p>
@@ -33,13 +35,14 @@
                     <div class="address-actions">
                         <form asp-action="ExcluirEndereco" method="post" style="display:inline;">
                             <input type="hidden" name="id" value="@e.Id" />
-                            <button type="submit" class="link-button"
+                            <button type="submit" class="btn-danger btn-sm"
                                     onclick="return confirm('Tem certeza que deseja excluir este endereço?');">
                                 Excluir
                             </button>
                         </form>
 
-                        <a asp-action="EditarEndereco" asp-route-id="@e.Id">
+                        <a asp-action="EditarEndereco" asp-route-id="@e.Id"
+                           class="btn-outline btn-sm">
                             Editar
                         </a>
 
