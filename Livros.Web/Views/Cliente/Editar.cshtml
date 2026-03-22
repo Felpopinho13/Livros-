@@ -3,6 +3,11 @@
 @{
     ViewData["Title"] = "Editar Dados";
 }
+@if (TempData["Erro"] != null) {
+    <div class="alert-error">
+        @TempData["Erro"]
+    </div>
+}
 
 <section class="edit-profile-page">
 
@@ -49,13 +54,73 @@
                 Salvar Alterações
             </button>
 
+            <button type="button" class="btn-outline btn-profile" id="openSenhaModal">
+                Alterar Senha
+            </button>
+
         </form>
     </div>
 </section>
+<div class="modal-overlay" id="senhaModal">
+    <div class="modal">
+
+        <h3>Alterar Senha</h3>
+
+        <form asp-action="AlterarSenha" method="post" onsubmit="return validarSenha()">
+
+            <input type="password" name="novaSenha" id="novaSenha" placeholder="Nova senha" required>
+            <input type="password" name="confirmarSenha" id="confirmarSenha" placeholder="Confirmar senha" required>
+
+            <div class="modal-actions">
+                <button type="button" id="closeSenhaModal" class="btn-secondary">
+                    Cancelar
+                </button>
+
+                <button type="submit" class="btn-primary">
+                    Salvar
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
 
 <script>
     setTimeout(() => {
         const alert = document.querySelector('.alert-success');
         if (alert) alert.style.display = 'none';
     }, 3000);
+
+    const senhaModal = document.getElementById("senhaModal");
+    const openSenhaBtn = document.getElementById("openSenhaModal");
+    const closeSenhaBtn = document.getElementById("closeSenhaModal");
+
+    openSenhaBtn.onclick = () => senhaModal.style.display = "flex";
+    closeSenhaBtn.onclick = () => senhaModal.style.display = "none";
+
+    function validarSenha() {
+        const senha = document.getElementById("novaSenha").value;
+        const confirmar = document.getElementById("confirmarSenha").value;
+
+        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$/;
+
+        if (!regex.test(senha)) {
+            alert("A senha deve ter no mínimo 8 caracteres, letras maiúsculas, minúsculas e símbolo.");
+            return false;
+        }
+
+        if (senha !== confirmar) {
+            alert("As senhas não coincidem!");
+            return false;
+        }
+
+        return true;
+    }
+
+    window.onclick = (e) => {
+        if (e.target == senhaModal) {
+            senhaModal.style.display = "none";
+        }
+    };
 </script>

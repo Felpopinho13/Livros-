@@ -150,6 +150,14 @@
     font-weight: 500;
 }
 
+.alert-error {
+    background: #ffe5e5;
+    color: #c00;
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
 @keyframes modalFade {
     from {
         transform: scale(0.95);

@@ -23,8 +23,15 @@ namespace Livros.Infrastructure.Services
             _context.SaveChanges();
         }
         public Cliente BuscarPorEmailESenha(string email, string senha) {
-            return _context.Clientes
-                .FirstOrDefault(c => c.Email == email && c.Senha == senha);
+            var cliente = _context.Clientes.FirstOrDefault(c => c.Email == email);
+
+            if (cliente == null)
+                return null;
+
+            if (!BCrypt.Net.BCrypt.Verify(senha, cliente.Senha))
+                return null;
+
+            return cliente;
         }
 
         public Cliente BuscarPorEmail(string email) {

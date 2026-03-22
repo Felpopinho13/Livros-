@@ -1,121 +1,60 @@
-document.addEventListener("DOMContentLoaded", function () {
+// 🔥 MODAL
+const modal = document.getElementById("cardModal");
+const openBtn = document.getElementById("openCardModal");
+const closeBtn = document.getElementById("closeCardModal");
 
-    const grid = document.querySelector(".wallet-grid");
-    const modal = document.getElementById("cardModal");
-    const openBtn = document.querySelector(".wallet-header .btn-primary");
-    const closeBtn = document.getElementById("closeCardModal");
-    const form = document.getElementById("cardForm");
+if (openBtn && closeBtn && modal) {
+    openBtn.onclick = () => modal.style.display = "flex";
+    closeBtn.onclick = () => modal.style.display = "none";
+}
 
-    // =========================
-    // ABRIR / FECHAR MODAL
-    // =========================
-    openBtn.addEventListener("click", function () {
-        modal.classList.add("active");
+// 🔥 NÚMERO DO CARTÃO
+const numeroInput = document.getElementById("numeroCartao");
+
+if (numeroInput) {
+    numeroInput.addEventListener("input", function (e) {
+        let valor = e.target.value.replace(/\D/g, "");
+
+        valor = valor.substring(0, 16);
+
+        valor = valor.replace(/(\d{4})(?=\d)/g, "$1 ");
+
+        e.target.value = valor;
     });
+}
 
-    closeBtn.addEventListener("click", function () {
-        modal.classList.remove("active");
-    });
+// 🔥 VALIDADE (MM/AA)
+const validadeInput = document.getElementById("validadeCartao");
 
-    // =========================
-    // MÁSCARA NÚMERO CARTÃO
-    // =========================
-    form.numero.addEventListener("input", function (e) {
-        let value = e.target.value.replace(/\D/g, "");
-        value = value.replace(/(\d{4})/g, "$1 ").trim();
-        e.target.value = value;
-    });
+if (validadeInput) {
+    validadeInput.addEventListener("input", function (e) {
+        let valor = e.target.value.replace(/\D/g, "");
 
-    // =========================
-    // CADASTRAR CARTÃO
-    // =========================
-    form.addEventListener("submit", function (e) {
-        e.preventDefault();
+        valor = valor.substring(0, 4);
 
-        const nome = form.nome.value;
-        const numero = form.numero.value;
-        const validade = form.validade.value;
+        // valida mês
+        if (valor.length >= 2) {
+            let mes = parseInt(valor.substring(0, 2));
 
-        const finalDigits = numero.replace(/\s/g, "").slice(-4);
-
-        const card = document.createElement("div");
-        card.classList.add("wallet-card");
-
-        card.innerHTML = `
-            <div class="wallet-card-top">
-                <strong>${nome}</strong>
-            </div>
-
-            <p>**** **** **** ${finalDigits}</p>
-            <p>Vence em ${validade}</p>
-
-            <div class="wallet-actions">
-                <a href="#">Remover</a>
-                <a href="#" class="make-default">Tornar padrão</a>
-            </div>
-        `;
-
-        grid.appendChild(card);
-
-        // Se for o primeiro cartão, já torna padrão
-        if (!document.querySelector(".wallet-card.primary")) {
-            card.classList.add("primary");
-
-            const header = card.querySelector(".wallet-card-top");
-            const badge = document.createElement("span");
-            badge.classList.add("badge");
-            badge.innerText = "Padrão";
-            header.appendChild(badge);
-
-            const btn = card.querySelector(".make-default");
-            if (btn) btn.remove();
+            if (mes < 1 || mes > 12) {
+                valor = "";
+            }
         }
 
-        modal.classList.remove("active");
-        form.reset();
-    });
-
-    // =========================
-    // TORNAR PADRÃO
-    // =========================
-    grid.addEventListener("click", function (e) {
-
-        if (!e.target.classList.contains("make-default")) return;
-
-        e.preventDefault();
-
-        const newCard = e.target.closest(".wallet-card");
-        const currentPrimary = document.querySelector(".wallet-card.primary");
-
-        if (newCard === currentPrimary) return;
-
-        if (currentPrimary) {
-            currentPrimary.classList.remove("primary");
-
-            const oldBadge = currentPrimary.querySelector(".badge");
-            if (oldBadge) oldBadge.remove();
-
-            const actions = currentPrimary.querySelector(".wallet-actions");
-
-            const btn = document.createElement("a");
-            btn.href = "#";
-            btn.classList.add("make-default");
-            btn.innerText = "Tornar padrão";
-
-            actions.appendChild(btn);
+        if (valor.length >= 3) {
+            valor = valor.replace(/(\d{2})(\d{1,2})/, "$1/$2");
         }
 
-        newCard.classList.add("primary");
-
-        const header = newCard.querySelector(".wallet-card-top");
-
-        const badge = document.createElement("span");
-        badge.classList.add("badge");
-        badge.innerText = "Padrão";
-
-        header.appendChild(badge);
-
-        e.target.remove();
+        e.target.value = valor;
     });
+}
 
-});
+// 🔥 CVV
+const cvvInput = document.getElementById("cvvCartao");
+
+if (cvvInput) {
+    cvvInput.addEventListener("input", function (e) {
+        let valor = e.target.value.replace(/\D/g, "");
+        e.target.value = valor.substring(0, 3);
+    });
+}

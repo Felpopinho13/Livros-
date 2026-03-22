@@ -321,4 +321,36 @@ public class ClienteController : Controller {
 
         return RedirectToAction("Cartoes");
     }
+
+    [HttpPost]
+    public IActionResult AlterarSenha(string novaSenha, string confirmarSenha) {
+        if (novaSenha != confirmarSenha) {
+            TempData["Erro"] = "As senhas não coincidem.";
+            return RedirectToAction("Editar");
+        }
+
+        // Regex de senha forte
+        var regex = new System.Text.RegularExpressions.Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$");
+
+        if (!regex.IsMatch(novaSenha)) {
+            TempData["Erro"] = "Senha fraca. Use maiúsculas, minúsculas, símbolo e mínimo 8 caracteres.";
+            return RedirectToAction("Editar");
+        }
+
+        var email = HttpContext.Session.GetString("Usuario");
+
+        var cliente = _context.Clientes.FirstOrDefault(c => c.Email == email);
+
+        if (cliente == null)
+            return RedirectToAction("Login", "Auth");
+
+        // 🔐 CRIPTOGRAFIA
+        cliente.Senha = BCrypt.Net.BCrypt.HashPassword(novaSenha);
+
+        _context.SaveChanges();
+
+        TempData["Sucesso"] = "Senha alterada com sucesso!";
+
+        return RedirectToAction("Editar");
+    }
 }

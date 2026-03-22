@@ -43,7 +43,7 @@ public class AuthController : Controller {
         var cliente = new Cliente {
             Nome = nome,
             Email = email,
-            Senha = senha,
+            Senha = BCrypt.Net.BCrypt.HashPassword(senha),
             CPF = cpf,
             Telefone = telefone,
             Genero = genero,

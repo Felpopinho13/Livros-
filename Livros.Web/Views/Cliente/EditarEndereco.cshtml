@@ -11,7 +11,11 @@
     <div class="address-edit-container">
 
         <div class="breadcrumb">
-            Central Minha Conta › Endereços › <strong>Editar</strong>
+            <a asp-controller="Cliente" asp-action="AreaCliente">
+                Central Minha Conta
+            </a>
+            / <a asp-controller="Cliente" asp-action="Enderecos">Meus Endereços</a>
+            / <strong>Editar Endereço</strong>
         </div>
 
         <h2>Editar Endereço</h2>
