@@ -13,6 +13,17 @@
                 <li><a asp-controller="Cliente" asp-action="Enderecos">Endereços</a></li>
                 <li><a asp-controller="Cliente" asp-action="Cartoes">Cartões</a></li>
                 <li><a href="#">Trocas</a></li>
+                <li>
+                    <form asp-controller="Cliente"
+                          asp-action="ExcluirConta"
+                          method="post"
+                          onsubmit="return confirm('Tem certeza que deseja excluir sua conta? Essa ação não pode ser desfeita.');">
+
+                        <button type="submit" class="btn-danger btn-sm btn-block">
+                            Excluir conta
+                        </button>
+                    </form>
+                </li>
             </ul>
         </aside>
 

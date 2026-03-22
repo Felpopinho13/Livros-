@@ -17,5 +17,7 @@
         public bool IsAdmin { get; set; } = false;
 
         public List<Cartao>? Cartoes { get; set; }
+
+        public bool IsAtivo { get; set; } = true;
     }
 }

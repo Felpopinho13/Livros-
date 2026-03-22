@@ -14,7 +14,9 @@ namespace Livros.Infrastructure.Services
 
         public List<Cliente> Listar()
         {
-            return _context.Clientes.ToList();
+            return _context.Clientes
+                    .Where(c => c.IsAtivo)
+                    .ToList();
         }
 
         public void Adicionar(Cliente cliente)
@@ -23,8 +25,8 @@ namespace Livros.Infrastructure.Services
             _context.SaveChanges();
         }
         public Cliente BuscarPorEmailESenha(string email, string senha) {
-            var cliente = _context.Clientes.FirstOrDefault(c => c.Email == email);
-
+            var cliente = _context.Clientes
+                .FirstOrDefault(c => c.Email == email && c.IsAtivo);
             if (cliente == null)
                 return null;
 
@@ -53,7 +55,7 @@ namespace Livros.Infrastructure.Services
         }
 
         public bool EmailExiste(string email) {
-            return _context.Clientes.Any(c => c.Email == email);
+            return _context.Clientes.Any(c => c.Email == email && c.IsAtivo);
         }
     }
 }

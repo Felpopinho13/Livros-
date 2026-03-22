@@ -52,6 +52,28 @@ public class ClienteController : Controller {
         return RedirectToAction("Editar");
     }
 
+    [HttpPost]
+    public IActionResult ExcluirConta() {
+        var email = HttpContext.Session.GetString("Usuario");
+
+        if (email == null)
+            return RedirectToAction("Login", "Auth");
+
+        var cliente = _context.Clientes
+            .FirstOrDefault(c => c.Email == email);
+
+        if (cliente == null)
+            return NotFound();
+
+        cliente.IsAtivo = false;
+
+        _context.SaveChanges();
+
+        HttpContext.Session.Clear();
+
+        return RedirectToAction("Index", "Home");
+    }
+
     public IActionResult EditarEndereco(int id) {
         var endereco = _context.Enderecos
             .Include(e => e.Bairro)
