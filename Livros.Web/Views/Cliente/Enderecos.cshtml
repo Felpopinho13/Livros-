@@ -72,14 +72,78 @@
 
         <form asp-action="CadastrarEndereco" method="post">
 
-            <input type="text" name="nomeEndereco" placeholder="Nome do endereço (Ex: Casa)" required>
-            <input type="text" name="cep" placeholder="CEP" required>
-            <input type="text" name="logradouro" placeholder="Logradouro" required>
-            <input type="text" name="numero" placeholder="Número" required>
-            <input type="text" name="complemento" placeholder="Complemento">
-            <input type="text" name="bairro" placeholder="Bairro" required>
-            <input type="text" name="cidade" placeholder="Cidade" required>
-            <input type="text" name="estado" placeholder="Estado" required>
+            <input type="text"
+                   name="nomeEndereco"
+                   placeholder="Nome do endereço (Ex: Casa)"
+                   maxlength="50"
+                   required>
+
+            <input type="text"
+                   name="cep"
+                   placeholder="CEP"
+                   maxlength="9"
+                   pattern="\d{5}-\d{3}"
+                   required>
+
+            <input type="text"
+                   name="logradouro"
+                   placeholder="Logradouro"
+                   maxlength="100"
+                   required>
+
+            <input type="text"
+                   name="numero"
+                   placeholder="Número"
+                   maxlength="10"
+                   required>
+
+            <input type="text"
+                   name="complemento"
+                   placeholder="Complemento"
+                   maxlength="50">
+
+            <input type="text"
+                   name="bairro"
+                   placeholder="Bairro"
+                   maxlength="50"
+                   required>
+
+            <input type="text"
+                   name="cidade"
+                   placeholder="Cidade"
+                   maxlength="50"
+                   required>
+
+            <select name="estado" id="estado">
+                <option value="">Selecione</option>
+                <option>AC</option>
+                <option>AL</option>
+                <option>AP</option>
+                <option>AM</option>
+                <option>BA</option>
+                <option>CE</option>
+                <option>DF</option>
+                <option>ES</option>
+                <option>GO</option>
+                <option>MA</option>
+                <option>MT</option>
+                <option>MS</option>
+                <option>MG</option>
+                <option>PA</option>
+                <option>PB</option>
+                <option>PR</option>
+                <option>PE</option>
+                <option>PI</option>
+                <option>RJ</option>
+                <option>RN</option>
+                <option>RS</option>
+                <option>RO</option>
+                <option>RR</option>
+                <option>SC</option>
+                <option>SP</option>
+                <option>SE</option>
+                <option>TO</option>
+            </select>
 
             <div class="modal-actions">
                 <button type="button" id="closeModal" class="btn-secondary">Cancelar</button>
@@ -91,17 +155,4 @@
     </div>
 </div>
 
-<script>
-    const modal = document.getElementById("addressModal");
-    const openBtn = document.getElementById("openModal");
-    const closeBtn = document.getElementById("closeModal");
-
-    openBtn.onclick = () => modal.style.display = "flex";
-    closeBtn.onclick = () => modal.style.display = "none";
-
-    window.onclick = (e) => {
-        if (e.target == modal) {
-            modal.style.display = "none";
-        }
-    };
-</script>
+<script src="~/assets/js/endereco.js"></script>

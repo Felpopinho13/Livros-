@@ -55,6 +55,11 @@
                 <div class="form-group">
                     <label>Senha</label>
                     <input type="password" name="senha" placeholder="Crie uma senha segura" required>
+
+                    <small class="password-hint">
+                        A senha deve conter no mínimo 8 caracteres, incluindo letra maiúscula,
+                        minúscula e um símbolo.
+                    </small>
                 </div>
 
                 <h3 class="section-title">Endereço</h3>
@@ -67,7 +72,7 @@
 
                     <div class="form-group">
                         <label>CEP</label>
-                        <input type="text" name="cep" id="cep">
+                        <input type="text" name="cep" id="cep" maxlength="9" pattern="\d{5}-\d{3}">
                     </div>
                 </div>
 
@@ -79,7 +84,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Número</label>
-                        <input type="text" name="numero">
+                        <input type="text" name="numero" maxlength="10">
                     </div>
 
                     <div class="form-group">

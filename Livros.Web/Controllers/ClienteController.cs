@@ -47,6 +47,8 @@ public class ClienteController : Controller {
     public IActionResult Editar(Cliente cliente) {
         _service.Atualizar(cliente);
 
+        HttpContext.Session.SetString("Usuario", cliente.Email);
+
         TempData["Sucesso"] = "Dados atualizados com sucesso!";
 
         return RedirectToAction("Editar");
@@ -156,12 +158,14 @@ public class ClienteController : Controller {
 
         var cliente = _context.Clientes
             .Include(c => c.Enderecos)
-                .ThenInclude(e => e.Bairro)
-                    .ThenInclude(b => b.Cidade)
-            .Include(c => c.Enderecos)
                 .ThenInclude(e => e.Cidade)
                     .ThenInclude(c => c.Estado)
+            .Include(c => c.Enderecos)
+                .ThenInclude(e => e.Bairro)
             .FirstOrDefault(c => c.Email == email);
+
+        if (cliente == null)
+            return RedirectToAction("Login", "Auth"); // 🔥 evita crash
 
         return View(cliente.Enderecos.ToList());
     }

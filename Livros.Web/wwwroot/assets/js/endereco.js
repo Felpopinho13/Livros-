@@ -1,108 +1,37 @@
-document.addEventListener("DOMContentLoaded", function () {
+// MODAL
+const modal = document.getElementById("addressModal");
+const openBtn = document.getElementById("openModal");
+const closeBtn = document.getElementById("closeModal");
 
-    const grid = document.querySelector(".address-grid");
-    const modal = document.getElementById("addressModal");
-    const openBtn = document.querySelector(".address-header .btn-primary");
-    const closeBtn = document.getElementById("closeModal");
-    const form = document.getElementById("addressForm");
+if (openBtn) openBtn.onclick = () => modal.style.display = "flex";
+if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
 
-    // =========================
-    // TORNAR PADRÃO
-    // =========================
-    grid.addEventListener("click", function (e) {
+window.onclick = (e) => {
+    if (e.target == modal) modal.style.display = "none";
+};
 
-        if (!e.target.classList.contains("make-default")) return;
+// 🔥 CEP (00000-000)
+const cepInput = document.querySelector("input[name='cep']");
 
-        e.preventDefault();
+if (cepInput) {
+    cepInput.addEventListener("input", function (e) {
+        let valor = e.target.value.replace(/\D/g, "");
+        valor = valor.substring(0, 8);
 
-        const newCard = e.target.closest(".address-card");
-        const currentPrimary = document.querySelector(".address-card.primary");
-
-        if (newCard === currentPrimary) return;
-
-        if (currentPrimary) {
-            currentPrimary.classList.remove("primary");
-
-            const oldBadge = currentPrimary.querySelector(".badge");
-            if (oldBadge) oldBadge.remove();
-
-            const actions = currentPrimary.querySelector(".address-actions");
-
-            const btn = document.createElement("a");
-            btn.href = "#";
-            btn.classList.add("make-default");
-            btn.innerText = "Tornar padrão";
-
-            actions.appendChild(btn);
+        if (valor.length > 5) {
+            valor = valor.replace(/(\d{5})(\d+)/, "$1-$2");
         }
 
-        newCard.classList.add("primary");
-
-        let header = newCard.querySelector(".address-top");
-
-        if (!header) {
-            const h4 = newCard.querySelector("h4");
-
-            header = document.createElement("div");
-            header.classList.add("address-top");
-
-            newCard.insertBefore(header, newCard.firstChild);
-            header.appendChild(h4);
-        }
-
-        const badge = document.createElement("span");
-        badge.classList.add("badge");
-        badge.innerText = "Padrão";
-
-        header.appendChild(badge);
-
-        e.target.remove();
+        e.target.value = valor;
     });
+}
 
-    // =========================
-    // MODAL
-    // =========================
-    openBtn.addEventListener("click", function () {
-        modal.classList.add("active");
+// 🔥 ESTADO (SP)
+const estadoInput = document.querySelector("input[name='estado']");
+
+if (estadoInput) {
+    estadoInput.addEventListener("input", function (e) {
+        let valor = e.target.value.replace(/[^a-zA-Z]/g, "");
+        e.target.value = valor.toUpperCase().substring(0, 2);
     });
-
-    closeBtn.addEventListener("click", function () {
-        modal.classList.remove("active");
-    });
-
-    form.addEventListener("submit", function (e) {
-        e.preventDefault();
-
-        const nome = form.nome.value;
-        const cep = form.cep.value;
-        const logradouro = form.logradouro.value;
-        const numero = form.numero.value;
-        const complemento = form.complemento.value;
-        const bairro = form.bairro.value;
-        const cidade = form.cidade.value;
-        const estado = form.estado.value;
-
-        const card = document.createElement("div");
-        card.classList.add("address-card");
-
-        card.innerHTML = `
-            <h4>${nome}</h4>
-            <p>${logradouro}, ${numero}${complemento ? " - " + complemento : ""}</p>
-            <p>${bairro}</p>
-            <p>${cidade} - ${estado}</p>
-            <p>CEP: ${cep}</p>
-
-            <div class="address-actions">
-                <a href="#">Excluir</a>
-                <a href="editar-endereco.html">Editar</a>
-                <a href="#" class="make-default">Tornar padrão</a>
-            </div>
-        `;
-
-        grid.appendChild(card);
-
-        modal.classList.remove("active");
-        form.reset();
-    });
-
-});
+}

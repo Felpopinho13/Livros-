@@ -42,12 +42,12 @@
 
             <div class="form-group">
                 <label>Telefone</label>
-                <input type="text" asp-for="Telefone">
+                <input type="text" asp-for="Telefone" maxlength="15">
             </div>
 
             <div class="form-group">
                 <label>CPF</label>
-                <input type="text" asp-for="CPF">
+                <input type="text" asp-for="CPF" maxlength="14" pattern="\d{3}\.\d{3}\.\d{3}-\d{2}">
             </div>
 
             <button type="submit" class="btn-primary btn-profile">
@@ -86,41 +86,5 @@
     </div>
 </div>
 
-<script>
-    setTimeout(() => {
-        const alert = document.querySelector('.alert-success');
-        if (alert) alert.style.display = 'none';
-    }, 3000);
 
-    const senhaModal = document.getElementById("senhaModal");
-    const openSenhaBtn = document.getElementById("openSenhaModal");
-    const closeSenhaBtn = document.getElementById("closeSenhaModal");
-
-    openSenhaBtn.onclick = () => senhaModal.style.display = "flex";
-    closeSenhaBtn.onclick = () => senhaModal.style.display = "none";
-
-    function validarSenha() {
-        const senha = document.getElementById("novaSenha").value;
-        const confirmar = document.getElementById("confirmarSenha").value;
-
-        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$/;
-
-        if (!regex.test(senha)) {
-            alert("A senha deve ter no mínimo 8 caracteres, letras maiúsculas, minúsculas e símbolo.");
-            return false;
-        }
-
-        if (senha !== confirmar) {
-            alert("As senhas não coincidem!");
-            return false;
-        }
-
-        return true;
-    }
-
-    window.onclick = (e) => {
-        if (e.target == senhaModal) {
-            senhaModal.style.display = "none";
-        }
-    };
-</script>
+<script src="~/assets/js/cliente.js"></script>
