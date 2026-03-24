@@ -112,14 +112,12 @@ public class ClienteController : Controller {
         if (endereco == null)
             return NotFound();
 
-        // Atualiza dados básicos
         endereco.NomeEndereco = vm.NomeEndereco;
         endereco.CEP = vm.CEP;
         endereco.Logradouro = vm.Logradouro;
         endereco.Numero = vm.Numero;
         endereco.Complemento = vm.Complemento;
 
-        // 🔥 Atualiza cidade/bairro (mesma lógica do cadastro)
         var estado = _context.Estados.FirstOrDefault(e => e.Sigla == vm.Estado);
 
         var cidade = _context.Cidades
@@ -165,7 +163,7 @@ public class ClienteController : Controller {
             .FirstOrDefault(c => c.Email == email);
 
         if (cliente == null)
-            return RedirectToAction("Login", "Auth"); // 🔥 evita crash
+            return RedirectToAction("Login", "Auth"); 
 
         return View(cliente.Enderecos.ToList());
     }
@@ -184,36 +182,29 @@ public class ClienteController : Controller {
 
         var cliente = _context.Clientes.FirstOrDefault(c => c.Email == email);
 
-        // 🔥 Estado
         var estadoEntity = _context.Estados.FirstOrDefault(e => e.Sigla == estado);
-
         if (estadoEntity == null) {
             estadoEntity = new Estado { Nome = estado, Sigla = estado };
             _context.Estados.Add(estadoEntity);
             _context.SaveChanges();
         }
 
-        // 🔥 Cidade
         var cidadeEntity = _context.Cidades
             .FirstOrDefault(c => c.Nome == cidade && c.EstadoId == estadoEntity.Id);
-
         if (cidadeEntity == null) {
             cidadeEntity = new Cidade { Nome = cidade, EstadoId = estadoEntity.Id };
             _context.Cidades.Add(cidadeEntity);
             _context.SaveChanges();
         }
 
-        // 🔥 Bairro
         var bairroEntity = _context.Bairros
             .FirstOrDefault(b => b.Nome == bairro && b.CidadeId == cidadeEntity.Id);
-
         if (bairroEntity == null) {
             bairroEntity = new Bairro { Nome = bairro, CidadeId = cidadeEntity.Id };
             _context.Bairros.Add(bairroEntity);
             _context.SaveChanges();
         }
 
-        // 🔥 Endereço
         var endereco = new Endereco {
             NomeEndereco = nomeEndereco,
             CEP = cep,
@@ -243,12 +234,10 @@ public class ClienteController : Controller {
         if (cliente == null)
             return RedirectToAction("Login", "Auth");
 
-        // 🔥 remove padrão atual
         foreach (var e in cliente.Enderecos) {
             e.IsPadrao = false;
         }
 
-        // 🔥 define novo padrão
         var endereco = cliente.Enderecos.FirstOrDefault(e => e.Id == id);
 
         if (endereco != null) {
@@ -370,7 +359,7 @@ public class ClienteController : Controller {
         if (cliente == null)
             return RedirectToAction("Login", "Auth");
 
-        // 🔐 CRIPTOGRAFIA
+        // CRIPTOGRAFIA
         cliente.Senha = BCrypt.Net.BCrypt.HashPassword(novaSenha);
 
         _context.SaveChanges();

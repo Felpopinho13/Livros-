@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin</title>
+
+    <link rel="stylesheet" href="~/assets/css/main.css">
+    <link rel="stylesheet" href="~/assets/css/admin/admin-layout.css">
+</head>
+
+<body class="admin-body">
+
+    <div class="admin-layout">
+
+        <!-- SIDEBAR -->
+        <aside class="admin-sidebar">
+            <div class="admin-logo">
+                <h2>Painel Admin</h2>
+            </div>
+
+            <nav class="admin-menu">
+                <a asp-controller="Admin" asp-action="Dashboard">Dashboard</a>
+                <a asp-controller="Admin" asp-action="Clientes">Clientes</a>
+                <a href="#">Livros</a>
+                <a href="#">Estoque</a>
+                <a href="#">Pedidos</a>
+                <a href="#">Trocas</a>
+                <a href="#">Análise de Vendas</a>
+            </nav>
+
+            <div class="admin-back-store">
+                <a asp-controller="Home" asp-action="Index">
+                    ← Voltar para Loja
+                </a>
+            </div>
+        </aside>
+
+        <!-- CONTEÚDO -->
+        <div class="admin-main">
+
+            <header class="admin-header">
+                <h1>@ViewData["Title"]</h1>
+                <div class="admin-user">
+                    <span>Administrador</span>
+                </div>
+            </header>
+
+            <section class="admin-content">
+                <div class="admin-container">
+                    @RenderBody()
+                </div>
+            </section>
+
+        </div>
+
+    </div>
+
+    @RenderSection("Scripts", required: false)
+
+</body>
+</html>

@@ -1,0 +1,372 @@
+﻿@model List<Livros.Domain.Cliente>
+
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Clientes";
+}
+
+<div class="admin-page-header">
+    <h2>Clientes</h2>
+
+    <button class="btn-primary" id="openClienteModal">
+        + Novo Cliente
+    </button>
+</div>
+
+<div class="admin-table-wrapper">
+    <form method="get" asp-action="Clientes" class="admin-filters">
+
+        <input type="text"
+               name="busca"
+               value="@Context.Request.Query["busca"]"
+               placeholder="Buscar cliente..."
+               class="admin-input" />
+
+        <select name="status" class="admin-select">
+            <option value="">Todos</option>
+            <option value="ativo" selected="@(Context.Request.Query["status"] == "ativo")">Ativos</option>
+            <option value="inativo" selected="@(Context.Request.Query["status"] == "inativo")">Inativos</option>
+        </select>
+
+        <select name="admin" class="admin-select">
+            <option value="">Todos</option>
+            <option value="true" selected="@(Context.Request.Query["admin"] == "true")">Admins</option>
+            <option value="false" selected="@(Context.Request.Query["admin"] == "false")">Clientes</option>
+        </select>
+
+        <button type="submit" class="btn-primary btn-sm admin-filters">
+            Filtrar
+        </button>
+
+    </form>
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Any()) {
+                <tr>
+                    <td colspan="5" style="text-align:center; color:red; font-weight:600;">
+                        Cliente não encontrado
+                    </td>
+                </tr>
+            }
+            else {
+
+                @foreach (var c in Model) {
+                    <tr>
+                        <td>@c.Id</td>
+                        <td>@c.Nome</td>
+                        <td>@c.Email</td>
+                        <td>
+                            @if (c.IsAtivo) {
+                                <span class="status success">Ativo</span>
+                            }
+                            else {
+                                <span class="status danger">Inativo</span>
+                            }
+                        </td>
+
+                        <td class="admin-actions">
+                            <button type="button"
+                                    class="btn-outline btn-sm"
+                                    onclick="abrirModalVer(
+                    '@c.Nome',
+                    '@c.Email',
+                    '@c.CPF',
+                    '@c.Telefone',
+                    '@c.Genero',
+                    '@c.DataNascimento?.ToString("yyyy-MM-dd")',
+                    '@(c.IsAtivo ? "Ativo" : "Inativo")',
+                    '@(c.IsAdmin ? "Admin" : "Cliente")'
+                )">
+                                Ver
+                            </button>
+
+                            <button type="button"
+                                    class="btn-primary btn-sm"
+                                    onclick="abrirModalEditar(
+                    '@c.Id',
+                    '@c.Nome',
+                    '@c.Email',
+                    '@c.CPF',
+                    '@c.Telefone',
+                    '@c.Genero',
+                    '@c.DataNascimento?.ToString("yyyy-MM-dd")',
+                    '@c.IsAdmin'
+                )">
+                                Editar
+                            </button>
+
+                            <form asp-action="ExcluirClienteAdmin" method="post" style="display:inline;">
+                                <input type="hidden" name="id" value="@c.Id" />
+
+                                <button type="submit"
+                                        class="btn-danger btn-sm"
+                                        onclick="return confirm('Tem certeza que deseja EXCLUIR este cliente? Essa ação não pode ser desfeita!');">
+                                    Excluir
+                                </button>
+                            </form>
+
+                            @if (c.IsAtivo) {
+                                <form asp-action="DesativarCliente" method="post" style="display:inline;">
+                                    <input type="hidden" name="id" value="@c.Id" />
+                                    <button type="submit" class="btn-danger btn-sm"
+                                            onclick="return confirm('Deseja desativar este cliente?');">
+                                        Desativar
+                                    </button>
+                                </form>
+                            }
+                            else {
+                                <form asp-action="AtivarCliente" method="post" style="display:inline;">
+                                    <input type="hidden" name="id" value="@c.Id" />
+                                    <button type="submit" class="btn-primary btn-sm">
+                                        Ativar
+                                    </button>
+                                </form>
+                            }
+
+                        </td>
+                    </tr>
+                }
+            }
+
+        </tbody>
+    </table>
+    <div class="admin-pagination">
+
+        @for (int i = 1; i <= ViewBag.TotalPaginas; i++) {
+            <a asp-action="Clientes"
+               asp-route-pagina="@i"
+               asp-route-busca="@Context.Request.Query["busca"]"
+               asp-route-status="@Context.Request.Query["status"]"
+               asp-route-admin="@Context.Request.Query["admin"]"
+               class="page-number @(i == ViewBag.PaginaAtual ? "active" : "")">
+                @i
+            </a>
+        }
+    </div>
+
+    <!-- MODAL NOVO CLIENTE -->
+    <div class="admin-modal-overlay" id="clienteModal" style="display:none;">
+        <div class="admin-modal large">
+
+            <div class="admin-modal-header">
+                <h3>Novo Cliente</h3>
+                <button class="modal-close" id="closeClienteModal">✕</button>
+            </div>
+
+            <div class="admin-modal-body">
+
+                <h4>Dados Pessoais</h4>
+
+                <div class="admin-grid-2">
+
+                    <div class="admin-form-group">
+                        <label>Gênero</label>
+                        <select class="admin-select">
+                            <option>Masculino</option>
+                            <option>Feminino</option>
+                            <option>Prefiro não informar</option>
+                        </select>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Nome Completo</label>
+                        <input type="text" class="admin-input">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Data de Nascimento</label>
+                        <input type="date" class="admin-input">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>CPF</label>
+                        <input type="text" class="admin-input">
+                    </div>
+
+                </div>
+
+                <h4>Contato</h4>
+
+                <div class="admin-grid-2">
+
+                    <div class="admin-form-group">
+                        <label>Email</label>
+                        <input type="email" class="admin-input">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Senha</label>
+                        <input type="password" class="admin-input">
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="admin-modal-footer">
+                <button class="btn-secondary btn-sm" id="cancelClienteModal">
+                    Cancelar
+                </button>
+                <button class="btn-primary btn-sm">
+                    Salvar
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- MODAL VER CLIENTE -->
+    <div class="admin-modal-overlay" id="verClienteModal" style="display:none;">
+        <div class="admin-modal large">
+
+            <div class="admin-modal-header">
+                <h3>Detalhes do Cliente</h3>
+                <button class="modal-close" onclick="fecharModalVer()">✕</button>
+            </div>
+
+            <div class="admin-modal-body">
+
+                <div class="admin-grid-2">
+
+                    <div class="admin-form-group">
+                        <label>Nome</label>
+                        <input type="text" id="verNome" disabled>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Email</label>
+                        <input type="text" id="verEmail" disabled>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>CPF</label>
+                        <input type="text" id="verCpf" disabled>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Telefone</label>
+                        <input type="text" id="verTelefone" disabled>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Gênero</label>
+                        <input type="text" id="verGenero" disabled>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Data Nascimento</label>
+                        <input type="text" id="verDataNascimento" disabled>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Status</label>
+                        <input type="text" id="verStatus" disabled>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Tipo</label>
+                        <input type="text" id="verTipo" disabled>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="admin-modal-footer">
+                <button class="btn-secondary btn-sm" onclick="fecharModalVer()">
+                    Fechar
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR CLIENTE -->
+    <div class="admin-modal-overlay" id="editarClienteModal" style="display:none;">
+        <div class="admin-modal large">
+
+            <div class="admin-modal-header">
+                <h3>Editar Cliente</h3>
+                <button class="modal-close" onclick="fecharModalEditar()">✕</button>
+            </div>
+
+            <form asp-action="EditarClienteAdmin" method="post">
+
+                <input type="hidden" name="Id" id="editId" />
+
+                <div class="admin-modal-body">
+
+                    <div class="admin-grid-2">
+
+                        <div class="admin-form-group">
+                            <label>Nome</label>
+                            <input type="text" name="Nome" id="editNome" required>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Email</label>
+                            <input type="email" name="Email" id="editEmail" required>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>CPF</label>
+                            <input type="text" name="CPF" id="editCpf">
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Telefone</label>
+                            <input type="text" name="Telefone" id="editTelefone">
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Gênero</label>
+                            <select name="Genero" id="editGenero">
+                                <option value="">Selecione</option>
+                                <option value="Masculino">Masculino</option>
+                                <option value="Feminino">Feminino</option>
+                            </select>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Data Nascimento</label>
+                            <input type="date" name="DataNascimento" id="editDataNascimento">
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Tipo de usuário</label>
+                            <select name="IsAdmin" id="editIsAdmin">
+                                <option value="false">Cliente</option>
+                                <option value="true">Administrador</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn-secondary" onclick="fecharModalEditar()">
+                        Cancelar
+                    </button>
+
+                    <button type="submit" class="btn-primary">
+                        Salvar alterações
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+<script src="~/assets/js/admin.js"></script>

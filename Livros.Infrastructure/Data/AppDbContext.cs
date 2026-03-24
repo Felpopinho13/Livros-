@@ -12,13 +12,13 @@ namespace Livros.Infrastructure.Data {
                 .HasOne(e => e.Cidade)
                 .WithMany()
                 .HasForeignKey(e => e.CidadeId)
-                .OnDelete(DeleteBehavior.Restrict); // 🔥 AQUI
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Endereco>()
                 .HasOne(e => e.Bairro)
                 .WithMany()
                 .HasForeignKey(e => e.BairroId)
-                .OnDelete(DeleteBehavior.Restrict); // 🔥 AQUI
+                .OnDelete(DeleteBehavior.Restrict); 
 
             modelBuilder.Entity<Endereco>()
                 .HasOne(e => e.Cliente)

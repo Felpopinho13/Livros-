@@ -16,7 +16,7 @@
 .admin-filters {
     display: flex;
     gap: 15px;
-    margin-bottom: 20px;
+    margin: 10px;
 }
 
 .admin-input,
@@ -25,6 +25,7 @@
     border: 1px solid #d1d5db;
     border-radius: 6px;
     font-size: 14px;
+    margin: 10px;
 }
 
 /* TABELA */
