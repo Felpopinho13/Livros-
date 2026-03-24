@@ -35,17 +35,17 @@
 
                     <div class="wallet-actions">
 
-                        <form asp-action="ExcluirCartao" method="post">
+                        <form asp-action="ExcluirCartao" method="post" style="display:inline;">
                             <input type="hidden" name="id" value="@c.Id" />
 
-                            <button type="submit"
+                            <button type="submit" class="btn-danger btn-sm"
                                     onclick="return confirm('Tem certeza que deseja remover este cartão?');">
                                 Remover
                             </button>
                         </form>
 
                         @if (!c.IsPadrao) {
-                            <a asp-action="TornarCartaoPadrao" asp-route-id="@c.Id">
+                            <a asp-action="TornarCartaoPadrao" asp-route-id="@c.Id" class="make-default">
                                 Tornar padrão
                             </a>
                         }
@@ -74,8 +74,18 @@
             </div>
 
             <div class="modal-actions">
-                <button type="button" id="closeCardModal">Cancelar</button>
-                <button type="submit">Salvar</button>
+                <div class="modal-actions">
+                    <button type="button"
+                            id="closeCardModal"
+                            class="btn-secondary">
+                        Cancelar
+                    </button>
+
+                    <button type="submit"
+                            class="btn-primary">
+                        Salvar
+                    </button>
+                </div>
             </div>
 
         </form>

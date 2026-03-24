@@ -26,7 +26,7 @@
 
                     <div class="form-group">
                         <label>Data de Nascimento</label>
-                        <input type="date" name="dataNascimento">
+                        <input type="date" name="dataNascimento" required>
                     </div>
                 </div>
 
@@ -38,12 +38,12 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>CPF</label>
-                        <input type="text" name="cpf" placeholder="000.000.000-00">
+                        <input type="text" name="cpf" placeholder="000.000.000-00" required>
                     </div>
 
                     <div class="form-group">
                         <label>Telefone</label>
-                        <input type="tel" name="telefone" placeholder="(11) 99999-9999">
+                        <input type="tel" name="telefone" placeholder="(11) 99999-9999" required>
                     </div>
                 </div>
 
@@ -67,24 +67,24 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Nome do endereço</label>
-                        <input type="text" name="nomeEndereco" placeholder="Ex: Minha casa">
+                        <input type="text" name="nomeEndereco" placeholder="Ex: Minha casa" required>
                     </div>
 
                     <div class="form-group">
                         <label>CEP</label>
-                        <input type="text" name="cep" id="cep" maxlength="9" pattern="\d{5}-\d{3}">
+                        <input type="text" name="cep" id="cep" maxlength="9" pattern="\d{5}-\d{3}" required>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Logradouro</label>
-                    <input type="text" name="logradouro" id="logradouro">
+                    <input type="text" name="logradouro" id="logradouro" required>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>Número</label>
-                        <input type="text" name="numero" maxlength="10">
+                        <input type="text" name="numero" maxlength="10" required>
                     </div>
 
                     <div class="form-group">
@@ -95,18 +95,18 @@
 
                 <div class="form-group">
                     <label>Bairro</label>
-                    <input type="text" name="bairro" id="bairro">
+                    <input type="text" name="bairro" id="bairro" required>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>Cidade</label>
-                        <input type="text" name="cidade" id="cidade">
+                        <input type="text" name="cidade" id="cidade" required>
                     </div>
 
                     <div class="form-group">
                         <label>Estado</label>
-                        <select name="estado" id="estado">
+                        <select name="estado" id="estado" required>
                             <option value="">Selecione</option>
                             <option>AC</option>
                             <option>AL</option>
