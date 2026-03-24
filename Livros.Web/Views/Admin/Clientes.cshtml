@@ -162,68 +162,76 @@
                 <button class="modal-close" id="closeClienteModal">✕</button>
             </div>
 
-            <div class="admin-modal-body">
+            <form asp-action="CriarClienteAdmin" method="post">
 
-                <h4>Dados Pessoais</h4>
+                <div class="admin-modal-body">
 
-                <div class="admin-grid-2">
+                    <h4>Dados Pessoais</h4>
 
-                    <div class="admin-form-group">
-                        <label>Gênero</label>
-                        <select class="admin-select">
-                            <option>Masculino</option>
-                            <option>Feminino</option>
-                            <option>Prefiro não informar</option>
-                        </select>
+                    <div class="admin-grid-2">
+
+                        <div class="admin-form-group">
+                            <label>Gênero</label>
+                            <select name="Genero" class="admin-select">
+                                <option value="Masculino">Masculino</option>
+                                <option value="Feminino">Feminino</option>
+                                <option value="NaoInformar">Prefiro não informar</option>
+                            </select>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Nome Completo</label>
+                            <input type="text" name="Nome" class="admin-input" required>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Data de Nascimento</label>
+                            <input type="date" name="DataNascimento" class="admin-input" max="9999-12-31">
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>CPF</label>
+                            <input type="text" name="CPF"
+                                   class="admin-input"
+                                   maxlength="14"
+                                   placeholder="000.000.000-00">
+                        </div>
+
                     </div>
 
-                    <div class="admin-form-group">
-                        <label>Nome Completo</label>
-                        <input type="text" class="admin-input">
-                    </div>
+                    <h4>Contato</h4>
 
-                    <div class="admin-form-group">
-                        <label>Data de Nascimento</label>
-                        <input type="date" class="admin-input">
-                    </div>
+                    <div class="admin-grid-2">
 
-                    <div class="admin-form-group">
-                        <label>CPF</label>
-                        <input type="text" class="admin-input">
+                        <div class="admin-form-group">
+                            <label>Email</label>
+                            <input type="email" name="Email" class="admin-input" required>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Senha</label>
+                            <input type="password" name="Senha" class="admin-input" required>
+                        </div>
+
                     </div>
 
                 </div>
 
-                <h4>Contato</h4>
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn-secondary btn-sm" id="cancelClienteModal">
+                        Cancelar
+                    </button>
 
-                <div class="admin-grid-2">
-
-                    <div class="admin-form-group">
-                        <label>Email</label>
-                        <input type="email" class="admin-input">
-                    </div>
-
-                    <div class="admin-form-group">
-                        <label>Senha</label>
-                        <input type="password" class="admin-input">
-                    </div>
-
+                    <button type="submit" class="btn-primary btn-sm">
+                        Salvar
+                    </button>
                 </div>
 
-            </div>
-
-            <div class="admin-modal-footer">
-                <button class="btn-secondary btn-sm" id="cancelClienteModal">
-                    Cancelar
-                </button>
-                <button class="btn-primary btn-sm">
-                    Salvar
-                </button>
-            </div>
+            </form>
+            <!-- 🔥 AQUI TERMINA O FORM -->
 
         </div>
     </div>
-
 
     <!-- MODAL VER CLIENTE -->
     <div class="admin-modal-overlay" id="verClienteModal" style="display:none;">
@@ -240,42 +248,42 @@
 
                     <div class="admin-form-group">
                         <label>Nome</label>
-                        <input type="text" id="verNome" disabled>
+                        <input class="admin-input" type="text" id="verNome" disabled>
                     </div>
 
                     <div class="admin-form-group">
                         <label>Email</label>
-                        <input type="text" id="verEmail" disabled>
+                        <input class="admin-input" type="text" id="verEmail" disabled>
                     </div>
 
                     <div class="admin-form-group">
                         <label>CPF</label>
-                        <input type="text" id="verCpf" disabled>
+                        <input class="admin-input" type="text" name="CPF" id="verCpf" maxlength="11" pattern="\d{11}" placeholder="Somente números" disabled>
                     </div>
 
                     <div class="admin-form-group">
                         <label>Telefone</label>
-                        <input type="text" id="verTelefone" disabled>
+                        <input class="admin-input" type="text" id="verTelefone" disabled>
                     </div>
 
                     <div class="admin-form-group">
                         <label>Gênero</label>
-                        <input type="text" id="verGenero" disabled>
+                        <input class="admin-input" type="text" id="verGenero" disabled>
                     </div>
 
                     <div class="admin-form-group">
                         <label>Data Nascimento</label>
-                        <input type="text" id="verDataNascimento" disabled>
+                        <input class="admin-input" type="text" id="verDataNascimento" disabled>
                     </div>
 
                     <div class="admin-form-group">
                         <label>Status</label>
-                        <input type="text" id="verStatus" disabled>
+                        <input class="admin-input" type="text" id="verStatus" disabled>
                     </div>
 
                     <div class="admin-form-group">
                         <label>Tipo</label>
-                        <input type="text" id="verTipo" disabled>
+                        <input class="admin-input" type="text" id="verTipo" disabled>
                     </div>
 
                 </div>
@@ -310,27 +318,29 @@
 
                         <div class="admin-form-group">
                             <label>Nome</label>
-                            <input type="text" name="Nome" id="editNome" required>
+                            <input class="admin-input" type="text" name="Nome" id="editNome" required>
                         </div>
 
                         <div class="admin-form-group">
                             <label>Email</label>
-                            <input type="email" name="Email" id="editEmail" required>
+                            <input class="admin-input" type="email" name="Email" id="editEmail" required>
                         </div>
 
                         <div class="admin-form-group">
                             <label>CPF</label>
-                            <input type="text" name="CPF" id="editCpf">
+                            <input type="text" name="CPF" id="editCpf" class="admin-input"
+                                   maxlength="14"
+                                   placeholder="000.000.000-00">
                         </div>
 
                         <div class="admin-form-group">
                             <label>Telefone</label>
-                            <input type="text" name="Telefone" id="editTelefone">
+                            <input type="text" class="admin-input" name="Telefone" id="editTelefone" maxlength="15">
                         </div>
 
                         <div class="admin-form-group">
                             <label>Gênero</label>
-                            <select name="Genero" id="editGenero">
+                            <select name="Genero" class="admin-select" id="editGenero">
                                 <option value="">Selecione</option>
                                 <option value="Masculino">Masculino</option>
                                 <option value="Feminino">Feminino</option>
@@ -339,12 +349,12 @@
 
                         <div class="admin-form-group">
                             <label>Data Nascimento</label>
-                            <input type="date" name="DataNascimento" id="editDataNascimento">
+                            <input class ="admin-input" type="date" name="DataNascimento" id="editDataNascimento">
                         </div>
 
                         <div class="admin-form-group">
                             <label>Tipo de usuário</label>
-                            <select name="IsAdmin" id="editIsAdmin">
+                            <select name="IsAdmin" class="admin-select" id="editIsAdmin">
                                 <option value="false">Cliente</option>
                                 <option value="true">Administrador</option>
                             </select>

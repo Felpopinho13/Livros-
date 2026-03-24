@@ -52,6 +52,46 @@ public class AdminController : Controller {
     }
 
     [HttpPost]
+    public IActionResult CriarClienteAdmin(Cliente cliente) {
+        if (cliente == null)
+            return RedirectToAction("Clientes");
+
+        // 🔹 Validações básicas
+        if (string.IsNullOrWhiteSpace(cliente.Nome)) {
+            TempData["Erro"] = "Nome é obrigatório.";
+            return RedirectToAction("Clientes");
+        }
+
+        if (string.IsNullOrWhiteSpace(cliente.Email)) {
+            TempData["Erro"] = "Email é obrigatório.";
+            return RedirectToAction("Clientes");
+        }
+
+        if (string.IsNullOrWhiteSpace(cliente.Senha)) {
+            TempData["Erro"] = "Senha é obrigatória.";
+            return RedirectToAction("Clientes");
+        }
+
+        // 🔹 Limpa CPF (remove pontos se vier com máscara)
+        if (!string.IsNullOrEmpty(cliente.CPF)) {
+            cliente.CPF = cliente.CPF.Replace(".", "").Replace("-", "");
+        }
+
+        // 🔹 Criptografa senha
+        cliente.Senha = BCrypt.Net.BCrypt.HashPassword(cliente.Senha);
+
+        // 🔹 Defaults
+        cliente.IsAtivo = true;
+
+        _context.Clientes.Add(cliente);
+        _context.SaveChanges();
+
+        TempData["Sucesso"] = "Cliente criado com sucesso!";
+
+        return RedirectToAction("Clientes");
+    }
+
+    [HttpPost]
     public IActionResult DesativarCliente(int id) {
         var cliente = _context.Clientes.FirstOrDefault(c => c.Id == id);
 

@@ -1,4 +1,4 @@
-const modal = document.getElementById("clienteModal");
+﻿const modal = document.getElementById("clienteModal");
 const openBtn = document.getElementById("openClienteModal");
 const closeBtn = document.getElementById("closeClienteModal");
 const cancelBtn = document.getElementById("cancelClienteModal");
@@ -21,6 +21,20 @@ window.onclick = (e) => {
     }
 };
 
+
+document.addEventListener("input", function (e) {
+    if (e.target.name === "CPF") {
+
+        let v = e.target.value.replace(/\D/g, "");
+
+        v = v.replace(/^(\d{3})(\d)/, "$1.$2");
+        v = v.replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3");
+        v = v.replace(/\.(\d{3})(\d)/, ".$1-$2");
+
+        e.target.value = v;
+    }
+});
+
 function abrirModalVer(nome, email, cpf, telefone, genero, dataNascimento, status, tipo) {
     document.getElementById("verNome").value = nome;
     document.getElementById("verEmail").value = email;
@@ -39,10 +53,15 @@ function fecharModalVer() {
 }
 
 function abrirModalEditar(id, nome, email, cpf, telefone, genero, dataNascimento, isAdmin) {
+
     document.getElementById("editId").value = id;
     document.getElementById("editNome").value = nome;
     document.getElementById("editEmail").value = email;
-    document.getElementById("editCpf").value = cpf;
+
+    // 🔥 LIMPA CPF antes
+    let cpfLimpo = cpf ? cpf.replace(/\D/g, "").substring(0, 11) : "";
+    document.getElementById("editCpf").value = cpfLimpo;
+
     document.getElementById("editTelefone").value = telefone;
     document.getElementById("editGenero").value = genero;
     document.getElementById("editDataNascimento").value = dataNascimento;
@@ -51,6 +70,23 @@ function abrirModalEditar(id, nome, email, cpf, telefone, genero, dataNascimento
 
     document.getElementById("editarClienteModal").style.display = "flex";
 }
+
+document.addEventListener("input", function (e) {
+    if (e.target.name === "Telefone") {
+
+        let v = e.target.value.replace(/\D/g, "").substring(0, 11);
+
+        if (v.length <= 10) {
+            v = v.replace(/^(\d{2})(\d)/, "($1) $2");
+            v = v.replace(/(\d{4})(\d)/, "$1-$2");
+        } else {
+            v = v.replace(/^(\d{2})(\d)/, "($1) $2");
+            v = v.replace(/(\d{5})(\d)/, "$1-$2");
+        }
+
+        e.target.value = v;
+    }
+});
 
 function fecharModalEditar() {
     document.getElementById("editarClienteModal").style.display = "none";
