@@ -2,12 +2,15 @@
 using Livros.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Livros.Infrastructure.Services;
 
 public class AdminController : Controller {
     private readonly AppDbContext _context;
+    private readonly LivroService _livroService;
 
-    public AdminController(AppDbContext context) {
+    public AdminController(AppDbContext context, LivroService livroService) {
         _context = context;
+        _livroService = livroService;
     }
 
     public IActionResult Dashboard() {
@@ -152,5 +155,53 @@ public class AdminController : Controller {
         _context.SaveChanges();
 
         return RedirectToAction("Clientes");
+    }
+
+    public IActionResult Livros() {
+        var livros = _livroService.Listar();
+        return View(livros);
+    }
+
+    [HttpPost]
+    public IActionResult CriarLivro(Livro livro, IFormFile ImagemArquivo) {
+        // 🟢 1. TRATAR IMAGEM ANTES DA VALIDAÇÃO
+        if (ImagemArquivo != null && ImagemArquivo.Length > 0) {
+            var nomeArquivo = Guid.NewGuid() + Path.GetExtension(ImagemArquivo.FileName);
+
+            var pasta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/assets/img");
+
+            if (!Directory.Exists(pasta)) {
+                Directory.CreateDirectory(pasta);
+            }
+
+            var caminho = Path.Combine(pasta, nomeArquivo);
+
+            using (var stream = new FileStream(caminho, FileMode.Create)) {
+                ImagemArquivo.CopyTo(stream);
+            }
+
+            livro.ImagemUrl = "/assets/img/" + nomeArquivo;
+
+            // 🔥 remove erro de validação
+            ModelState.Remove("ImagemUrl");
+        }
+
+        // 🔴 2. VALIDAR AGORA
+        if (!ModelState.IsValid) {
+            var erros = ModelState.Values.SelectMany(v => v.Errors);
+
+            foreach (var erro in erros) {
+                System.Diagnostics.Debug.WriteLine(erro.ErrorMessage);
+            }
+
+            TempData["Erro"] = "Dados inválidos!";
+            return RedirectToAction("Livros");
+        }
+
+        // 🟢 3. SALVAR
+        _livroService.Criar(livro);
+
+        TempData["Sucesso"] = "Livro cadastrado com sucesso!";
+        return RedirectToAction("Livros");
     }
 }

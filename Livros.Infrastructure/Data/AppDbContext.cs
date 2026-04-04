@@ -32,7 +32,8 @@ namespace Livros.Infrastructure.Data {
         public DbSet<Estado> Estados { get; set; }
         public DbSet<Cidade> Cidades { get; set; }
         public DbSet<Bairro> Bairros { get; set; }
-
         public DbSet<Cartao> Cartoes { get; set; }
+        public DbSet<Livro> Livros { get; set; }
+        public DbSet<Categoria> Categorias { get; set; }
     }
 }

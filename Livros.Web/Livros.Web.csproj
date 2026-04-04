@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="wwwroot\assets\img\05074e9f-62b1-48fe-b84a-a4c6f86f6c53.jpg" />
+    <Content Remove="wwwroot\assets\img\b94c232b-46fc-4e55-b32b-b6b3a345443a.jpg" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
@@ -16,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Livros.Application\Livros.Application.csproj" />
+    <ProjectReference Include="..\Livros.Domain\Livros.Domain.csproj" />
     <ProjectReference Include="..\Livros.Infrastructure\Livros.Infrastructure.csproj" />
   </ItemGroup>
 

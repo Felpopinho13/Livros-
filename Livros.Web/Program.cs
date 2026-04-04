@@ -2,6 +2,12 @@
 using Livros.Infrastructure.Data;
 using Livros.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+
+var culture = new CultureInfo("pt-BR");
+
+CultureInfo.DefaultThreadCurrentCulture = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,8 +17,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer("Server=localhost;Database=LivrosDb;Trusted_Connection=True;TrustServerCertificate=True;"));
 
 builder.Services.AddScoped<ClienteService>();
+builder.Services.AddScoped<LivroService>();
 
-builder.Services.AddSession(); 
+builder.Services.AddSession();
 
 var app = builder.Build();
 

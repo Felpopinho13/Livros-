@@ -1,0 +1,227 @@
+﻿@model List<Livros.Domain.Livro>
+
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Livros";
+}
+@if (TempData["Erro"] != null) {
+    <div class="alert-error">
+        @TempData["Erro"]
+    </div>
+}
+@foreach (var erro in ViewData.ModelState.Values.SelectMany(v => v.Errors)) {
+    <div style="color:red;">
+        @erro.ErrorMessage
+    </div>
+}
+
+<div class="admin-page-header">
+    <h2>Livros</h2>
+
+    <button class="btn-primary" onclick="abrirModalNovoLivro()">
+        + Novo Livro
+    </button>
+</div>
+
+<div class="admin-table-wrapper">
+
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Título</th>
+                <th>Autor</th>
+                <th>ISBN</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @if (!Model.Any()) {
+                <tr>
+                    <td colspan="5" style="text-align:center;">
+                        Nenhum livro cadastrado
+                    </td>
+                </tr>
+            }
+            else {
+                @foreach (var livro in Model) {
+                    <tr>
+                        <td>@livro.Id</td>
+                        <td>@livro.Titulo</td>
+                        <td>@livro.Autor</td>
+                        <td>@livro.ISBN</td>
+
+                        <td>
+                            @if (livro.IsAtivo) {
+                                <span class="status success">Ativo</span>
+                            }
+                            else {
+                                <span class="status danger">Inativo</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+
+</div>
+
+<!-- MODAL NOVO LIVRO -->
+<div class="admin-modal-overlay" id="novoLivroModal" style="display:none;">
+    <div class="admin-modal large">
+
+        <div class="admin-modal-header">
+            <h3>Novo Livro</h3>
+            <button class="modal-close" onclick="fecharModalNovoLivro()">✕</button>
+        </div>
+
+        <form asp-action="CriarLivro" method="post" enctype="multipart/form-data">
+            <div class="admin-modal-body">
+
+                <h4>Informações Básicas</h4>
+
+                <div class="admin-grid-2">
+
+                    <div class="admin-form-group">
+                        <label>Título</label>
+                        <input name="Titulo" class="admin-input" required>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Autor</label>
+                        <input name="Autor" class="admin-input" required>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Ano</label>
+                        <input type="number"
+                               name="Ano"
+                               min="1000"
+                               max="2100">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Editora</label>
+                        <input name="Editora" class="admin-input">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Edição</label>
+                        <input name="Edicao" class="admin-input">
+                    </div>
+
+                </div>
+
+                <h4>Identificação</h4>
+
+                <div class="admin-grid-2">
+
+                    <div class="admin-form-group">
+                        <label>ISBN</label>
+                        <input name="ISBN"
+                               class="admin-input"
+                               maxlength="13"
+                               pattern="\d{13}"
+                               title="ISBN deve ter 13 números">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Código de Barras</label>
+                        <input name="CodigoBarras"
+                               class="admin-input"
+                               maxlength="13"
+                               pattern="\d{13}"
+                               title="Código de barras deve ter 13 números">
+                    </div>
+
+                </div>
+
+                <h4>Dimensões</h4>
+
+                <div class="admin-grid-4">
+
+                    <div class="admin-form-group">
+                        <label>Altura</label>
+                        <input type="number" step="0.01" name="Altura" min="0.1" max="1000">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Largura</label>
+                        <input type="number" step="0.01" name="Largura" min="0.1" max="1000">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Peso</label>
+                        <input type="number" step="0.01" name="Peso" min="0.01" max="50">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Profundidade</label>
+                        <input type="number" step="0.01" name="Profundidade" min="0.1" max="1000">
+                    </div>
+
+                </div>
+
+                <h4>Detalhes</h4>
+
+                <div class="admin-grid-2">
+
+                    <div class="admin-form-group">
+                        <label>Páginas</label>
+                        <input type="number"
+                               name="NumeroPaginas"
+                               class="admin-input"
+                               min="1"
+                               max="10000">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Preço</label>
+                        <input type="number"
+                               step="0.01"
+                               name="Preco"
+                               class="admin-input"
+                               min="0.01"
+                               max="10000">
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Imagem (URL)</label>
+                        <input type="file" name="ImagemArquivo" class="admin-input">
+                    </div>
+
+                </div>
+
+                <div class="admin-form-group">
+                    <label>Sinopse</label>
+                    <textarea name="Sinopse" class="admin-input"></textarea>
+                </div>
+
+            </div>
+
+            <div class="admin-modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModalNovoLivro()">
+                    Cancelar
+                </button>
+
+                <button type="submit" class="btn-primary">
+                    Salvar
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<script>
+    function abrirModalNovoLivro() {
+        document.getElementById("novoLivroModal").style.display = "flex";
+    }
+
+    function fecharModalNovoLivro() {
+        document.getElementById("novoLivroModal").style.display = "none";
+    }
+</script>

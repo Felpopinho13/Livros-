@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Livros.Domain;
 
 public class HomeController : Controller {
     public IActionResult Index() {
