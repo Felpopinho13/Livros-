@@ -30,7 +30,6 @@ public class AuthController : Controller {
     string telefone,
     string genero,
     DateTime? dataNascimento,
-
     string nomeEndereco,
     string cep,
     string logradouro,
@@ -40,6 +39,21 @@ public class AuthController : Controller {
     string cidade,
     string estado
 ) {
+        // 🔥 VALIDAÇÕES AQUI
+
+        if (_service.EmailExiste(email)) {
+            TempData["Erro"] = "Este email já está cadastrado.";
+            return RedirectToAction("Cadastro");
+        }
+
+        var regex = new System.Text.RegularExpressions.Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$");
+
+        if (!regex.IsMatch(senha)) {
+            TempData["Erro"] = "Senha fraca! Use 8 caracteres com maiúscula, minúscula e símbolo.";
+            return RedirectToAction("Cadastro");
+        }
+
+
         var cliente = new Cliente {
             Nome = nome,
             Email = email,
@@ -50,12 +64,10 @@ public class AuthController : Controller {
             DataNascimento = dataNascimento
         };
 
-        // 🔥 1. Buscar estado
         var estadoEntity = _context.Estados
             .FirstOrDefault(e => e.Sigla == estado);
 
         if (estadoEntity == null) {
-            // segurança (evita erro se não tiver estado no banco)
             estadoEntity = new Estado {
                 Nome = estado,
                 Sigla = estado
@@ -64,7 +76,6 @@ public class AuthController : Controller {
             _context.SaveChanges();
         }
 
-        // 🔥 2. Buscar ou criar cidade
         var cidadeEntity = _context.Cidades
             .FirstOrDefault(c => c.Nome == cidade && c.EstadoId == estadoEntity.Id);
 
@@ -77,7 +88,6 @@ public class AuthController : Controller {
             _context.SaveChanges();
         }
 
-        // 🔥 3. Buscar ou criar bairro
         var bairroEntity = _context.Bairros
             .FirstOrDefault(b => b.Nome == bairro && b.CidadeId == cidadeEntity.Id);
 
@@ -90,7 +100,6 @@ public class AuthController : Controller {
             _context.SaveChanges();
         }
 
-        // 🔥 4. Criar endereço correto
         var endereco = new Endereco {
             NomeEndereco = nomeEndereco,
             CEP = cep,

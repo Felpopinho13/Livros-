@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 🔥 SERVICES (ANTES DO BUILD)
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -34,8 +33,6 @@ using (var scope = app.Services.CreateScope()) {
     }
 }
 
-// 🔥 MIDDLEWARE
-
 if (!app.Environment.IsDevelopment()) {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
@@ -46,7 +43,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseSession(); // ✅ AQUI
+app.UseSession(); 
 
 app.UseAuthorization();
 

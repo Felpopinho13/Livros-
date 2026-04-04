@@ -11,6 +11,11 @@
         </div>
 
         <div class="register-right">
+            @if (TempData["Erro"] != null) {
+                <div class="alert-error">
+                    @TempData["Erro"]
+                </div>
+            }
             <form asp-action="Cadastro" method="post" class="register-form">
 
                 <div class="form-row">

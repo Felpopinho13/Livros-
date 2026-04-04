@@ -10,7 +10,6 @@ window.onclick = (e) => {
     if (e.target == modal) modal.style.display = "none";
 };
 
-// 🔥 CEP (00000-000)
 const cepInput = document.querySelector("input[name='cep']");
 
 if (cepInput) {
@@ -26,7 +25,6 @@ if (cepInput) {
     });
 }
 
-// 🔥 ESTADO (SP)
 const estadoInput = document.querySelector("input[name='estado']");
 
 if (estadoInput) {

@@ -45,6 +45,15 @@ public class ClienteController : Controller {
 
     [HttpPost]
     public IActionResult Editar(Cliente cliente) {
+
+        var emailExistente = _context.Clientes
+            .FirstOrDefault(c => c.Email == cliente.Email && c.Id != cliente.Id);
+
+        if (emailExistente != null) {
+            TempData["Erro"] = "Este email já está em uso.";
+            return View(cliente);
+        }
+
         _service.Atualizar(cliente);
 
         HttpContext.Session.SetString("Usuario", cliente.Email);
@@ -178,9 +187,14 @@ public class ClienteController : Controller {
     string bairro,
     string cidade,
     string estado) {
-        var email = HttpContext.Session.GetString("Usuario");
+        var idStr = HttpContext.Session.GetString("UsuarioId");
 
-        var cliente = _context.Clientes.FirstOrDefault(c => c.Email == email);
+        if (idStr == null)
+            return RedirectToAction("Login", "Auth");
+
+        var id = int.Parse(idStr);
+
+        var cliente = _context.Clientes.FirstOrDefault(c => c.Id == id);
 
         var estadoEntity = _context.Estados.FirstOrDefault(e => e.Sigla == estado);
         if (estadoEntity == null) {
@@ -287,9 +301,14 @@ public class ClienteController : Controller {
     string numero,
     string validade,
     string cvv) {
-        var email = HttpContext.Session.GetString("Usuario");
+        var idStr = HttpContext.Session.GetString("UsuarioId");
 
-        var cliente = _context.Clientes.FirstOrDefault(c => c.Email == email);
+        if (idStr == null)
+            return RedirectToAction("Login", "Auth");
+
+        var id = int.Parse(idStr);
+
+        var cliente = _context.Clientes.FirstOrDefault(c => c.Id == id);
 
         var cartao = new Cartao {
             NomeImpresso = nome,
@@ -344,7 +363,6 @@ public class ClienteController : Controller {
             return RedirectToAction("Editar");
         }
 
-        // Regex de senha forte
         var regex = new System.Text.RegularExpressions.Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$");
 
         if (!regex.IsMatch(novaSenha)) {
@@ -352,14 +370,18 @@ public class ClienteController : Controller {
             return RedirectToAction("Editar");
         }
 
-        var email = HttpContext.Session.GetString("Usuario");
+        var idStr = HttpContext.Session.GetString("UsuarioId");
 
-        var cliente = _context.Clientes.FirstOrDefault(c => c.Email == email);
+        if (idStr == null)
+            return RedirectToAction("Login", "Auth");
+
+        var id = int.Parse(idStr);
+
+        var cliente = _context.Clientes.FirstOrDefault(c => c.Id == id);
 
         if (cliente == null)
             return RedirectToAction("Login", "Auth");
 
-        // CRIPTOGRAFIA
         cliente.Senha = BCrypt.Net.BCrypt.HashPassword(novaSenha);
 
         _context.SaveChanges();

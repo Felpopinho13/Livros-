@@ -1,4 +1,4 @@
-// 🔥 MODAL
+// MODAL
 const modal = document.getElementById("cardModal");
 const openBtn = document.getElementById("openCardModal");
 const closeBtn = document.getElementById("closeCardModal");
@@ -8,7 +8,6 @@ if (openBtn && closeBtn && modal) {
     closeBtn.onclick = () => modal.style.display = "none";
 }
 
-// 🔥 NÚMERO DO CARTÃO
 const numeroInput = document.getElementById("numeroCartao");
 
 if (numeroInput) {
@@ -23,7 +22,6 @@ if (numeroInput) {
     });
 }
 
-// 🔥 VALIDADE (MM/AA)
 const validadeInput = document.getElementById("validadeCartao");
 
 if (validadeInput) {
@@ -32,7 +30,6 @@ if (validadeInput) {
 
         valor = valor.substring(0, 4);
 
-        // valida mês
         if (valor.length >= 2) {
             let mes = parseInt(valor.substring(0, 2));
 
@@ -49,7 +46,6 @@ if (validadeInput) {
     });
 }
 
-// 🔥 CVV
 const cvvInput = document.getElementById("cvvCartao");
 
 if (cvvInput) {

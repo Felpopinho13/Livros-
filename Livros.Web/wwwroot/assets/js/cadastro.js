@@ -1,5 +1,4 @@
-﻿// 🔥 CPF (000.000.000-00)
-const cpfInput = document.querySelector('input[name="cpf"]');
+﻿const cpfInput = document.querySelector('input[name="cpf"]');
 
 if (cpfInput) {
     cpfInput.addEventListener("input", function (e) {
@@ -13,7 +12,6 @@ if (cpfInput) {
     });
 }
 
-// 🔥 TELEFONE ((11) 99999-9999)
 const telInput = document.querySelector('input[name="telefone"]');
 
 if (telInput) {
@@ -30,7 +28,6 @@ if (telInput) {
     });
 }
 
-// 🔥 CEP (00000-000)
 const cepInput = document.getElementById("cep");
 
 if (cepInput) {
@@ -43,14 +40,25 @@ if (cepInput) {
     });
 }
 
-// 🔥 SENHA (mínimo 6 caracteres)
 const senhaInput = document.querySelector('input[name="senha"]');
 
 if (senhaInput) {
     senhaInput.addEventListener("blur", function () {
         if (senhaInput.value.length < 6) {
             alert("A senha deve ter pelo menos 6 caracteres.");
-            senhaInput.focus();
         }
     });
 }
+
+const form = document.querySelector(".register-form");
+
+form.addEventListener("submit", function (e) {
+    const senha = document.querySelector('input[name="senha"]').value;
+
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$/;
+
+    if (!regex.test(senha)) {
+        e.preventDefault();
+        alert("A senha deve ter no mínimo 8 caracteres, com letra maiúscula, minúscula e símbolo.");
+    }
+});

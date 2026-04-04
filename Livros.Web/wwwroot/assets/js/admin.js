@@ -58,7 +58,6 @@ function abrirModalEditar(id, nome, email, cpf, telefone, genero, dataNascimento
     document.getElementById("editNome").value = nome;
     document.getElementById("editEmail").value = email;
 
-    // 🔥 LIMPA CPF antes
     let cpfLimpo = cpf ? cpf.replace(/\D/g, "").substring(0, 11) : "";
     document.getElementById("editCpf").value = cpfLimpo;
 

@@ -56,7 +56,6 @@ public class AdminController : Controller {
         if (cliente == null)
             return RedirectToAction("Clientes");
 
-        // 🔹 Validações básicas
         if (string.IsNullOrWhiteSpace(cliente.Nome)) {
             TempData["Erro"] = "Nome é obrigatório.";
             return RedirectToAction("Clientes");
@@ -72,15 +71,12 @@ public class AdminController : Controller {
             return RedirectToAction("Clientes");
         }
 
-        // 🔹 Limpa CPF (remove pontos se vier com máscara)
         if (!string.IsNullOrEmpty(cliente.CPF)) {
             cliente.CPF = cliente.CPF.Replace(".", "").Replace("-", "");
         }
 
-        // 🔹 Criptografa senha
         cliente.Senha = BCrypt.Net.BCrypt.HashPassword(cliente.Senha);
 
-        // 🔹 Defaults
         cliente.IsAtivo = true;
 
         _context.Clientes.Add(cliente);
