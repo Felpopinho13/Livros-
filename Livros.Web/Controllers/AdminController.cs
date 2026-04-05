@@ -7,10 +7,12 @@ using Livros.Infrastructure.Services;
 public class AdminController : Controller {
     private readonly AppDbContext _context;
     private readonly LivroService _livroService;
+    private readonly EstoqueService _estoqueService;
 
-    public AdminController(AppDbContext context, LivroService livroService) {
+    public AdminController(AppDbContext context, LivroService livroService, EstoqueService estoqueService) {
         _context = context;
         _livroService = livroService;
+        _estoqueService = estoqueService;
     }
 
     public IActionResult Dashboard() {
@@ -203,5 +205,22 @@ public class AdminController : Controller {
 
         TempData["Sucesso"] = "Livro cadastrado com sucesso!";
         return RedirectToAction("Livros");
+    }
+
+    public IActionResult Estoque() {
+        var estoques = _estoqueService.Listar();
+        return View(estoques);
+    }
+
+    [HttpPost]
+    public IActionResult AdicionarEstoque(int livroId, int quantidade) {
+        _estoqueService.AdicionarEstoque(livroId, quantidade);
+        return RedirectToAction("Estoque");
+    }
+
+    [HttpPost]
+    public IActionResult AjustarEstoque(int livroId, int quantidade) {
+        _estoqueService.AjustarEstoque(livroId, quantidade);
+        return RedirectToAction("Estoque");
     }
 }
