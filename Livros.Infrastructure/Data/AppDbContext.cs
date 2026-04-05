@@ -18,14 +18,32 @@ namespace Livros.Infrastructure.Data {
                 .HasOne(e => e.Bairro)
                 .WithMany()
                 .HasForeignKey(e => e.BairroId)
-                .OnDelete(DeleteBehavior.Restrict); 
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Endereco>()
                 .HasOne(e => e.Cliente)
                 .WithMany(c => c.Enderecos)
                 .HasForeignKey(e => e.ClienteId)
                 .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Pedido>()
+                .HasOne(p => p.Cliente)
+                .WithMany()
+                .HasForeignKey(p => p.ClienteId)
+                .OnDelete(DeleteBehavior.Restrict); // 🔥 AQUI
+
+            modelBuilder.Entity<Pedido>()
+                .HasOne(p => p.Endereco)
+                .WithMany()
+                .HasForeignKey(p => p.EnderecoId)
+                .OnDelete(DeleteBehavior.Restrict); // 🔥 AQUI
+
+            modelBuilder.Entity<Estoque>()
+                .HasOne(e => e.Livro)
+                .WithOne(l => l.Estoque)
+                .HasForeignKey<Estoque>(e => e.LivroId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
+
 
         public DbSet<Cliente> Clientes { get; set; }
         public DbSet<Endereco> Enderecos { get; set; }
@@ -35,5 +53,9 @@ namespace Livros.Infrastructure.Data {
         public DbSet<Cartao> Cartoes { get; set; }
         public DbSet<Livro> Livros { get; set; }
         public DbSet<Categoria> Categorias { get; set; }
+        public DbSet<Pedido> Pedidos { get; set; }
+        public DbSet<PedidoItem> PedidoItens { get; set; }
+        public DbSet<Pagamento> Pagamentos { get; set; }
+        public DbSet<Estoque> Estoques { get; set; }
     }
 }

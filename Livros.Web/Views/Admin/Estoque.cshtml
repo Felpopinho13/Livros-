@@ -1,0 +1,96 @@
+﻿@model List<Estoque>
+
+<div class="admin-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar">
+        <div class="admin-logo">
+            <h2>Painel Admin</h2>
+        </div>
+
+        <nav class="admin-menu">
+            <a asp-controller="Admin" asp-action="Dashboard">Dashboard</a>
+            <a asp-controller="Cliente" asp-action="Index">Clientes</a>
+            <a asp-controller="Livro" asp-action="Index">Livros</a>
+            <a asp-controller="Estoque" asp-action="Index">Estoque</a>
+            <a asp-controller="Pedido" asp-action="Index">Pedidos</a>
+        </nav>
+
+        <div class="admin-back-store">
+            <a asp-controller="Home" asp-action="Index">← Voltar para Loja</a>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="admin-main">
+
+        <header class="admin-header">
+            <h1>Estoque</h1>
+            <div class="admin-user">
+                <span>Administrador</span>
+            </div>
+        </header>
+
+        <section class="admin-content">
+
+            <h2>Controle de Estoque</h2>
+
+            <div class="admin-table-wrapper">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Livro</th>
+                            <th>Estoque Atual</th>
+                            <th>Mínimo</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var item in Model) {
+                            <tr>
+                                <td>@item.LivroId</td>
+                                <td>@item.Livro.Titulo</td>
+                                <td>@item.Quantidade</td>
+                                <td>@item.QuantidadeMinima</td>
+
+                                <td>
+                                    @if (item.Quantidade == 0) {
+                                        <span class="stock-status empty">Sem Estoque</span>
+                                    }
+                                    else if (item.Quantidade < item.QuantidadeMinima) {
+                                        <span class="stock-status low">Baixo</span>
+                                    }
+                                    else {
+                                        <span class="stock-status ok">Em Estoque</span>
+                                    }
+                                </td>
+
+                                <td class="admin-actions">
+
+                                    <!-- ADICIONAR -->
+                                    <form asp-action="Adicionar" method="post" style="display:inline;">
+                                        <input type="hidden" name="livroId" value="@item.LivroId" />
+                                        <input type="number" name="quantidade" placeholder="+Qtd" required style="width:70px;" />
+                                        <button class="btn-primary btn-sm">Adicionar</button>
+                                    </form>
+
+                                    <!-- AJUSTAR -->
+                                    <form asp-action="Ajustar" method="post" style="display:inline;">
+                                        <input type="hidden" name="livroId" value="@item.LivroId" />
+                                        <input type="number" name="quantidade" placeholder="Novo" required style="width:70px;" />
+                                        <button class="btn-secondary btn-sm">Ajustar</button>
+                                    </form>
+
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+
+                </table>
+            </div>
+        </section>
+    </div>
+</div>

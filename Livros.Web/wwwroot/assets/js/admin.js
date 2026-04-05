@@ -90,3 +90,26 @@ document.addEventListener("input", function (e) {
 function fecharModalEditar() {
     document.getElementById("editarClienteModal").style.display = "none";
 }
+
+let livroSelecionadoId = 0;
+
+function abrirModalAdicionarEstoque(id, nome) {
+    livroSelecionadoId = id;
+    document.getElementById("livroAdicionarNome").innerText = nome;
+    document.getElementById("adicionarEstoqueModal").style.display = "flex";
+}
+
+function confirmarAdicionarEstoque() {
+    let qtd = document.getElementById("quantidadeAdicionar").value;
+
+    fetch("/Estoque/Adicionar", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            livroId: livroSelecionadoId,
+            quantidade: qtd
+        })
+    }).then(() => location.reload());
+}

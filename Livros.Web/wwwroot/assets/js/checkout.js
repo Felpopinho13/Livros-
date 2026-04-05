@@ -1,94 +1,106 @@
-document.addEventListener("DOMContentLoaded", function () {
+let subtotal = 0;
+let frete = 0;
 
-    const radios = document.querySelectorAll("input[name='payment']");
-    const forms = document.querySelectorAll(".payment-form");
+document.addEventListener("DOMContentLoaded", () => {
+    subtotal = parseFloat(document.getElementById("totalCompra").innerText.replace(",", "."));
 
-    const finalizarBtn = document.getElementById("finalizarPagamento");
-
-    const modal = document.getElementById("paymentModal");
-    const message = document.getElementById("paymentMessage");
-    const closeModal = document.getElementById("closePaymentModal");
-
-    // =============================
-    // Mostrar formulário correto
-    // =============================
-    radios.forEach(radio => {
-        radio.addEventListener("change", function () {
-
-            forms.forEach(form => form.style.display = "none");
-
-            if (this.value === "pix") {
-                document.getElementById("pixForm").style.display = "flex";
-            }
-
-            if (this.value === "boleto") {
-                document.getElementById("boletoForm").style.display = "flex";
-            }
-
-            if (this.value === "cartao") {
-                document.getElementById("cartaoForm").style.display = "grid";
-            }
-        });
-    });
-
-    // =============================
-    // Finalizar pagamento
-    // =============================
-    finalizarBtn.addEventListener("click", function () {
-
-        const selected = document.querySelector("input[name='payment']:checked");
-
-        if (!selected) {
-            alert("Selecione uma forma de pagamento.");
-            return;
-        }
-
-        if (selected.value === "pix") {
-            message.innerText = "Finalizando pagamento via Pix...";
-        }
-
-        if (selected.value === "boleto") {
-            message.innerText = "Gerando boleto...";
-        }
-
-        if (selected.value === "cartao") {
-            message.innerText = "Processando pagamento...";
-        }
-
-        modal.classList.add("active");
-    });
-
-    closeModal.addEventListener("click", function () {
-        modal.classList.remove("active");
-
-        // Simulação de redirecionamento após fechar
-        window.location.href = "pedido-confirmado.html";
-    });
-
+    document.querySelector("[name='Valor1']").addEventListener("input", calcularDivisao);
+    document.querySelector("[name='Valor2']").addEventListener("input", calcularDivisao);
 });
 
-const addressCards = document.querySelectorAll(".address-card");
+// 🚚 FRETE
+function calcularFrete() {
+    frete = 15.00;
 
-addressCards.forEach(card => {
+    document.getElementById("freteValor").innerText = "R$ " + frete.toFixed(2);
 
-  card.addEventListener("click", () => {
+    atualizarTotal();
+}
 
-    addressCards.forEach(c => c.classList.remove("selected"));
-    card.classList.add("selected");
+// 🎟 CUPOM
+function aplicarCupom() {
+    let cupom = document.getElementById("cupom").value;
 
-  });
+    if (cupom === "DESCONTO10") {
+        subtotal = subtotal * 0.9;
+        atualizarTotal();
+        alert("Cupom aplicado!");
+    } else {
+        alert("Cupom inválido");
+    }
+}
 
-});
+// 💰 TOTAL
+function atualizarTotal() {
+    let total = subtotal + frete;
 
-const creditCards = document.querySelectorAll(".credit-card");
+    document.getElementById("totalCompra").innerText = total.toFixed(2).replace(".", ",");
 
-creditCards.forEach(card => {
+    calcularDivisao();
+}
 
-  card.addEventListener("click", () => {
+// 💳 DIVISÃO DE PAGAMENTO
+function calcularDivisao() {
+    let valor1 = parseFloat(document.querySelector("[name='Valor1']").value) || 0;
+    let valor2Input = document.querySelector("[name='Valor2']");
 
-    creditCards.forEach(c => c.classList.remove("selected"));
-    card.classList.add("selected");
+    let total = subtotal + frete;
 
-  });
+    if (valor1 > total) {
+        valor1 = total;
+    }
 
-});
+    let restante = total - valor1;
+
+    valor2Input.value = restante > 0 ? restante.toFixed(2) : "";
+}
+
+function selecionarEndereco(id, elemento) {
+    document.querySelectorAll(".address-card").forEach(e => {
+        e.classList.remove("selected");
+    });
+
+    elemento.classList.add("selected");
+
+    elemento.querySelector("input[type='radio']").checked = true;
+
+    document.getElementById("novoEnderecoForm").style.display = "none";
+}
+
+function selecionarNovoEndereco(elemento) {
+    document.querySelectorAll(".address-card").forEach(e => {
+        e.classList.remove("selected");
+    });
+
+    elemento.classList.add("selected");
+
+    elemento.querySelector("input[type='radio']").checked = true;
+
+    document.getElementById("novoEnderecoForm").style.display = "block";
+}
+
+function togglePagamento(tipo, index) {
+    const form = document.getElementById("cartaoForm" + index);
+
+    if (!form) return;
+
+    if (tipo === "cartao") {
+        form.style.display = "grid"; // 🔥 usa grid agora
+    } else {
+        form.style.display = "none";
+    }
+}
+
+function validarPagamento() {
+    let v1 = parseFloat(document.querySelector("[name='Valor1']").value) || 0;
+    let v2 = parseFloat(document.querySelector("[name='Valor2']").value) || 0;
+
+    let total = parseFloat(document.getElementById("totalCompra").innerText.replace(",", "."));
+
+    if ((v1 + v2) !== total) {
+        alert("A soma dos pagamentos deve ser igual ao total!");
+        return false;
+    }
+
+    return true;
+}

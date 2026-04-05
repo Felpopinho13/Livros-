@@ -4,6 +4,7 @@ using Livros.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Livros.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260405181024_CriarPedido")]
+    partial class CriarPedido
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -150,31 +153,6 @@ namespace Livros.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Estados");
-                });
-
-            modelBuilder.Entity("Estoque", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("LivroId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantidade")
-                        .HasColumnType("int");
-
-                    b.Property<int>("QuantidadeMinima")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LivroId")
-                        .IsUnique();
-
-                    b.ToTable("Estoques");
                 });
 
             modelBuilder.Entity("Livros.Domain.Cartao", b =>
@@ -500,17 +478,6 @@ namespace Livros.Infrastructure.Migrations
                     b.Navigation("Cliente");
                 });
 
-            modelBuilder.Entity("Estoque", b =>
-                {
-                    b.HasOne("Livros.Domain.Livro", "Livro")
-                        .WithOne("Estoque")
-                        .HasForeignKey("Estoque", "LivroId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Livro");
-                });
-
             modelBuilder.Entity("Livros.Domain.Cartao", b =>
                 {
                     b.HasOne("Livros.Domain.Cliente", "Cliente")
@@ -586,12 +553,6 @@ namespace Livros.Infrastructure.Migrations
                     b.Navigation("Cartoes");
 
                     b.Navigation("Enderecos");
-                });
-
-            modelBuilder.Entity("Livros.Domain.Livro", b =>
-                {
-                    b.Navigation("Estoque")
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Livros.Domain.Pedido", b =>

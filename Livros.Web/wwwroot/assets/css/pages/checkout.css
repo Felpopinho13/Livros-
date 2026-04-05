@@ -19,6 +19,28 @@
     height: fit-content;
 }
 
+.checkout-form h3 {
+    margin-bottom: 15px;
+}
+
+.checkout-form {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+    .checkout-summary input {
+        width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        margin-bottom: 10px;
+    }
+
+    .checkout-summary button {
+        margin-bottom: 10px;
+    }
+
 .total-price {
     font-size: 22px;
     font-weight: bold;
@@ -35,39 +57,83 @@
     margin: 20px 0 10px;
 }
 
-.payment-options label {
-    flex: 1;
-    padding: 18px;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-weight: 500;
-    transition: 0.2s ease;
-    background: #fafafa;
-}
+    .payment-options label {
+        flex: 1;
+        padding: 18px;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 500;
+        transition: 0.2s ease;
+        background: #fafafa;
+    }
 
-.payment-options label:hover {
-    border-color: #ff9800;
-    background: #fff3e6;
-}
+        .payment-options label:hover {
+            border-color: #ff9800;
+            background: #fff3e6;
+        }
 
-.payment-options input[type="radio"] {
-    accent-color: #ff9800;
-    transform: scale(1.2);
-}
+    .payment-options input[type="radio"] {
+        accent-color: #ff9800;
+        transform: scale(1.2);
+    }
 
-.payment-options input[type="radio"]:checked + span,
-.payment-options input[type="radio"]:checked {
-    font-weight: 600;
-}
+        .payment-options input[type="radio"]:checked + span,
+        .payment-options input[type="radio"]:checked {
+            font-weight: 600;
+        }
 
 .payment-section {
     margin-top: 25px;
     padding: 20px;
 }
+
+.payment-block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+    .payment-block select,
+    .payment-block input[type="number"] {
+        width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        background: #fafafa;
+    }
+
+    .payment-block:last-child {
+        opacity: 0.8;
+    }
+
+    .payment-block h4 {
+        margin-top: 10px;
+        margin-bottom: 5px;
+    }
+
+.payment-top {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 10px;
+}
+
+.cartao-form {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+    .cartao-form input {
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        background: #fafafa;
+    }
 
 /* =========================
    PAYMENT FORMS
@@ -94,11 +160,11 @@
     gap: 15px;
 }
 
-/* Número do cartão ocupa linha inteira */
-#cartaoForm input:nth-child(1),
-#cartaoForm input:nth-child(2) {
-    grid-column: span 2;
-}
+    /* Número do cartão ocupa linha inteira */
+    #cartaoForm input:nth-child(1),
+    #cartaoForm input:nth-child(2) {
+        grid-column: span 2;
+    }
 
 .payment-form input {
     width: 100%;
@@ -110,12 +176,12 @@
     transition: all 0.2s ease;
 }
 
-.payment-form input:focus {
-    background: #fff;
-    border-color: #ff9800;
-    box-shadow: 0 0 0 3px rgba(255,152,0,0.15);
-    outline: none;
-}
+    .payment-form input:focus {
+        background: #fff;
+        border-color: #ff9800;
+        box-shadow: 0 0 0 3px rgba(255,152,0,0.15);
+        outline: none;
+    }
 
 /* =========================
    CHECKOUT ADDRESS
@@ -128,52 +194,52 @@
     margin-top: 20px;
 }
 
-/* CEP ocupa linha inteira */
-.checkout-address-grid input:nth-child(1) {
-    grid-column: span 2;
-}
+    /* CEP ocupa linha inteira */
+    .checkout-address-grid input:nth-child(1) {
+        grid-column: span 2;
+    }
 
-/* Logradouro + Número */
-.checkout-address-grid input:nth-child(2) {
-    grid-column: span 1;
-}
+    /* Logradouro + Número */
+    .checkout-address-grid input:nth-child(2) {
+        grid-column: span 1;
+    }
 
-.checkout-address-grid input:nth-child(3) {
-    grid-column: span 1;
-}
+    .checkout-address-grid input:nth-child(3) {
+        grid-column: span 1;
+    }
 
-/* Complemento + Bairro */
-.checkout-address-grid input:nth-child(4) {
-    grid-column: span 1;
-}
+    /* Complemento + Bairro */
+    .checkout-address-grid input:nth-child(4) {
+        grid-column: span 1;
+    }
 
-.checkout-address-grid input:nth-child(5) {
-    grid-column: span 1;
-}
+    .checkout-address-grid input:nth-child(5) {
+        grid-column: span 1;
+    }
 
-/* Cidade + Estado */
-.checkout-address-grid input:nth-child(6) {
-    grid-column: span 1;
-}
+    /* Cidade + Estado */
+    .checkout-address-grid input:nth-child(6) {
+        grid-column: span 1;
+    }
 
-.checkout-address-grid input:nth-child(7) {
-    grid-column: span 1;
-}
+    .checkout-address-grid input:nth-child(7) {
+        grid-column: span 1;
+    }
 
-/* Estética */
-.checkout-address-grid input {
-    width: 100%;
-    padding: 15px 16px;
-    border-radius: 12px;
-    border: 1px solid #e4e4e4;
-    background: #fdfdfd;
-    font-size: 14px;
-    transition: all 0.2s ease;
-}
+    /* Estética */
+    .checkout-address-grid input {
+        width: 100%;
+        padding: 15px 16px;
+        border-radius: 12px;
+        border: 1px solid #e4e4e4;
+        background: #fdfdfd;
+        font-size: 14px;
+        transition: all 0.2s ease;
+    }
 
-.checkout-address-grid input:focus {
-    border-color: #ff9800;
-    box-shadow: 0 0 0 3px rgba(255,152,0,0.15);
-    outline: none;
-    background: #fff;
-}
+        .checkout-address-grid input:focus {
+            border-color: #ff9800;
+            box-shadow: 0 0 0 3px rgba(255,152,0,0.15);
+            outline: none;
+            background: #fff;
+        }
