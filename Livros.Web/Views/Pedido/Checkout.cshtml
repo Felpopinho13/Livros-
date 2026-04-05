@@ -1,0 +1,221 @@
+﻿@model CheckoutViewModel
+
+<section class="checkout-page">
+    <div class="container">
+        <form asp-action="FinalizarPedido" method="post">
+
+            <h2>Finalizar Compra</h2>
+
+            <div class="checkout-layout">
+
+                <!-- FORM -->
+                <div class="checkout-form">
+
+                    <!-- ENDEREÇO -->
+                    <h3>Endereço de Entrega</h3>
+
+                    <div class="address-grid">
+                        @if (Model.Enderecos != null && Model.Enderecos.Any()) {
+                            foreach (var endereco in Model.Enderecos) {
+                                <div class="address-card" onclick="selecionarEndereco(@endereco.Id, this)">
+
+                                    <input type="radio" name="EnderecoId" value="@endereco.Id" hidden />
+
+                                    <h4>@endereco.NomeEndereco</h4>
+
+                                    <p>@endereco.Logradouro, @endereco.Numero</p>
+                                    <p>@endereco.Bairro.Nome - @endereco.Cidade.Nome/@endereco.Cidade.Estado.Sigla</p>
+                                    <p>CEP: @endereco.CEP</p>
+
+                                </div>
+                            }
+                        }
+                        else {
+                            <p>Nenhum endereço encontrado.</p>
+                        }
+
+                        <div class="address-card novo-endereco" onclick="selecionarNovoEndereco(this)">
+                            <strong>+ Novo Endereço</strong>
+
+                            <input type="radio" name="EnderecoId" value="0" hidden />
+                        </div>
+
+                    </div>
+
+                    <div id="novoEnderecoForm" class="card checkout-card" style="display:none;">
+                        <div class="checkout-address-grid">
+
+                            <input name="CEP" placeholder="CEP">
+                            <input name="Logradouro" placeholder="Logradouro">
+
+                            <input name="Numero" placeholder="Número">
+                            <input name="Complemento" placeholder="Complemento">
+
+                            <input name="Bairro" placeholder="Bairro">
+
+                            <input name="Cidade" placeholder="Cidade">
+                            <input name="Estado" placeholder="Estado">
+
+                        </div>
+                    </div>
+
+                    <!-- PAGAMENTO -->
+                    <div class="payment-section card">
+
+                        <h3>Forma de Pagamento</h3>
+
+                        <div class="payment-options">
+
+                            <label>
+                                <input type="radio" name="payment" value="pix">
+                                Pix
+                            </label>
+
+                            <label>
+                                <input type="radio" name="payment" value="boleto">
+                                Boleto
+                            </label>
+
+                            <label>
+                                <input type="radio" name="payment" value="cartao">
+                                Cartão de Crédito
+                            </label>
+
+                        </div>
+
+                        <!-- CARTÃO -->
+                        <div class="payment-form" id="cartaoForm">
+
+                            <input placeholder="Número do Cartão">
+
+                            <div class="card-grid-2">
+                                <input placeholder="Nome no cartão">
+                                <input placeholder="CVV">
+                            </div>
+
+                            <div class="card-grid-2">
+                                <input placeholder="Validade">
+                                <input placeholder="Email">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- RESUMO -->
+                <div class="checkout-summary card">
+
+                    <h3>Resumo do pedido</h3>
+
+                    <p>
+                        Produto:
+                        <strong>@Model.Livro.Titulo</strong>
+                    </p>
+
+                    <p>
+                        Subtotal:
+                        <strong>R$ @Model.Livro.Preco.ToString("N2")</strong>
+                    </p>
+
+                    <p>
+                        Frete:
+                        <strong id="freteValor">R$ 0,00</strong>
+                    </p>
+
+                    <hr>
+
+                    <p class="total-price">
+                        Total:
+                        R$ <span id="totalCompra">@Model.Livro.Preco.ToString("N2")</span>
+                    </p>
+
+                    <!-- CEP FRETE -->
+                    <input id="cepFrete" placeholder="Digite o CEP">
+                    <button type="button" onclick="calcularFrete()">Calcular Frete</button>
+
+                    <!-- CUPOM -->
+                    <input id="cupom" placeholder="Cupom de desconto">
+                    <button type="button" onclick="aplicarCupom()">Aplicar</button>
+
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        Finalizar pagamento
+                    </button>
+
+                </div>
+
+            </div>
+        </form>
+    </div>
+</section>
+
+<script>
+    function calcularFrete() {
+        let frete = 15.00;
+
+        document.getElementById("freteValor").innerText = "R$ " + frete.toFixed(2);
+
+        let subtotal = parseFloat("@Model.Livro.Preco");
+
+        let total = subtotal + frete;
+
+        document.getElementById("totalCompra").innerText = total.toFixed(2).replace(".", ",");
+    }
+
+    function aplicarCupom() {
+        let cupom = document.getElementById("cupom").value;
+
+        if (cupom === "DESCONTO10") {
+            let total = parseFloat(document.getElementById("totalCompra").innerText.replace(",", "."));
+
+            total = total * 0.9;
+
+            document.getElementById("totalCompra").innerText = total.toFixed(2).replace(".", ",");
+
+            alert("Cupom aplicado!");
+        } else {
+            alert("Cupom inválido");
+        }
+    }
+
+        function selecionarEndereco(id, elemento) {
+        document.querySelectorAll(".address-card").forEach(e => {
+            e.classList.remove("selected");
+        });
+
+        elemento.classList.add("selected");
+
+        elemento.querySelector("input[type='radio']").checked = true;
+
+        // 🔥 esconde o form de novo endereço
+        document.getElementById("novoEnderecoForm").style.display = "none";
+    }
+
+        function selecionarNovoEndereco(elemento) {
+        // remove seleção dos outros
+        document.querySelectorAll(".address-card").forEach(e => {
+            e.classList.remove("selected");
+        });
+
+        // seleciona o novo endereço
+        elemento.classList.add("selected");
+
+        // marca o radio
+        elemento.querySelector("input[type='radio']").checked = true;
+
+        // mostra o formulário
+        document.getElementById("novoEnderecoForm").style.display = "block";
+    }
+
+    function toggleNovoEndereco() {
+        let form = document.getElementById("novoEnderecoForm");
+
+        if (form.style.display === "none") {
+            form.style.display = "block";
+        } else {
+            form.style.display = "none";
+        }
+    }
+</script>

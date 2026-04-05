@@ -119,7 +119,12 @@ public class AuthController : Controller {
     }
 
     [HttpPost]
-    public IActionResult Login(string email, string senha) {
+    public IActionResult Login(string email, string senha, string returnUrl) {
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(senha)) {
+            ViewBag.Erro = "Preencha todos os campos";
+            return View();
+        }
+
         var cliente = _service.BuscarPorEmailESenha(email, senha);
 
         if (cliente == null) {
@@ -127,13 +132,14 @@ public class AuthController : Controller {
             return View();
         }
 
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(senha)) {
-            ViewBag.Erro = "Preencha todos os campos";
-            return View();
-        }
-
         HttpContext.Session.SetString("Usuario", cliente.Email);
         HttpContext.Session.SetString("IsAdmin", cliente.IsAdmin.ToString());
+        HttpContext.Session.SetString("ClienteId", cliente.Id.ToString()); // 🔥 IMPORTANTE
+
+        // 🔥 REDIRECIONAMENTO INTELIGENTE
+        if (!string.IsNullOrEmpty(returnUrl)) {
+            return Redirect(returnUrl);
+        }
 
         return RedirectToAction("Index", "Home");
     }

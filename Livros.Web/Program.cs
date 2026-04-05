@@ -18,6 +18,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<ClienteService>();
 builder.Services.AddScoped<LivroService>();
+builder.Services.AddScoped<EnderecoService>();
+
+builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession();
 

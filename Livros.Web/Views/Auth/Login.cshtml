@@ -22,7 +22,7 @@
                 <h2>Entrar</h2>
 
                 <form asp-action="Login" method="post">
-
+                    <input type="hidden" name="returnUrl" value="@Context.Request.Query["returnUrl"]" />
                     <div class="form-group">
                         <label>Email</label>
                         <input type="email" name="Email" placeholder="Digite seu email" required>

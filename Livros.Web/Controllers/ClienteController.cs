@@ -187,7 +187,7 @@ public class ClienteController : Controller {
     string bairro,
     string cidade,
     string estado) {
-        var idStr = HttpContext.Session.GetString("UsuarioId");
+        var idStr = HttpContext.Session.GetString("ClienteId");
 
         if (idStr == null)
             return RedirectToAction("Login", "Auth");
@@ -301,7 +301,7 @@ public class ClienteController : Controller {
     string numero,
     string validade,
     string cvv) {
-        var idStr = HttpContext.Session.GetString("UsuarioId");
+        var idStr = HttpContext.Session.GetString("ClienteId");
 
         if (idStr == null)
             return RedirectToAction("Login", "Auth");
@@ -370,7 +370,7 @@ public class ClienteController : Controller {
             return RedirectToAction("Editar");
         }
 
-        var idStr = HttpContext.Session.GetString("UsuarioId");
+        var idStr = HttpContext.Session.GetString("ClienteId");
 
         if (idStr == null)
             return RedirectToAction("Login", "Auth");
