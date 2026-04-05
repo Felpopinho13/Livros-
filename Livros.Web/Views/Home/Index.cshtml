@@ -1,4 +1,4 @@
-﻿
+﻿@model List<Livros.Domain.Livro>
 
 <section class="banner">
     <div class="container">
@@ -13,19 +13,27 @@
 
         <div class="product-grid">
 
-            <div class="card product-card">
-                <img src="~/assets/img/1984.jpg" alt="Livro">
-                <a href="#">
-                    <h3>1984</h3>
-                </a>
-                <p class="price">R$ 59,90</p>
+            @foreach (var livro in Model) {
+                <div class="card product-card">
 
-                <button class="btn-wishlist">❤</button>
+                    <img src="@livro.ImagemUrl" alt="Livro">
 
-                <button class="btn btn-primary btn-block">
-                    Adicionar
-                </button>
-            </div>
+                    <a asp-controller="Home" asp-action="Detalhes" asp-route-id="@livro.Id">
+                        <h3>@livro.Titulo</h3>
+                    </a>
+
+                    <p class="price">
+                        R$ @livro.Preco.ToString("N2")
+                    </p>
+
+                    <button class="btn-wishlist">❤</button>
+
+                    <button class="btn btn-primary btn-block">
+                        Adicionar
+                    </button>
+
+                </div>
+            }
 
         </div>
     </div>

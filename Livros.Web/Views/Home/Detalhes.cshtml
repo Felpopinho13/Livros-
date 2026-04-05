@@ -1,0 +1,57 @@
+﻿@model Livros.Domain.Livro
+
+<section class="book-detail">
+    <div class="container book-detail-grid">
+
+        <!-- IMAGEM -->
+        <div class="book-gallery">
+            <img src="@Model.ImagemUrl" alt="@Model.Titulo">
+        </div>
+
+        <!-- INFORMAÇÕES -->
+        <div class="book-info">
+            <div class="book-title-row">
+                <h1>@Model.Titulo</h1>
+
+                <button class="btn-wishlist">
+                    ❤
+                </button>
+            </div>
+
+            <p class="author">por @Model.Autor</p>
+
+            <p class="description">
+                @Model.Sinopse
+            </p>
+
+            <p><strong>Editora:</strong> @Model.Editora</p>
+            <p><strong>Ano:</strong> @Model.Ano</p>
+            <p><strong>Páginas:</strong> @Model.NumeroPaginas</p>
+        </div>
+
+        <!-- BOX DE COMPRA -->
+        <div class="book-buy-box">
+            <p class="price">
+                R$ @Model.Preco.ToString("N2")
+            </p>
+
+            <p class="stock">
+                @(Model.IsAtivo ? "Em estoque" : "Indisponível")
+            </p>
+
+            <input type="number" value="1" min="1" class="input">
+
+            <button class="btn btn-primary btn-block">
+                Adicionar ao carrinho
+            </button>
+
+            <a href="#" class="btn btn-block" style="background:#ffa41c">
+                Comprar agora
+            </a>
+
+        </div>
+
+
+
+    </div>
+</section>

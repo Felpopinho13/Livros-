@@ -10,12 +10,18 @@ namespace Livros.Infrastructure.Services {
         }
 
         public List<Livro> Listar() {
-            return _context.Livros.ToList();
+            return _context.Livros
+                .Where(l => l.IsAtivo)
+                .ToList();
         }
 
         public void Criar(Livro livro) {
             _context.Livros.Add(livro);
             _context.SaveChanges();
+        }
+
+        public Livro ObterPorId(int id) {
+            return _context.Livros.FirstOrDefault(l => l.Id == id && l.IsAtivo);
         }
     }
 }
