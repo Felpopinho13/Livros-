@@ -1,4 +1,4 @@
-ï»¿@model List<Livros.Domain.Livro>
+@model List<Livros.Domain.Livro>
 
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
@@ -29,7 +29,7 @@
         <thead>
             <tr>
                 <th>ID</th>
-                <th>TÃ­tulo</th>
+                <th>Título</th>
                 <th>Autor</th>
                 <th>ISBN</th>
                 <th>Status</th>
@@ -74,18 +74,18 @@
 
         <div class="admin-modal-header">
             <h3>Novo Livro</h3>
-            <button class="modal-close" onclick="fecharModalNovoLivro()">âœ•</button>
+            <button class="modal-close" onclick="fecharModalNovoLivro()">?</button>
         </div>
 
         <form asp-action="CriarLivro" method="post" enctype="multipart/form-data">
             <div class="admin-modal-body">
 
-                <h4>InformaÃ§Ãµes BÃ¡sicas</h4>
+                <h4>Informações Básicas</h4>
 
                 <div class="admin-grid-2">
 
                     <div class="admin-form-group">
-                        <label>TÃ­tulo</label>
+                        <label>Título</label>
                         <input name="Titulo" class="admin-input" required>
                     </div>
 
@@ -108,13 +108,13 @@
                     </div>
 
                     <div class="admin-form-group">
-                        <label>EdiÃ§Ã£o</label>
+                        <label>Edição</label>
                         <input name="Edicao" class="admin-input">
                     </div>
 
                 </div>
 
-                <h4>IdentificaÃ§Ã£o</h4>
+                <h4>Identificação</h4>
 
                 <div class="admin-grid-2">
 
@@ -124,42 +124,42 @@
                                class="admin-input"
                                maxlength="13"
                                pattern="\d{13}"
-                               title="ISBN deve ter 13 nÃºmeros">
+                               title="ISBN deve ter 13 números">
                     </div>
 
                     <div class="admin-form-group">
-                        <label>CÃ³digo de Barras</label>
+                        <label>Código de Barras</label>
                         <input name="CodigoBarras"
                                class="admin-input"
                                maxlength="13"
                                pattern="\d{13}"
-                               title="CÃ³digo de barras deve ter 13 nÃºmeros">
+                               title="Código de barras deve ter 13 números">
                     </div>
 
                 </div>
 
-                <h4>DimensÃµes</h4>
+                <h4>Dimensões</h4>
 
                 <div class="admin-grid-4">
 
                     <div class="admin-form-group">
                         <label>Altura</label>
-                        <input type="number" step="0.01" name="Altura" min="0.1" max="1000">
+                        <input type="text" inputmode="decimal" name="Altura" class="admin-input" placeholder="Ex.: 22,5">
                     </div>
 
                     <div class="admin-form-group">
                         <label>Largura</label>
-                        <input type="number" step="0.01" name="Largura" min="0.1" max="1000">
+                        <input type="text" inputmode="decimal" name="Largura" class="admin-input" placeholder="Ex.: 15,4">
                     </div>
 
                     <div class="admin-form-group">
                         <label>Peso</label>
-                        <input type="number" step="0.01" name="Peso" min="0.01" max="50">
+                        <input type="text" inputmode="decimal" name="Peso" class="admin-input" placeholder="Ex.: 0,34">
                     </div>
 
                     <div class="admin-form-group">
                         <label>Profundidade</label>
-                        <input type="number" step="0.01" name="Profundidade" min="0.1" max="1000">
+                        <input type="text" inputmode="decimal" name="Profundidade" class="admin-input" placeholder="Ex.: 2,0">
                     </div>
 
                 </div>
@@ -169,7 +169,7 @@
                 <div class="admin-grid-2">
 
                     <div class="admin-form-group">
-                        <label>PÃ¡ginas</label>
+                        <label>Páginas</label>
                         <input type="number"
                                name="NumeroPaginas"
                                class="admin-input"
@@ -178,7 +178,7 @@
                     </div>
 
                     <div class="admin-form-group">
-                        <label>PreÃ§o</label>
+                        <label>Preço</label>
                         <input type="number"
                                step="0.01"
                                name="Preco"

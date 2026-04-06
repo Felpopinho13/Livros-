@@ -18,32 +18,32 @@ public class CheckoutFormData {
 
     public int EnderecoId { get; set; }
     public bool SalvarNovoEndereco { get; set; }
-    public string NomeEndereco { get; set; }
-    public string CEP { get; set; }
-    public string Logradouro { get; set; }
-    public string Numero { get; set; }
-    public string Complemento { get; set; }
-    public string Bairro { get; set; }
-    public string Cidade { get; set; }
-    public string Estado { get; set; }
+    public string? NomeEndereco { get; set; }
+    public string? CEP { get; set; }
+    public string? Logradouro { get; set; }
+    public string? Numero { get; set; }
+    public string? Complemento { get; set; }
+    public string? Bairro { get; set; }
+    public string? Cidade { get; set; }
+    public string? Estado { get; set; }
 
-    public string Cupom { get; set; }
+    public string? Cupom { get; set; }
 
-    public string Metodo1 { get; set; }
+    public string? Metodo1 { get; set; }
     public decimal? Valor1 { get; set; }
     public int? CartaoId1 { get; set; }
     public bool SalvarNovoCartao1 { get; set; }
-    public string NomeCartao1 { get; set; }
-    public string NumeroCartao1 { get; set; }
-    public string CVV1 { get; set; }
-    public string Validade1 { get; set; }
+    public string? NomeCartao1 { get; set; }
+    public string? NumeroCartao1 { get; set; }
+    public string? CVV1 { get; set; }
+    public string? Validade1 { get; set; }
 
-    public string Metodo2 { get; set; }
+    public string? Metodo2 { get; set; }
     public decimal? Valor2 { get; set; }
     public int? CartaoId2 { get; set; }
     public bool SalvarNovoCartao2 { get; set; }
-    public string NomeCartao2 { get; set; }
-    public string NumeroCartao2 { get; set; }
-    public string CVV2 { get; set; }
-    public string Validade2 { get; set; }
+    public string? NomeCartao2 { get; set; }
+    public string? NumeroCartao2 { get; set; }
+    public string? CVV2 { get; set; }
+    public string? Validade2 { get; set; }
 }

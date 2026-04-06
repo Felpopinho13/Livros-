@@ -3,6 +3,7 @@ using Livros.Infrastructure.Data;
 using Livros.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace Livros.Web.Controllers {
     public class PedidoController : Controller {
@@ -237,7 +238,7 @@ namespace Livros.Web.Controllers {
                 ModelState.AddModelError(string.Empty, "Informe um valor válido para o pagamento 2.");
             }
 
-            if (soma != totalArredondado) {
+            if (Math.Abs(soma - totalArredondado) > 0.01m) {
                 ModelState.AddModelError(string.Empty, "A soma dos pagamentos deve ser igual ao total do pedido.");
             }
 
@@ -317,6 +318,26 @@ namespace Livros.Web.Controllers {
                 : 0;
         }
 
+        private decimal ObterValorPagamento(string campo, decimal? valorPadrao) {
+            if (Request?.Form == null || !Request.Form.ContainsKey(campo)) {
+                return valorPadrao ?? 0;
+            }
+
+            var valorBruto = Request.Form[campo].ToString();
+            if (string.IsNullOrWhiteSpace(valorBruto)) {
+                return valorPadrao ?? 0;
+            }
+
+            if (decimal.TryParse(valorBruto, NumberStyles.Number, CultureInfo.GetCultureInfo("pt-BR"), out var valorPtBr)) {
+                return valorPtBr;
+            }
+
+            if (decimal.TryParse(valorBruto, NumberStyles.Number, CultureInfo.InvariantCulture, out var valorInvariant)) {
+                return valorInvariant;
+            }
+
+            return valorPadrao ?? 0;
+        }
         private int? ObterClienteId() {
             var clienteIdStr = HttpContext.Session.GetString("ClienteId");
             if (string.IsNullOrWhiteSpace(clienteIdStr)) {
@@ -327,3 +348,4 @@ namespace Livros.Web.Controllers {
         }
     }
 }
+

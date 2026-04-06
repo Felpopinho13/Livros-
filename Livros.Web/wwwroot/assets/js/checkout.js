@@ -19,6 +19,25 @@ if (checkoutLayout) {
         return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
+    function parseDecimal(value) {
+        if (!value) {
+            return 0;
+        }
+
+        const normalized = value
+            .toString()
+            .trim()
+            .replace(/\./g, '')
+            .replace(',', '.');
+
+        const parsed = parseFloat(normalized);
+        return Number.isNaN(parsed) ? 0 : parsed;
+    }
+
+    function formatInputValue(value) {
+        return formatCurrency(value);
+    }
+
     function getQuantidade() {
         const quantidade = parseInt(quantidadeInput.value, 10);
         return Number.isNaN(quantidade) || quantidade < 1 ? 1 : quantidade;
@@ -35,6 +54,10 @@ if (checkoutLayout) {
 
     function calcularDesconto(subtotal) {
         return cupomInput.value.trim().toUpperCase() === cupomValido ? subtotal * 0.10 : 0;
+    }
+
+    function obterTotalAtual() {
+        return calcularSubtotal() + calcularFrete() - calcularDesconto(calcularSubtotal());
     }
 
     function atualizarResumo() {
@@ -56,7 +79,7 @@ if (checkoutLayout) {
             return;
         }
 
-        const valor1 = parseFloat(valor1Input.value.replace(',', '.')) || 0;
+        const valor1 = parseDecimal(valor1Input.value);
         const metodo2 = document.querySelector("[name='Metodo2']")?.value;
 
         if (!metodo2) {
@@ -65,7 +88,7 @@ if (checkoutLayout) {
         }
 
         const restante = total - valor1;
-        valor2Input.value = restante > 0 ? restante.toFixed(2) : '0.00';
+        valor2Input.value = restante > 0 ? formatInputValue(restante) : formatInputValue(0);
     }
 
     function toggleNovoEndereco() {
@@ -109,8 +132,8 @@ if (checkoutLayout) {
 
     quantidadeInput?.addEventListener('input', atualizarResumo);
     aplicarCupomBtn?.addEventListener('click', atualizarResumo);
-    valor1Input?.addEventListener('input', () => recalcularDivisao(calcularSubtotal() + calcularFrete() - calcularDesconto(calcularSubtotal())));
-    valor2Input?.addEventListener('input', () => recalcularDivisao(calcularSubtotal() + calcularFrete() - calcularDesconto(calcularSubtotal())));
+    valor1Input?.addEventListener('input', () => recalcularDivisao(obterTotalAtual()));
+    valor2Input?.addEventListener('input', () => recalcularDivisao(obterTotalAtual()));
 
     enderecoRadios.forEach((radio) => radio.addEventListener('change', toggleNovoEndereco));
     metodoSelects.forEach((select) => select.addEventListener('change', () => togglePagamento(select.dataset.index)));

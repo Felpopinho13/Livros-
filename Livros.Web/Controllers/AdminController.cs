@@ -1,8 +1,9 @@
-ï»¿using Livros.Domain;
+using Livros.Domain;
 using Livros.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Livros.Infrastructure.Services;
+using System.Globalization;
 
 public class AdminController : Controller {
     private readonly AppDbContext _context;
@@ -62,17 +63,17 @@ public class AdminController : Controller {
             return RedirectToAction("Clientes");
 
         if (string.IsNullOrWhiteSpace(cliente.Nome)) {
-            TempData["Erro"] = "Nome Ã© obrigatÃ³rio.";
+            TempData["Erro"] = "Nome é obrigatório.";
             return RedirectToAction("Clientes");
         }
 
         if (string.IsNullOrWhiteSpace(cliente.Email)) {
-            TempData["Erro"] = "Email Ã© obrigatÃ³rio.";
+            TempData["Erro"] = "Email é obrigatório.";
             return RedirectToAction("Clientes");
         }
 
         if (string.IsNullOrWhiteSpace(cliente.Senha)) {
-            TempData["Erro"] = "Senha Ã© obrigatÃ³ria.";
+            TempData["Erro"] = "Senha é obrigatória.";
             return RedirectToAction("Clientes");
         }
 
@@ -166,7 +167,7 @@ public class AdminController : Controller {
 
     [HttpPost]
     public IActionResult CriarLivro(Livro livro, IFormFile ImagemArquivo) {
-        // ðŸŸ¢ 1. TRATAR IMAGEM ANTES DA VALIDAÃ‡ÃƒO
+        // ?? 1. TRATAR IMAGEM ANTES DA VALIDAÇÃO
         if (ImagemArquivo != null && ImagemArquivo.Length > 0) {
             var nomeArquivo = Guid.NewGuid() + Path.GetExtension(ImagemArquivo.FileName);
 
@@ -184,11 +185,11 @@ public class AdminController : Controller {
 
             livro.ImagemUrl = "/assets/img/" + nomeArquivo;
 
-            // ðŸ”¥ remove erro de validaÃ§Ã£o
+            // ?? remove erro de validação
             ModelState.Remove("ImagemUrl");
         }
 
-        // ðŸ”´ 2. VALIDAR AGORA
+        // ?? 2. VALIDAR AGORA
         if (!ModelState.IsValid) {
             var erros = ModelState.Values.SelectMany(v => v.Errors);
 
@@ -196,11 +197,11 @@ public class AdminController : Controller {
                 System.Diagnostics.Debug.WriteLine(erro.ErrorMessage);
             }
 
-            TempData["Erro"] = "Dados invÃ¡lidos!";
+            TempData["Erro"] = "Dados inválidos!";
             return RedirectToAction("Livros");
         }
 
-        // ðŸŸ¢ 3. SALVAR
+        // ?? 3. SALVAR
         _livroService.Criar(livro);
 
         TempData["Sucesso"] = "Livro cadastrado com sucesso!";

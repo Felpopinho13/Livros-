@@ -105,7 +105,7 @@
                                 }
                             </select>
 
-                            <input type="number" name="Valor1" placeholder="Valor" step="0.01" min="0" value="@(form.Valor1?.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))">
+                            <input type="text" name="Valor1" placeholder="Valor" inputmode="decimal" value="@(form.Valor1?.ToString("N2"))">
 
                             <div id="cartaoForm1" class="cartao-form" style="@(form.Metodo1 == "cartao" ? "display:grid;" : "display:none;")">
                                 <select name="CartaoId1" class="saved-card-select" data-index="1">
@@ -178,7 +178,7 @@
                                 }
                             </select>
 
-                            <input type="number" name="Valor2" placeholder="Valor" step="0.01" min="0" value="@(form.Valor2?.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture))">
+                            <input type="text" name="Valor2" placeholder="Valor" inputmode="decimal" value="@(form.Valor2?.ToString("N2"))">
 
                             <div id="cartaoForm2" class="cartao-form" style="@(form.Metodo2 == "cartao" ? "display:grid;" : "display:none;")">
                                 <select name="CartaoId2" class="saved-card-select" data-index="2">
@@ -251,3 +251,4 @@
 </section>
 
 <script src="~/assets/js/checkout.js"></script>
+
