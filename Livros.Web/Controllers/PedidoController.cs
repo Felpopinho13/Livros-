@@ -61,6 +61,11 @@ namespace Livros.Web.Controllers {
                 return View("Checkout", MontarCheckoutViewModel(clienteId.Value, form.LivroId, form));
             }
 
+            form.Valor1 = ObterValorPagamento("Valor1", form.Valor1);
+            form.Valor2 = string.IsNullOrWhiteSpace(form.Metodo2)
+                ? 0
+                : ObterValorPagamento("Valor2", form.Valor2);
+
             var subtotal = livro.Preco * form.Quantidade;
             var frete = CalcularFrete(form.Quantidade);
             var desconto = CalcularDesconto(form.Cupom, subtotal);
@@ -107,14 +112,41 @@ namespace Livros.Web.Controllers {
                 _context.SaveChanges();
                 transaction.Commit();
 
-                TempData["Sucesso"] = "Pedido finalizado com sucesso! Status inicial: EM PROCESSAMENTO.";
-                return RedirectToAction("AreaCliente", "Cliente");
+                return RedirectToAction("PedidoConfirmado", new { id = pedido.Id });
             }
             catch {
                 transaction.Rollback();
                 ModelState.AddModelError(string.Empty, "Não foi possível finalizar o pedido. Tente novamente.");
                 return View("Checkout", MontarCheckoutViewModel(clienteId.Value, form.LivroId, form));
             }
+        }
+
+        public IActionResult PedidoConfirmado(int id) {
+            var clienteId = ObterClienteId();
+            if (clienteId == null) {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var pedido = _context.Pedidos
+                .Include(p => p.Itens)
+                    .ThenInclude(i => i.Livro)
+                .FirstOrDefault(p => p.Id == id && p.ClienteId == clienteId.Value);
+
+            if (pedido == null) {
+                return NotFound();
+            }
+
+            var primeiroItem = pedido.Itens.FirstOrDefault();
+
+            var vm = new PedidoConfirmadoViewModel {
+                PedidoId = pedido.Id,
+                Status = pedido.Status,
+                Total = pedido.Total,
+                LivroTitulo = primeiroItem?.Livro?.Titulo ?? "Pedido realizado",
+                Quantidade = pedido.Itens.Sum(i => i.Quantidade)
+            };
+
+            return View(vm);
         }
 
         private CheckoutViewModel MontarCheckoutViewModel(int clienteId, int livroId, CheckoutFormData form) {
@@ -244,7 +276,7 @@ namespace Livros.Web.Controllers {
 
             var usaCupom = CalcularDesconto(form.Cupom, total) > 0;
 
-            ValidarPagamentoCartao(clienteId, form.Metodo1, valor1, form.CartaoId1, form.NomeCartao1, form.NumeroCartao1, form.Validade1, form.CVV1, usaCupom, 1);
+            ValidarPagamentoCartao(clienteId, form.Metodo1 ?? string.Empty, valor1, form.CartaoId1, form.NomeCartao1, form.NumeroCartao1, form.Validade1, form.CVV1, usaCupom, 1);
 
             if (!string.IsNullOrWhiteSpace(form.Metodo2)) {
                 ValidarPagamentoCartao(clienteId, form.Metodo2, valor2, form.CartaoId2, form.NomeCartao2, form.NumeroCartao2, form.Validade2, form.CVV2, usaCupom, 2);
@@ -252,7 +284,7 @@ namespace Livros.Web.Controllers {
         }
 
         private void ValidarPagamentoCartao(int clienteId, string metodo, decimal valor, int? cartaoId,
-            string nome, string numero, string validade, string cvv, bool usaCupom, int indice) {
+            string? nome, string? numero, string? validade, string? cvv, bool usaCupom, int indice) {
             if (!string.Equals(metodo, "cartao", StringComparison.OrdinalIgnoreCase)) {
                 return;
             }
@@ -275,8 +307,8 @@ namespace Livros.Web.Controllers {
             }
         }
 
-        private void AdicionarPagamentoAoPedido(int clienteId, string metodo, decimal? valor, int? cartaoId, bool salvarNovoCartao,
-            string nomeCartao, string numeroCartao, string validade, string cvv, Pedido pedido) {
+        private void AdicionarPagamentoAoPedido(int clienteId, string? metodo, decimal? valor, int? cartaoId, bool salvarNovoCartao,
+            string? nomeCartao, string? numeroCartao, string? validade, string? cvv, Pedido pedido) {
             if (string.IsNullOrWhiteSpace(metodo) || !valor.HasValue || valor.Value <= 0) {
                 return;
             }
@@ -284,10 +316,10 @@ namespace Livros.Web.Controllers {
             if (string.Equals(metodo, "cartao", StringComparison.OrdinalIgnoreCase) && (!cartaoId.HasValue || cartaoId.Value == 0) && salvarNovoCartao) {
                 var novoCartao = new Cartao {
                     ClienteId = clienteId,
-                    NomeImpresso = nomeCartao.Trim(),
-                    Numero = numeroCartao.Trim(),
-                    Validade = validade.Trim(),
-                    CVV = cvv.Trim()
+                    NomeImpresso = (nomeCartao ?? string.Empty).Trim(),
+                    Numero = (numeroCartao ?? string.Empty).Trim(),
+                    Validade = (validade ?? string.Empty).Trim(),
+                    CVV = (cvv ?? string.Empty).Trim()
                 };
 
                 _context.Cartoes.Add(novoCartao);
@@ -308,7 +340,7 @@ namespace Livros.Web.Controllers {
             return 15 + Math.Max(quantidade - 1, 0) * 2;
         }
 
-        private decimal CalcularDesconto(string cupom, decimal subtotal) {
+        private decimal CalcularDesconto(string? cupom, decimal subtotal) {
             if (string.IsNullOrWhiteSpace(cupom)) {
                 return 0;
             }
@@ -328,6 +360,12 @@ namespace Livros.Web.Controllers {
                 return valorPadrao ?? 0;
             }
 
+            var normalizado = valorBruto.Trim().Replace(".", string.Empty).Replace(',', '.');
+
+            if (decimal.TryParse(normalizado, NumberStyles.Number, CultureInfo.InvariantCulture, out var valorNormalizado)) {
+                return valorNormalizado;
+            }
+
             if (decimal.TryParse(valorBruto, NumberStyles.Number, CultureInfo.GetCultureInfo("pt-BR"), out var valorPtBr)) {
                 return valorPtBr;
             }
@@ -338,6 +376,7 @@ namespace Livros.Web.Controllers {
 
             return valorPadrao ?? 0;
         }
+
         private int? ObterClienteId() {
             var clienteIdStr = HttpContext.Session.GetString("ClienteId");
             if (string.IsNullOrWhiteSpace(clienteIdStr)) {
@@ -348,4 +387,3 @@ namespace Livros.Web.Controllers {
         }
     }
 }
-

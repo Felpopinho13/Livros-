@@ -137,12 +137,14 @@
 }
 
 .payment-block select,
-.payment-block input[type="number"] {
+.payment-block input[type="number"],
+.payment-block input[type="text"] {
     width: 100%;
     padding: 12px;
     border-radius: 10px;
     border: 1px solid #ddd;
     background: #fafafa;
+    font-size: 16px;
 }
 
 .payment-block h4 {

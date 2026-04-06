@@ -1,0 +1,36 @@
+@model PedidoConfirmadoViewModel
+
+@{
+    string statusClass = Model.Status == "EM PROCESSAMENTO" ? "processing" : "success";
+}
+
+<section class="order-success">
+    <div class="container">
+        <div class="success-card card">
+            <div class="success-icon">&#10003;</div>
+            <h2>Pedido confirmado!</h2>
+            <p class="success-subtitle">Obrigado pela sua compra. Seu pedido foi registrado com sucesso.</p>
+
+            <div class="order-info">
+                <p><strong>Nº do pedido:</strong> #@Model.PedidoId</p>
+                <p><strong>Livro:</strong> @Model.LivroTitulo</p>
+                <p><strong>Quantidade:</strong> @Model.Quantidade</p>
+                <p>
+                    <strong>Status:</strong>
+                    <span class="status @statusClass">@Model.Status</span>
+                </p>
+                <p><strong>Total pago:</strong> R$ @Model.Total.ToString("N2")</p>
+            </div>
+
+            <div class="success-actions">
+                <a asp-controller="Cliente" asp-action="AreaCliente" class="btn btn-primary">
+                    Ver minha conta
+                </a>
+
+                <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">
+                    Voltar para loja
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
