@@ -3,12 +3,10 @@
 <section class="book-detail">
     <div class="container book-detail-grid">
 
-        <!-- IMAGEM -->
         <div class="book-gallery">
             <img src="@Model.ImagemUrl" alt="@Model.Titulo">
         </div>
 
-        <!-- INFORMAÇÕES -->
         <div class="book-info">
             <div class="book-title-row">
                 <h1>@Model.Titulo</h1>
@@ -29,7 +27,6 @@
             <p><strong>Páginas:</strong> @Model.NumeroPaginas</p>
         </div>
 
-        <!-- BOX DE COMPRA -->
         <div class="book-buy-box">
             <p class="price">
                 R$ @Model.Preco.ToString("N2")
@@ -41,13 +38,18 @@
 
             <input type="number" id="quantidade" value="1" min="1" class="input">
 
-            <button class="btn btn-primary btn-block">
-                Adicionar ao carrinho
-            </button>
+            <form asp-controller="Pedido" asp-action="AdicionarAoCarrinho" method="post" id="formAdicionarCarrinho">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="livroId" value="@Model.Id" />
+                <input type="hidden" name="quantidade" id="quantidadeCarrinho" value="1" />
+                <button type="submit" class="btn btn-primary btn-block">
+                    Adicionar ao carrinho
+                </button>
+            </form>
 
             <a href="#" id="btnComprar" class="btn btn-block">
                 Comprar agora
-            </a>                
+            </a>
 
         </div>
 
@@ -55,10 +57,19 @@
 </section>
 
 <script>
+    const quantidadeInput = document.getElementById("quantidade");
+    const quantidadeCarrinho = document.getElementById("quantidadeCarrinho");
+
+    quantidadeInput.addEventListener("input", function () {
+        let quantidade = parseInt(quantidadeInput.value) || 1;
+        if (quantidade < 1) quantidade = 1;
+        quantidadeCarrinho.value = quantidade;
+    });
+
     document.getElementById("btnComprar").addEventListener("click", function (e) {
         e.preventDefault();
 
-        let quantidade = parseInt(document.getElementById("quantidade").value) || 1;
+        let quantidade = parseInt(quantidadeInput.value) || 1;
 
         if (quantidade < 1) quantidade = 1;
 

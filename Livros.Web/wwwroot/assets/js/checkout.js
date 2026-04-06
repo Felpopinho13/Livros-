@@ -1,4 +1,4 @@
-const checkoutLayout = document.querySelector('.checkout-layout');
+﻿const checkoutLayout = document.querySelector('.checkout-layout');
 
 if (checkoutLayout) {
     const quantidadeInput = document.getElementById('quantidade');
@@ -11,6 +11,9 @@ if (checkoutLayout) {
     const valor2Input = document.querySelector("[name='Valor2']");
 
     const unitPrice = parseFloat(checkoutLayout.dataset.unitPrice || '0');
+    const subtotalBase = parseFloat(checkoutLayout.dataset.subtotalBase || '0');
+    const quantidadeBase = parseInt(checkoutLayout.dataset.quantidadeBase || '1', 10);
+    const permiteQuantidade = checkoutLayout.dataset.permiteQuantidade === 'true';
     const freteBase = parseFloat(checkoutLayout.dataset.freteBase || '15');
     const freteExtra = parseFloat(checkoutLayout.dataset.freteExtra || '2');
     const cupomValido = (checkoutLayout.dataset.cupom || '').toUpperCase();
@@ -39,11 +42,19 @@ if (checkoutLayout) {
     }
 
     function getQuantidade() {
+        if (!permiteQuantidade || !quantidadeInput) {
+            return Number.isNaN(quantidadeBase) || quantidadeBase < 1 ? 1 : quantidadeBase;
+        }
+
         const quantidade = parseInt(quantidadeInput.value, 10);
         return Number.isNaN(quantidade) || quantidade < 1 ? 1 : quantidade;
     }
 
     function calcularSubtotal() {
+        if (!permiteQuantidade) {
+            return subtotalBase;
+        }
+
         return unitPrice * getQuantidade();
     }
 

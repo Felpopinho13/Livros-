@@ -1,7 +1,15 @@
-﻿@{
+﻿@using System.Text.Json
+@using Livros.Web.Models.ViewModels
+@{
     var usuario = Context.Session.GetString("Usuario");
     var isAdmin = Context.Session.GetString("IsAdmin");
+    var carrinhoCount = 0;
+    var carrinhoJson = Context.Session.GetString("Carrinho");
 
+    if (!string.IsNullOrWhiteSpace(carrinhoJson)) {
+        var itensCarrinho = JsonSerializer.Deserialize<List<CarrinhoSessionItem>>(carrinhoJson) ?? new List<CarrinhoSessionItem>();
+        carrinhoCount = itensCarrinho.Sum(i => i.Quantidade);
+    }
 }
 
 <!DOCTYPE html>
@@ -30,7 +38,7 @@
 
             <nav class="nav-icons">
                 <a asp-controller="Home" asp-action="Index">🏠</a>
-                <a href="#">🛒</a>
+                <a asp-controller="Pedido" asp-action="Carrinho">🛒 <span id="cart-count">@carrinhoCount</span></a>
                 <a href="#">❤</a>
 
                 <a asp-controller="Cliente" asp-action="AreaCliente">👤</a>
@@ -42,7 +50,6 @@
                 @if (usuario != null) {
                     <a asp-controller="Auth" asp-action="Logout" class="btn-logout">Sair</a>
                 }
-                
             </nav>
         </div>
     </header>

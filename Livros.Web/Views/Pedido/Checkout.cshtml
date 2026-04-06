@@ -1,4 +1,4 @@
-@model CheckoutViewModel
+Ôªø@model CheckoutViewModel
 
 @{
     var form = Model.Form;
@@ -8,7 +8,8 @@
     <div class="container">
         <form asp-action="FinalizarPedido" method="post" class="checkout-form-root">
             @Html.AntiForgeryToken()
-            <input type="hidden" name="LivroId" value="@Model.Livro.Id" />
+            <input type="hidden" name="LivroId" value="@form.LivroId" />
+            <input type="hidden" name="UsarCarrinho" value="@form.UsarCarrinho.ToString().ToLower()" />
 
             <h2>Finalizar Compra</h2>
 
@@ -24,10 +25,17 @@
                 </div>
             }
 
-            <div class="checkout-layout" data-unit-price="@Model.Livro.Preco.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-frete-base="15" data-frete-extra="2" data-cupom="DESCONTO10">
+            <div class="checkout-layout"
+                 data-unit-price="@((Model.PermiteAlterarQuantidade && Model.Livro != null ? Model.Livro.Preco : 0).ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                 data-subtotal-base="@Model.Subtotal.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                 data-quantidade-base="@Model.Quantidade"
+                 data-permite-quantidade="@Model.PermiteAlterarQuantidade.ToString().ToLower()"
+                 data-frete-base="15"
+                 data-frete-extra="2"
+                 data-cupom="DESCONTO10">
                 <div class="checkout-form">
                     <div class="card checkout-card">
-                        <h3>EndereÁo de Entrega</h3>
+                        <h3>Endere√ßo de Entrega</h3>
 
                         <div class="address-grid">
                             @foreach (var endereco in Model.Enderecos) {
@@ -44,17 +52,17 @@
 
                             <label class="address-card novo-endereco @(form.EnderecoId == 0 ? "selected" : "")">
                                 <input type="radio" name="EnderecoId" value="0" @(form.EnderecoId == 0 ? "checked" : "") />
-                                <strong>+ Novo EndereÁo</strong>
-                                <span>Cadastre um endereÁo para esta compra.</span>
+                                <strong>+ Novo Endere√ßo</strong>
+                                <span>Cadastre um endere√ßo para esta compra.</span>
                             </label>
                         </div>
 
                         <div id="novoEnderecoForm" class="checkout-card-inner" style="@(form.EnderecoId == 0 ? "display:block;" : "display:none;")">
                             <div class="checkout-address-grid">
-                                <input name="NomeEndereco" maxlength="60" placeholder="Nome do endereÁo" value="@form.NomeEndereco">
+                                <input name="NomeEndereco" maxlength="60" placeholder="Nome do endere√ßo" value="@form.NomeEndereco">
                                 <input name="CEP" maxlength="9" placeholder="CEP" value="@form.CEP">
                                 <input name="Logradouro" maxlength="100" placeholder="Logradouro" value="@form.Logradouro">
-                                <input name="Numero" maxlength="10" placeholder="N˙mero" value="@form.Numero">
+                                <input name="Numero" maxlength="10" placeholder="N√∫mero" value="@form.Numero">
                                 <input name="Complemento" maxlength="50" placeholder="Complemento" value="@form.Complemento">
                                 <input name="Bairro" maxlength="50" placeholder="Bairro" value="@form.Bairro">
                                 <input name="Cidade" maxlength="50" placeholder="Cidade" value="@form.Cidade">
@@ -63,14 +71,14 @@
 
                             <label class="checkout-checkbox">
                                 <input type="checkbox" name="SalvarNovoEndereco" value="true" @(form.SalvarNovoEndereco ? "checked" : "")>
-                                <span>Salvar este endereÁo no meu perfil</span>
+                                <span>Salvar este endere√ßo no meu perfil</span>
                             </label>
                         </div>
                     </div>
 
                     <div class="payment-section card">
                         <h3>Forma de Pagamento</h3>
-                        <p class="checkout-hint">VocÍ pode dividir o valor em atÈ 2 pagamentos.</p>
+                        <p class="checkout-hint">Voc√™ pode dividir o valor em at√© 2 pagamentos.</p>
 
                         <div class="payment-block" data-payment-index="1">
                             <h4>Pagamento 1</h4>
@@ -98,10 +106,10 @@
                                 }
 
                                 @if (form.Metodo1 == "cartao") {
-                                    <option value="cartao" selected>Cart„o</option>
+                                    <option value="cartao" selected>Cart√£o</option>
                                 }
                                 else {
-                                    <option value="cartao">Cart„o</option>
+                                    <option value="cartao">Cart√£o</option>
                                 }
                             </select>
 
@@ -110,10 +118,10 @@
                             <div id="cartaoForm1" class="cartao-form" style="@(form.Metodo1 == "cartao" ? "display:grid;" : "display:none;")">
                                 <select name="CartaoId1" class="saved-card-select" data-index="1">
                                     @if (!form.CartaoId1.HasValue || form.CartaoId1.Value == 0) {
-                                        <option value="" selected>Novo cart„o</option>
+                                        <option value="" selected>Novo cart√£o</option>
                                     }
                                     else {
-                                        <option value="">Novo cart„o</option>
+                                        <option value="">Novo cart√£o</option>
                                     }
 
                                     @foreach (var cartao in Model.Cartoes) {
@@ -131,13 +139,13 @@
 
                                 <div id="novoCartaoForm1" class="new-card-fields" style="@((form.CartaoId1.HasValue && form.CartaoId1.Value > 0) ? "display:none;" : "display:grid;")">
                                     <input name="NomeCartao1" maxlength="100" placeholder="Nome impresso" value="@form.NomeCartao1">
-                                    <input name="NumeroCartao1" maxlength="19" placeholder="N˙mero do cart„o" value="@form.NumeroCartao1">
+                                    <input name="NumeroCartao1" maxlength="19" placeholder="N√∫mero do cart√£o" value="@form.NumeroCartao1">
                                     <input name="CVV1" maxlength="3" placeholder="CVV" value="@form.CVV1">
                                     <input name="Validade1" maxlength="5" placeholder="MM/AA" value="@form.Validade1">
 
                                     <label class="checkout-checkbox checkbox-inline">
                                         <input type="checkbox" name="SalvarNovoCartao1" value="true" @(form.SalvarNovoCartao1 ? "checked" : "")>
-                                        <span>Salvar este cart„o</span>
+                                        <span>Salvar este cart√£o</span>
                                     </label>
                                 </div>
                             </div>
@@ -171,10 +179,10 @@
                                 }
 
                                 @if (form.Metodo2 == "cartao") {
-                                    <option value="cartao" selected>Cart„o</option>
+                                    <option value="cartao" selected>Cart√£o</option>
                                 }
                                 else {
-                                    <option value="cartao">Cart„o</option>
+                                    <option value="cartao">Cart√£o</option>
                                 }
                             </select>
 
@@ -183,10 +191,10 @@
                             <div id="cartaoForm2" class="cartao-form" style="@(form.Metodo2 == "cartao" ? "display:grid;" : "display:none;")">
                                 <select name="CartaoId2" class="saved-card-select" data-index="2">
                                     @if (!form.CartaoId2.HasValue || form.CartaoId2.Value == 0) {
-                                        <option value="" selected>Novo cart„o</option>
+                                        <option value="" selected>Novo cart√£o</option>
                                     }
                                     else {
-                                        <option value="">Novo cart„o</option>
+                                        <option value="">Novo cart√£o</option>
                                     }
 
                                     @foreach (var cartao in Model.Cartoes) {
@@ -204,13 +212,13 @@
 
                                 <div id="novoCartaoForm2" class="new-card-fields" style="@((form.CartaoId2.HasValue && form.CartaoId2.Value > 0) ? "display:none;" : "display:grid;")">
                                     <input name="NomeCartao2" maxlength="100" placeholder="Nome impresso" value="@form.NomeCartao2">
-                                    <input name="NumeroCartao2" maxlength="19" placeholder="N˙mero do cart„o" value="@form.NumeroCartao2">
+                                    <input name="NumeroCartao2" maxlength="19" placeholder="N√∫mero do cart√£o" value="@form.NumeroCartao2">
                                     <input name="CVV2" maxlength="3" placeholder="CVV" value="@form.CVV2">
                                     <input name="Validade2" maxlength="5" placeholder="MM/AA" value="@form.Validade2">
 
                                     <label class="checkout-checkbox checkbox-inline">
                                         <input type="checkbox" name="SalvarNovoCartao2" value="true" @(form.SalvarNovoCartao2 ? "checked" : "")>
-                                        <span>Salvar este cart„o</span>
+                                        <span>Salvar este cart√£o</span>
                                     </label>
                                 </div>
                             </div>
@@ -221,11 +229,33 @@
                 <div class="checkout-summary card">
                     <h3>Resumo do pedido</h3>
 
-                    <p>Produto: <strong>@Model.Livro.Titulo</strong></p>
-                    <p>PreÁo unit·rio: <strong>R$ @Model.Livro.Preco.ToString("N2")</strong></p>
+                    @if (Model.OrigemCarrinho) {
+                        <div class="checkout-items-list">
+                            @foreach (var item in Model.Itens) {
+                                <div class="checkout-item-row">
+                                    <div>
+                                        <strong>@item.Titulo</strong>
+                                        <span>@item.Quantidade x R$ @item.PrecoUnitario.ToString("N2")</span>
+                                    </div>
+                                    <strong>R$ @item.TotalItem.ToString("N2")</strong>
+                                </div>
+                            }
+                        </div>
 
-                    <label for="quantidade">Quantidade:</label>
-                    <input type="number" id="quantidade" name="Quantidade" value="@form.Quantidade" min="1">
+                        <p>Total de itens: <strong>@Model.Quantidade</strong></p>
+                    }
+                    else if (Model.Livro != null) {
+                        <p>Produto: <strong>@Model.Livro.Titulo</strong></p>
+                        <p>Pre√ßo unit√°rio: <strong>R$ @Model.Livro.Preco.ToString("N2")</strong></p>
+                    }
+
+                    @if (Model.PermiteAlterarQuantidade) {
+                        <label for="quantidade">Quantidade:</label>
+                        <input type="number" id="quantidade" name="Quantidade" value="@form.Quantidade" min="1">
+                    }
+                    else {
+                        <input type="hidden" name="Quantidade" value="@form.Quantidade" />
+                    }
 
                     <p>Subtotal: <strong id="subtotalValor">R$ @Model.Subtotal.ToString("N2")</strong></p>
                     <p>Frete: <strong id="freteValor">R$ @Model.Frete.ToString("N2")</strong></p>
@@ -251,4 +281,3 @@
 </section>
 
 <script src="~/assets/js/checkout.js"></script>
-

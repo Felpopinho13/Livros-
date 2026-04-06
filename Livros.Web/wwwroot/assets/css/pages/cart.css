@@ -1,4 +1,4 @@
-/* =========================
+﻿/* =========================
    CART PAGE
 ========================= */
 
@@ -108,4 +108,46 @@
 .summary-actions a {
     flex: 1; 
     text-align: center;
+}
+.cart-empty-state {
+    max-width: 720px;
+    margin: 20px auto;
+    padding: 36px;
+    text-align: center;
+}
+
+.cart-empty-state h3 {
+    margin-bottom: 10px;
+}
+
+.cart-empty-state p {
+    margin-bottom: 22px;
+    color: #6b7280;
+}
+
+.cart-qty-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.cart-stock-note {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.cart-summary-note {
+    margin-top: 18px;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.cart-summary-actions {
+    flex-direction: column;
+}
+
+.cart-summary-actions a {
+    width: 100%;
 }

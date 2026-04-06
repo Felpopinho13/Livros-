@@ -1,7 +1,18 @@
-using Livros.Domain;
+﻿using Livros.Domain;
+
+public class CheckoutResumoItemViewModel {
+    public int LivroId { get; set; }
+    public string Titulo { get; set; } = string.Empty;
+    public string Autor { get; set; } = string.Empty;
+    public string ImagemUrl { get; set; } = string.Empty;
+    public decimal PrecoUnitario { get; set; }
+    public int Quantidade { get; set; }
+    public decimal TotalItem => PrecoUnitario * Quantidade;
+}
 
 public class CheckoutViewModel {
-    public Livro Livro { get; set; }
+    public Livro? Livro { get; set; }
+    public List<CheckoutResumoItemViewModel> Itens { get; set; } = new();
     public List<Endereco> Enderecos { get; set; } = new();
     public List<Cartao> Cartoes { get; set; } = new();
     public int Quantidade { get; set; }
@@ -9,12 +20,15 @@ public class CheckoutViewModel {
     public decimal Frete { get; set; }
     public decimal Desconto { get; set; }
     public decimal Total { get; set; }
+    public bool OrigemCarrinho { get; set; }
+    public bool PermiteAlterarQuantidade { get; set; }
     public CheckoutFormData Form { get; set; } = new();
 }
 
 public class CheckoutFormData {
     public int LivroId { get; set; }
     public int Quantidade { get; set; } = 1;
+    public bool UsarCarrinho { get; set; }
 
     public int EnderecoId { get; set; }
     public bool SalvarNovoEndereco { get; set; }

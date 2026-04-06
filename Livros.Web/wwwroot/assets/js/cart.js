@@ -1,16 +1,6 @@
-let cartCount = 0;
-
-const cartDisplay = document.getElementById("cart-count");
+﻿const cartDisplay = document.getElementById("cart-count");
 
 if (cartDisplay) {
-
-    const buttons = document.querySelectorAll(".btn-primary");
-
-    buttons.forEach(button => {
-        button.addEventListener("click", () => {
-            cartCount++;
-            cartDisplay.innerText = cartCount;
-        });
-    });
-
+    const currentValue = parseInt(cartDisplay.textContent || "0", 10);
+    cartDisplay.textContent = Number.isNaN(currentValue) ? "0" : currentValue.toString();
 }

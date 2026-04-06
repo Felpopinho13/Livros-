@@ -1,4 +1,4 @@
-.checkout-page {
+﻿.checkout-page {
     padding: 50px 20px;
 }
 
@@ -236,4 +236,34 @@
     .checkbox-inline {
         grid-column: span 1;
     }
+}
+
+.checkout-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.checkout-item-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid #ececec;
+}
+
+.checkout-item-row:last-child {
+    border-bottom: none;
+}
+
+.checkout-item-row div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.checkout-item-row span {
+    color: #6b7280;
+    font-size: 14px;
 }

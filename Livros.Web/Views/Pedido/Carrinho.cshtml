@@ -1,0 +1,96 @@
+﻿@model Livros.Web.Models.ViewModels.CarrinhoViewModel
+
+<section class="cart-page">
+    <div class="container">
+        <h2>Carrinho de compras</h2>
+
+        @if (TempData["SucessoCarrinho"] != null) {
+            <div class="checkout-feedback success">@TempData["SucessoCarrinho"]</div>
+        }
+
+        @if (TempData["ErroCarrinho"] != null) {
+            <div class="checkout-feedback error">@TempData["ErroCarrinho"]</div>
+        }
+
+        @if (Model.CarrinhoVazio) {
+            <div class="card cart-empty-state">
+                <h3>Seu carrinho está vazio.</h3>
+                <p>Adicione alguns livros para continuar sua compra.</p>
+                <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Continuar comprando</a>
+            </div>
+        }
+        else {
+            <div class="cart-layout">
+                <div class="cart-items">
+                    @foreach (var item in Model.Itens) {
+                        <div class="cart-item">
+                            <div class="cart-product">
+                                <img src="@item.ImagemUrl" alt="@item.Titulo">
+
+                                <div class="cart-info">
+                                    <h3>@item.Titulo</h3>
+                                    <p>@item.Autor</p>
+                                    <p class="stock">@(item.EmEstoque ? "Em estoque" : "Indisponível")</p>
+
+                                    <div class="cart-actions">
+                                        <form asp-controller="Pedido" asp-action="RemoverDoCarrinho" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="livroId" value="@item.LivroId" />
+                                            <button type="submit" class="remove-btn">Remover</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <form asp-controller="Pedido" asp-action="AtualizarCarrinho" method="post" class="cart-qty-form">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="livroId" value="@item.LivroId" />
+
+                                <div class="cart-qty">
+                                    <button type="submit" name="quantidade" value="@(item.Quantidade - 1)">-</button>
+                                    <span>@item.Quantidade</span>
+                                    <button type="submit" name="quantidade" value="@(item.Quantidade + 1)">+</button>
+                                </div>
+
+                                <small class="cart-stock-note">Máximo: @item.EstoqueDisponivel</small>
+                            </form>
+
+                            <div class="cart-price">
+                                R$ @item.TotalItem.ToString("N2")
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="cart-summary">
+                    <h3>Resumo do pedido</h3>
+
+                    <div class="summary-row">
+                        <span>Itens</span>
+                        <span>@Model.QuantidadeItens</span>
+                    </div>
+
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <span>R$ @Model.Subtotal.ToString("N2")</span>
+                    </div>
+
+                    <div class="summary-row total">
+                        <span>Total</span>
+                        <span>R$ @Model.Subtotal.ToString("N2")</span>
+                    </div>
+
+                    <div class="summary-actions cart-summary-actions">
+                        <a asp-controller="Home" asp-action="Index" class="btn-outline">
+                            Continuar comprando
+                        </a>
+
+                        <a asp-controller="Pedido" asp-action="CheckoutCarrinho" class="btn-primary">
+                            Fechar pedido
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>
