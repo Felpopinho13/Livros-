@@ -1,4 +1,4 @@
-﻿using Livros.Domain;
+using Livros.Domain;
 
 public class AdminTrocaItemViewModel {
     public int Id { get; set; }
@@ -15,9 +15,23 @@ public class AdminTrocaItemViewModel {
     public string? CodigoCupom { get; set; }
 }
 
+public class AdminCupomItemViewModel {
+    public int Id { get; set; }
+    public string Codigo { get; set; } = string.Empty;
+    public decimal Valor { get; set; }
+    public string Tipo { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime DataCriacao { get; set; }
+    public DateTime? DataUtilizacao { get; set; }
+    public string? ClienteNome { get; set; }
+    public int? PedidoId { get; set; }
+    public bool PodeDesativar { get; set; }
+}
+
 public class AdminTrocasViewModel {
     public string? Busca { get; set; }
     public string? StatusFiltro { get; set; }
     public List<AdminTrocaItemViewModel> Trocas { get; set; } = new();
     public List<CupomDesconto> CuponsRecentes { get; set; } = new();
+    public List<AdminCupomItemViewModel> Cupons { get; set; } = new();
 }

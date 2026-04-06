@@ -10,7 +10,7 @@
 }
 
 <div class="admin-page-header exchange-page-header">
-    <h2>Trocas e Devoluções</h2>
+    <h2>Trocas e Devolucoes</h2>
 </div>
 
 @if (TempData["Sucesso"] != null) {
@@ -51,13 +51,13 @@
                 <th>Motivo</th>
                 <th>Status</th>
                 <th>Data</th>
-                <th>Ações</th>
+                <th>Acoes</th>
             </tr>
         </thead>
         <tbody>
             @if (!Model.Trocas.Any()) {
                 <tr>
-                    <td colspan="8" class="exchange-empty-state">Nenhuma solicitação de troca encontrada.</td>
+                    <td colspan="8" class="exchange-empty-state">Nenhuma solicitacao de troca encontrada.</td>
                 </tr>
             }
             else {
@@ -97,22 +97,83 @@
     <div class="exchange-coupons-panel">
         <div class="exchange-coupons-header">
             <h3>Cupons recentes</h3>
-            <p>Últimos cupons gerados no painel para promoção ou troca.</p>
+            <p>Ultimos cupons gerados no painel para promocao ou troca.</p>
         </div>
 
         <div class="exchange-coupon-grid">
             @foreach (var cupom in Model.CuponsRecentes) {
                 var tipoClass = cupom.Tipo.ToLowerInvariant();
+                var statusTexto = !cupom.IsAtivo ? "Inativo" : cupom.DataUtilizacao.HasValue ? "Utilizado" : "Ativo";
                 <div class="exchange-coupon-card">
                     <span class="exchange-coupon-type @tipoClass">@cupom.Tipo</span>
                     <strong>@cupom.Codigo</strong>
                     <span>R$ @cupom.Valor.ToString("N2")</span>
-                    <small>@(cupom.IsAtivo ? "Ativo" : "Utilizado")</small>
+                    <small>@statusTexto</small>
                 </div>
             }
         </div>
     </div>
 }
+
+<div class="exchange-coupons-panel exchange-coupon-list-panel">
+    <div class="exchange-coupons-header">
+        <h3>Gerenciamento de cupons</h3>
+        <p>Acompanhe status, uso e desative cupons promocionais ativos quando necessario.</p>
+    </div>
+
+    <div class="admin-table-wrapper exchange-table-wrapper">
+        <table class="admin-table exchange-table exchange-coupon-table">
+            <thead>
+                <tr>
+                    <th>Codigo</th>
+                    <th>Tipo</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                    <th>Cliente</th>
+                    <th>Pedido</th>
+                    <th>Criacao</th>
+                    <th>Uso</th>
+                    <th>Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Cupons.Any()) {
+                    <tr>
+                        <td colspan="9" class="exchange-empty-state">Nenhum cupom encontrado.</td>
+                    </tr>
+                }
+                else {
+                    @foreach (var cupom in Model.Cupons) {
+                        var tipoClass = cupom.Tipo.ToLowerInvariant();
+                        var statusClass = cupom.Status.ToLowerInvariant().Replace(" ", "-");
+                        <tr>
+                            <td><strong>@cupom.Codigo</strong></td>
+                            <td><span class="exchange-coupon-type @tipoClass">@cupom.Tipo</span></td>
+                            <td>R$ @cupom.Valor.ToString("N2")</td>
+                            <td><span class="exchange-status @statusClass">@cupom.Status</span></td>
+                            <td>@(string.IsNullOrWhiteSpace(cupom.ClienteNome) ? "-" : cupom.ClienteNome)</td>
+                            <td>@(cupom.PedidoId.HasValue ? $"#{cupom.PedidoId}" : "-")</td>
+                            <td>@cupom.DataCriacao.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@(cupom.DataUtilizacao.HasValue ? cupom.DataUtilizacao.Value.ToString("dd/MM/yyyy HH:mm") : "-")</td>
+                            <td class="admin-actions exchange-actions">
+                                @if (cupom.PodeDesativar) {
+                                    <form asp-controller="Admin" asp-action="DesativarCupomDesconto" method="post" class="exchange-inline-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@cupom.Id" />
+                                        <button type="submit" class="btn-secondary exchange-action-btn exchange-danger-btn">Desativar</button>
+                                    </form>
+                                }
+                                else {
+                                    <span class="exchange-muted-action">Sem acao</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
 
 <div class="admin-modal-overlay" id="trocaModal" style="display:none;">
     <div class="admin-modal exchange-modal">
@@ -128,7 +189,7 @@
 
                 <div class="exchange-modal-grid">
                     <div>
-                        <label>Nº Troca</label>
+                        <label>NÂº Troca</label>
                         <div class="exchange-modal-value" id="trocaCodigo"></div>
                     </div>
                     <div>
@@ -151,12 +212,12 @@
                 </div>
 
                 <div class="admin-form-group">
-                    <label>Observação do cliente</label>
+                    <label>Observacao do cliente</label>
                     <div class="exchange-modal-box" id="trocaObservacaoCliente"></div>
                 </div>
 
                 <div class="admin-form-group exchange-analysis-fields">
-                    <label for="decisaoTroca">Decisão</label>
+                    <label for="decisaoTroca">Decisao</label>
                     <select id="decisaoTroca" name="decisao" class="admin-select">
                         <option value="aprovar">Aprovar</option>
                         <option value="recusar">Recusar</option>
@@ -166,12 +227,12 @@
                 <div class="admin-form-group exchange-analysis-fields">
                     <label for="valorCupomTroca">Valor do cupom gerado</label>
                     <input type="text" id="valorCupomTroca" name="valorCupom" class="admin-input" inputmode="decimal" placeholder="0,00" />
-                    <small class="exchange-help">Se a troca for aprovada, este valor será salvo como cupom para o cliente.</small>
+                    <small class="exchange-help">Se a troca for aprovada, este valor sera salvo como cupom para o cliente.</small>
                 </div>
 
                 <div class="admin-form-group">
-                    <label for="observacaoAdminTroca">Observação do admin</label>
-                    <textarea id="observacaoAdminTroca" name="observacaoAdmin" class="admin-input" rows="4" placeholder="Descreva a análise da solicitação."></textarea>
+                    <label for="observacaoAdminTroca">Observacao do admin</label>
+                    <textarea id="observacaoAdminTroca" name="observacaoAdmin" class="admin-input" rows="4" placeholder="Descreva a analise da solicitacao."></textarea>
                 </div>
 
                 <div class="exchange-coupon-box" id="cupomGeradoBox" style="display:none;">
@@ -182,7 +243,7 @@
 
             <div class="admin-modal-footer">
                 <button type="button" class="btn-secondary" onclick="fecharModal('trocaModal')">Fechar</button>
-                <button type="submit" class="btn-primary exchange-analysis-submit">Confirmar análise</button>
+                <button type="submit" class="btn-primary exchange-analysis-submit">Confirmar analise</button>
             </div>
         </form>
     </div>
@@ -221,7 +282,7 @@
         document.getElementById('trocaCliente').textContent = cliente;
         document.getElementById('trocaStatusAtual').textContent = status;
         document.getElementById('trocaMotivo').textContent = motivo || '-';
-        document.getElementById('trocaObservacaoCliente').textContent = observacaoCliente || 'Sem observação informada.';
+        document.getElementById('trocaObservacaoCliente').textContent = observacaoCliente || 'Sem observacao informada.';
         document.getElementById('observacaoAdminTroca').value = observacaoAdmin || '';
         document.getElementById('valorCupomTroca').value = valorCupom > 0 ? valorCupom.toFixed(2).replace('.', ',') : '';
         document.getElementById('cupomGeradoCodigo').textContent = codigoCupom || '';

@@ -292,3 +292,68 @@
     }
 }
 
+
+.exchange-coupon-list-panel {
+    margin-top: 24px;
+}
+
+.exchange-coupon-table th,
+.exchange-coupon-table td {
+    white-space: nowrap;
+}
+
+.exchange-inline-form {
+    margin: 0;
+}
+
+.exchange-danger-btn {
+    border-color: #fca5a5;
+    color: #b91c1c;
+    background: #fff5f5;
+}
+
+.exchange-danger-btn:hover {
+    background: #fee2e2;
+}
+
+.exchange-muted-action {
+    color: #9ca3af;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.exchange-status.ativo {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.exchange-status.inativo {
+    background: #e5e7eb;
+    color: #4b5563;
+}
+
+.exchange-status.utilizado {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.exchange-coupon-list-panel .exchange-table-wrapper {
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.exchange-coupon-table {
+    min-width: 1220px;
+}
+
+.exchange-coupon-table th:last-child,
+.exchange-coupon-table td:last-child {
+    position: sticky;
+    right: 0;
+    background: #ffffff;
+    z-index: 1;
+}
+
+.exchange-coupon-table td:last-child {
+    box-shadow: -10px 0 18px rgba(255, 255, 255, 0.95);
+}

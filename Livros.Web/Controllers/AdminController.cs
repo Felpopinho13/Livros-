@@ -1,4 +1,4 @@
-using Livros.Domain;
+Ôªøusing Livros.Domain;
 using Livros.Infrastructure.Data;
 using Livros.Infrastructure.Services;
 using Livros.Web.Models.ViewModels;
@@ -64,17 +64,17 @@ public class AdminController : Controller {
             return RedirectToAction("Clientes");
 
         if (string.IsNullOrWhiteSpace(cliente.Nome)) {
-            TempData["Erro"] = "Nome È obrigatÛrio.";
+            TempData["Erro"] = "Nome √© obrigat√≥rio.";
             return RedirectToAction("Clientes");
         }
 
         if (string.IsNullOrWhiteSpace(cliente.Email)) {
-            TempData["Erro"] = "Email È obrigatÛrio.";
+            TempData["Erro"] = "Email √© obrigat√≥rio.";
             return RedirectToAction("Clientes");
         }
 
         if (string.IsNullOrWhiteSpace(cliente.Senha)) {
-            TempData["Erro"] = "Senha È obrigatÛria.";
+            TempData["Erro"] = "Senha √© obrigat√≥ria.";
             return RedirectToAction("Clientes");
         }
 
@@ -190,7 +190,7 @@ public class AdminController : Controller {
         }
 
         if (!ModelState.IsValid) {
-            TempData["Erro"] = "Dados inv·lidos!";
+            TempData["Erro"] = "Dados inv√°lidos!";
             return RedirectToAction("Livros");
         }
 
@@ -262,7 +262,22 @@ public class AdminController : Controller {
             CuponsRecentes = _context.CuponsDesconto
                 .OrderByDescending(c => c.DataCriacao)
                 .Take(8)
-                .ToList()
+                .ToList(),
+            Cupons = _context.CuponsDesconto
+                .Include(c => c.Cliente)
+                .OrderByDescending(c => c.DataCriacao)
+                .Select(c => new AdminCupomItemViewModel {
+                    Id = c.Id,
+                    Codigo = c.Codigo,
+                    Valor = c.Valor,
+                    Tipo = c.Tipo,
+                    Status = !c.IsAtivo ? "Inativo" : c.DataUtilizacao.HasValue ? "Utilizado" : "Ativo",
+                    DataCriacao = c.DataCriacao,
+                    DataUtilizacao = c.DataUtilizacao,
+                    ClienteNome = c.Cliente != null ? c.Cliente.Nome : null,
+                    PedidoId = c.PedidoId,
+                    PodeDesativar = c.IsAtivo && !c.DataUtilizacao.HasValue && c.Tipo == "PROMOCIONAL"
+                }).ToList()
         };
 
         return View(vm);
@@ -278,12 +293,12 @@ public class AdminController : Controller {
             .FirstOrDefault(t => t.Id == trocaId);
 
         if (troca == null) {
-            TempData["Erro"] = "SolicitaÁ„o de troca n„o encontrada.";
+            TempData["Erro"] = "Solicita√ß√£o de troca n√£o encontrada.";
             return RedirectToAction("Trocas");
         }
 
         if (troca.Status != "Solicitado") {
-            TempData["Erro"] = "Esta solicitaÁ„o j· foi analisada.";
+            TempData["Erro"] = "Esta solicita√ß√£o j√° foi analisada.";
             return RedirectToAction("Trocas");
         }
 
@@ -293,7 +308,7 @@ public class AdminController : Controller {
         if (string.Equals(decisao, "aprovar", StringComparison.OrdinalIgnoreCase)) {
             var valorCupomNormalizado = ObterDecimalFormulario("valorCupom", valorCupom ?? 0);
             if (valorCupomNormalizado <= 0) {
-                TempData["Erro"] = "Informe um valor v·lido para gerar o cupom da troca.";
+                TempData["Erro"] = "Informe um valor v√°lido para gerar o cupom da troca.";
                 return RedirectToAction("Trocas");
             }
 
@@ -319,7 +334,7 @@ public class AdminController : Controller {
 
         troca.Status = "Recusado";
         _context.SaveChanges();
-        TempData["Sucesso"] = "SolicitaÁ„o de troca recusada com sucesso.";
+        TempData["Sucesso"] = "Solicita√ß√£o de troca recusada com sucesso.";
         return RedirectToAction("Trocas");
     }
 
@@ -328,7 +343,7 @@ public class AdminController : Controller {
     public IActionResult GerarCupomDesconto(decimal? valor) {
         var valorNormalizado = ObterDecimalFormulario("valor", valor ?? 0);
         if (valorNormalizado <= 0) {
-            TempData["Erro"] = "Informe um valor v·lido para gerar o cupom promocional.";
+            TempData["Erro"] = "Informe um valor v√°lido para gerar o cupom promocional.";
             return RedirectToAction("Trocas");
         }
 
@@ -347,6 +362,33 @@ public class AdminController : Controller {
         return RedirectToAction("Trocas");
     }
 
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult DesativarCupomDesconto(int id) {
+        var cupom = _context.CuponsDesconto.FirstOrDefault(c => c.Id == id);
+
+        if (cupom == null) {
+            TempData["Erro"] = "Cupom nao encontrado.";
+            return RedirectToAction("Trocas");
+        }
+
+        if (!cupom.IsAtivo || cupom.DataUtilizacao.HasValue) {
+            TempData["Erro"] = "Este cupom nao pode ser desativado manualmente.";
+            return RedirectToAction("Trocas");
+        }
+
+        if (!string.Equals(cupom.Tipo, "PROMOCIONAL", StringComparison.OrdinalIgnoreCase)) {
+            TempData["Erro"] = "Apenas cupons promocionais podem ser desativados manualmente.";
+            return RedirectToAction("Trocas");
+        }
+
+        cupom.IsAtivo = false;
+        _context.SaveChanges();
+
+        TempData["Sucesso"] = $"Cupom {cupom.Codigo} desativado com sucesso.";
+        return RedirectToAction("Trocas");
+    }
     private string GerarCodigoCupom(string prefixo) {
         return $"{prefixo}-{DateTime.Now:yyyyMMddHHmmss}";
     }
@@ -378,4 +420,5 @@ public class AdminController : Controller {
         return valorPadrao;
     }
 }
+
 
