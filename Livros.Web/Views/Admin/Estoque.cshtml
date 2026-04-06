@@ -1,62 +1,211 @@
-ï»¿@model List<Estoque>
+@model List<Estoque>
 
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Estoque";
 }
 
-<div class="admin-page-header">
+<div class="admin-page-header stock-page-header">
     <h2>Controle de Estoque</h2>
 </div>
 
-<div class="admin-table-wrapper">
-    <table class="admin-table">
+<div class="admin-filters stock-filters">
+    <div class="stock-filter-group">
+        <input type="text" id="stockSearch" class="admin-input stock-search" placeholder="Buscar livro..." />
+        <select id="stockStatusFilter" class="admin-select stock-select">
+            <option value="todos">Todos</option>
+            <option value="ok">Em Estoque</option>
+            <option value="low">Baixo</option>
+            <option value="empty">Sem Estoque</option>
+        </select>
+    </div>
+</div>
+
+<div class="admin-table-wrapper stock-table-wrapper">
+    <table class="admin-table stock-table">
         <thead>
             <tr>
                 <th>ID</th>
                 <th>Livro</th>
                 <th>Estoque Atual</th>
-                <th>MÃ­nimo</th>
+                <th>Mínimo</th>
                 <th>Status</th>
-                <th>AÃ§Ãµes</th>
+                <th>Ações</th>
             </tr>
         </thead>
 
-        <tbody>
-            @foreach (var item in Model) {
+        <tbody id="stockTableBody">
+            @if (!Model.Any()) {
                 <tr>
-                    <td>@item.LivroId</td>
-                    <td>@item.Livro.Titulo</td>
-                    <td>@item.Quantidade</td>
-                    <td>@item.QuantidadeMinima</td>
-
-                    <td>
-                        @if (item.Quantidade == 0) {
-                            <span class="stock-status empty">Sem Estoque</span>
-                        }
-                        else if (item.Quantidade < item.QuantidadeMinima) {
-                            <span class="stock-status low">Baixo</span>
-                        }
-                        else {
-                            <span class="stock-status ok">Em Estoque</span>
-                        }
-                    </td>
-
-                    <td class="admin-actions">
-                        <form asp-controller="Admin" asp-action="AdicionarEstoque" method="post">
-                            <input type="hidden" name="livroId" value="@item.LivroId" />
-                            <input type="number" name="quantidade" placeholder="+Qtd" required style="width:70px;" />
-                            <button class="btn-primary btn-sm">Adicionar</button>
-                        </form>
-
-                        <form asp-controller="Admin" asp-action="AjustarEstoque" method="post">
-                            <input type="hidden" name="livroId" value="@item.LivroId" />
-                            <input type="number" name="quantidade" placeholder="Novo" required style="width:70px;" />
-                            <button class="btn-secondary btn-sm">Ajustar</button>
-                        </form>
-                    </td>
+                    <td colspan="6" class="stock-empty-state">Nenhum livro encontrado no estoque.</td>
                 </tr>
+            }
+            else {
+                @foreach (var item in Model) {
+                    var statusClass = item.Quantidade == 0 ? "empty" : item.Quantidade < item.QuantidadeMinima ? "low" : "ok";
+                    var statusText = item.Quantidade == 0 ? "Sem Estoque" : item.Quantidade < item.QuantidadeMinima ? "Baixo" : "Em Estoque";
+                    var tituloEscapado = item.Livro.Titulo.Replace("\\", "\\\\").Replace("'", "\\'");
+
+                    <tr class="stock-row"
+                        data-title="@item.Livro.Titulo.ToLowerInvariant()"
+                        data-status="@statusClass">
+                        <td>@item.LivroId</td>
+                        <td class="stock-book-title">@item.Livro.Titulo</td>
+                        <td class="stock-quantity">@item.Quantidade</td>
+                        <td>@item.QuantidadeMinima</td>
+                        <td>
+                            <span class="stock-status @statusClass">@statusText</span>
+                        </td>
+                        <td class="admin-actions stock-actions">
+                            <button type="button"
+                                    class="btn-primary stock-action-btn"
+                                    onclick="abrirModalAdicionar(@item.LivroId, '@tituloEscapado')">
+                                Adicionar
+                            </button>
+
+                            <button type="button"
+                                    class="btn-secondary stock-action-btn"
+                                    onclick="abrirModalAjustar(@item.LivroId, '@tituloEscapado', @item.Quantidade)">
+                                Ajustar
+                            </button>
+                        </td>
+                    </tr>
+                }
             }
         </tbody>
     </table>
 </div>
+
+<div class="admin-modal-overlay" id="adicionarEstoqueModal" style="display:none;">
+    <div class="admin-modal stock-modal">
+        <div class="admin-modal-header">
+            <h3>Adicionar Estoque</h3>
+            <button type="button" class="modal-close" onclick="fecharModal('adicionarEstoqueModal')">&times;</button>
+        </div>
+
+        <form asp-controller="Admin" asp-action="AdicionarEstoque" method="post">
+            <div class="admin-modal-body">
+                <input type="hidden" id="adicionarLivroId" name="livroId" />
+
+                <div class="stock-modal-book" id="adicionarLivroNome"></div>
+
+                <div class="admin-form-group">
+                    <label for="adicionarQuantidade">Quantidade a adicionar</label>
+                    <input type="number" id="adicionarQuantidade" name="quantidade" class="admin-input" min="1" required />
+                </div>
+            </div>
+
+            <div class="admin-modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModal('adicionarEstoqueModal')">Cancelar</button>
+                <button type="submit" class="btn-primary">Confirmar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="admin-modal-overlay" id="ajustarEstoqueModal" style="display:none;">
+    <div class="admin-modal stock-modal">
+        <div class="admin-modal-header">
+            <h3>Ajustar Estoque</h3>
+            <button type="button" class="modal-close" onclick="fecharModal('ajustarEstoqueModal')">&times;</button>
+        </div>
+
+        <form asp-controller="Admin" asp-action="AjustarEstoque" method="post">
+            <div class="admin-modal-body">
+                <input type="hidden" id="ajustarLivroId" name="livroId" />
+
+                <div class="stock-modal-book" id="ajustarLivroNome"></div>
+
+                <div class="admin-form-group">
+                    <label for="ajustarQuantidade">Novo valor de estoque</label>
+                    <input type="number" id="ajustarQuantidade" name="quantidade" class="admin-input" min="0" required />
+                </div>
+            </div>
+
+            <div class="admin-modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModal('ajustarEstoqueModal')">Cancelar</button>
+                <button type="submit" class="btn-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const stockSearch = document.getElementById('stockSearch');
+    const stockStatusFilter = document.getElementById('stockStatusFilter');
+    const stockRows = Array.from(document.querySelectorAll('.stock-row'));
+
+    function filtrarTabelaEstoque() {
+        const termo = stockSearch.value.trim().toLowerCase();
+        const status = stockStatusFilter.value;
+        let visiveis = 0;
+
+        stockRows.forEach((row) => {
+            const titulo = row.dataset.title || '';
+            const rowStatus = row.dataset.status || '';
+            const correspondeBusca = titulo.includes(termo);
+            const correspondeStatus = status === 'todos' || rowStatus === status;
+            const mostrar = correspondeBusca && correspondeStatus;
+
+            row.style.display = mostrar ? '' : 'none';
+
+            if (mostrar) {
+                visiveis += 1;
+            }
+        });
+
+        const emptyRowExistente = document.getElementById('stockNoResultsRow');
+
+        if (emptyRowExistente) {
+            emptyRowExistente.remove();
+        }
+
+        if (stockRows.length > 0 && visiveis === 0) {
+            const tbody = document.getElementById('stockTableBody');
+            const row = document.createElement('tr');
+            row.id = 'stockNoResultsRow';
+            row.innerHTML = '<td colspan="6" class="stock-empty-state">Nenhum livro corresponde aos filtros informados.</td>';
+            tbody.appendChild(row);
+        }
+    }
+
+    function abrirModalAdicionar(livroId, titulo) {
+        document.getElementById('adicionarLivroId').value = livroId;
+        document.getElementById('adicionarLivroNome').textContent = titulo;
+        document.getElementById('adicionarQuantidade').value = '';
+        document.getElementById('adicionarEstoqueModal').style.display = 'flex';
+        document.getElementById('adicionarQuantidade').focus();
+    }
+
+    function abrirModalAjustar(livroId, titulo, quantidade) {
+        document.getElementById('ajustarLivroId').value = livroId;
+        document.getElementById('ajustarLivroNome').textContent = titulo;
+        document.getElementById('ajustarQuantidade').value = quantidade;
+        document.getElementById('ajustarEstoqueModal').style.display = 'flex';
+        document.getElementById('ajustarQuantidade').focus();
+    }
+
+    function fecharModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    document.querySelectorAll('.admin-modal-overlay').forEach((overlay) => {
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) {
+                overlay.style.display = 'none';
+            }
+        });
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            fecharModal('adicionarEstoqueModal');
+            fecharModal('ajustarEstoqueModal');
+        }
+    });
+
+    stockSearch.addEventListener('input', filtrarTabelaEstoque);
+    stockStatusFilter.addEventListener('change', filtrarTabelaEstoque);
+</script>
+}

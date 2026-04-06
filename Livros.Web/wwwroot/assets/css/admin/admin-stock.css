@@ -1,10 +1,15 @@
 /* STATUS DE ESTOQUE */
 
 .stock-status {
-    padding: 4px 10px;
-    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 110px;
+    padding: 6px 14px;
+    border-radius: 999px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
+    line-height: 1;
 }
 
 .stock-status.ok {
@@ -13,11 +18,186 @@
 }
 
 .stock-status.low {
-    background-color: #fef9c3;
+    background-color: #fef3c7;
     color: #ca8a04;
 }
 
 .stock-status.empty {
     background-color: #fee2e2;
     color: #dc2626;
+}
+
+.stock-page-header {
+    margin-bottom: 28px;
+}
+
+.stock-filters {
+    margin: 0 0 24px;
+    padding: 0;
+}
+
+.stock-filter-group {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.stock-search,
+.stock-select {
+    margin: 0;
+    min-height: 44px;
+    border-radius: 10px;
+    font-size: 16px;
+    background: #fff;
+}
+
+.stock-search {
+    width: 250px;
+}
+
+.stock-select {
+    width: 170px;
+}
+
+.stock-table-wrapper {
+    border-radius: 14px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+.stock-table thead {
+    background: #fff;
+}
+
+.stock-table th,
+.stock-table td {
+    padding: 20px 18px;
+    vertical-align: middle;
+}
+
+.stock-table th {
+    font-size: 15px;
+    font-weight: 700;
+    color: #3f4b5a;
+}
+
+.stock-table td {
+    font-size: 15px;
+}
+
+.stock-book-title {
+    font-weight: 500;
+    color: #111827;
+}
+
+.stock-quantity {
+    font-weight: 600;
+    color: #111827;
+}
+
+.stock-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.stock-action-btn {
+    min-width: 116px;
+    min-height: 48px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.stock-action-btn.btn-primary {
+    color: #fff;
+}
+
+.stock-action-btn.btn-secondary {
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+}
+
+.stock-empty-state {
+    padding: 36px 20px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 15px;
+}
+
+.stock-modal {
+    width: 620px;
+    max-width: 95%;
+    border-radius: 16px;
+}
+
+.stock-modal .admin-modal-header {
+    padding: 22px 24px;
+}
+
+.stock-modal .admin-modal-header h3 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.stock-modal .modal-close {
+    font-size: 28px;
+    line-height: 1;
+}
+
+.stock-modal .admin-modal-body {
+    padding: 24px;
+}
+
+.stock-modal .admin-modal-footer {
+    padding: 18px 24px;
+}
+
+.stock-modal-book {
+    margin-bottom: 18px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.stock-modal .admin-form-group label {
+    font-size: 14px;
+    color: #374151;
+}
+
+.stock-modal .admin-input {
+    margin: 0;
+    min-height: 44px;
+    border-radius: 10px;
+    font-size: 16px;
+}
+
+@media (max-width: 768px) {
+    .stock-filter-group {
+        flex-direction: column;
+    }
+
+    .stock-search,
+    .stock-select {
+        width: 100%;
+    }
+
+    .stock-table th,
+    .stock-table td {
+        padding: 14px 12px;
+        font-size: 14px;
+    }
+
+    .stock-actions {
+        flex-direction: column;
+    }
+
+    .stock-action-btn {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .stock-modal .admin-modal-header h3 {
+        font-size: 20px;
+    }
 }

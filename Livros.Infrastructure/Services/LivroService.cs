@@ -18,6 +18,14 @@ namespace Livros.Infrastructure.Services {
         public void Criar(Livro livro) {
             _context.Livros.Add(livro);
             _context.SaveChanges();
+
+            var estoque = new Estoque {
+                LivroId = livro.Id,
+                Quantidade = 0
+            };
+
+            _context.Estoques.Add(estoque);
+            _context.SaveChanges();
         }
 
         public Livro ObterPorId(int id) {

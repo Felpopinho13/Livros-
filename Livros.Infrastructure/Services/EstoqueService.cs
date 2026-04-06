@@ -14,8 +14,23 @@ public class EstoqueService {
     }
 
     public List<Estoque> Listar() {
+        var livrosSemEstoque = _context.Livros
+            .Where(l => l.IsAtivo && !_context.Estoques.Any(e => e.LivroId == l.Id))
+            .ToList();
+
+        if (livrosSemEstoque.Any()) {
+            var novosEstoques = livrosSemEstoque.Select(l => new Estoque {
+                LivroId = l.Id,
+                Quantidade = 0
+            });
+
+            _context.Estoques.AddRange(novosEstoques);
+            _context.SaveChanges();
+        }
+
         return _context.Estoques
             .Include(e => e.Livro)
+            .Where(e => e.Livro.IsAtivo)
             .ToList();
     }
 

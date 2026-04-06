@@ -2,21 +2,48 @@
     padding: 50px 20px;
 }
 
+.checkout-form-root h2 {
+    margin-bottom: 18px;
+}
+
+.checkout-feedback {
+    padding: 14px 18px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.checkout-feedback.success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.checkout-feedback.error {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
 .checkout-layout {
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: 40px;
-    margin-top: 30px;
+    margin-top: 10px;
+}
+
+.checkout-card,
+.payment-section,
+.checkout-summary {
+    padding: 25px;
 }
 
 .checkout-card {
-    padding: 25px;
     margin-bottom: 25px;
 }
 
-.checkout-summary {
-    padding: 25px;
-    height: fit-content;
+.checkout-card-inner {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid #ececec;
 }
 
 .checkout-form h3 {
@@ -29,17 +56,21 @@
     gap: 25px;
 }
 
-    .checkout-summary input {
-        width: 100%;
-        padding: 12px;
-        border-radius: 10px;
-        border: 1px solid #ddd;
-        margin-bottom: 10px;
-    }
+.checkout-summary {
+    height: fit-content;
+}
 
-    .checkout-summary button {
-        margin-bottom: 10px;
-    }
+.checkout-summary input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    margin-bottom: 10px;
+}
+
+.checkout-summary button {
+    margin-bottom: 10px;
+}
 
 .total-price {
     font-size: 22px;
@@ -47,48 +78,56 @@
     margin-bottom: 20px;
 }
 
-/* =========================
-   PAYMENT SECTION
-========================= */
-
-.payment-options {
-    display: flex;
-    gap: 20px;
-    margin: 20px 0 10px;
+.address-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
 }
 
-    .payment-options label {
-        flex: 1;
-        padding: 18px;
-        border: 1px solid #e0e0e0;
-        border-radius: 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-weight: 500;
-        transition: 0.2s ease;
-        background: #fafafa;
-    }
+.address-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 18px;
+    background: #fff;
+    cursor: pointer;
+    display: block;
+    transition: 0.2s ease;
+}
 
-        .payment-options label:hover {
-            border-color: #ff9800;
-            background: #fff3e6;
-        }
+.address-card input[type="radio"] {
+    display: none;
+}
 
-    .payment-options input[type="radio"] {
-        accent-color: #ff9800;
-        transform: scale(1.2);
-    }
+.address-card:hover,
+.address-card.selected {
+    border-color: #ff9800;
+    box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.12);
+}
 
-        .payment-options input[type="radio"]:checked + span,
-        .payment-options input[type="radio"]:checked {
-            font-weight: 600;
-        }
+.address-card h4 {
+    margin-bottom: 10px;
+}
+
+.address-card p,
+.address-card span {
+    margin: 0 0 6px;
+    color: #4b5563;
+}
+
+.novo-endereco {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 150px;
+}
 
 .payment-section {
-    margin-top: 25px;
-    padding: 20px;
+    margin-top: 0;
+}
+
+.checkout-hint {
+    color: #6b7280;
+    margin-bottom: 18px;
 }
 
 .payment-block {
@@ -97,149 +136,102 @@
     gap: 10px;
 }
 
-    .payment-block select,
-    .payment-block input[type="number"] {
-        width: 100%;
-        padding: 12px;
-        border-radius: 10px;
-        border: 1px solid #ddd;
-        background: #fafafa;
-    }
-
-    .payment-block:last-child {
-        opacity: 0.8;
-    }
-
-    .payment-block h4 {
-        margin-top: 10px;
-        margin-bottom: 5px;
-    }
-
-.payment-top {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 10px;
+.payment-block select,
+.payment-block input[type="number"] {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    background: #fafafa;
 }
 
-.cartao-form {
+.payment-block h4 {
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+
+.cartao-form,
+.new-card-fields {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     margin-top: 10px;
 }
 
-    .cartao-form input {
-        padding: 12px;
-        border-radius: 10px;
-        border: 1px solid #ddd;
-        background: #fafafa;
-    }
-
-/* =========================
-   PAYMENT FORMS
-========================= */
-
-.payment-form {
-    display: none;
-    margin-top: 20px;
-    animation: fadePayment 0.2s ease;
-}
-
-/* PIX e Boleto */
-#pixForm,
-#boletoForm {
-    display: none;
-    flex-direction: column;
-    gap: 12px;
-}
-
-/* CARTÃO EM GRID REAL */
-#cartaoForm {
-    display: none;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-}
-
-    /* Número do cartão ocupa linha inteira */
-    #cartaoForm input:nth-child(1),
-    #cartaoForm input:nth-child(2) {
-        grid-column: span 2;
-    }
-
-.payment-form input {
-    width: 100%;
-    padding: 14px;
+.cartao-form select,
+.cartao-form input,
+.new-card-fields input {
+    padding: 12px;
     border-radius: 10px;
-    border: 1px solid #dcdcdc;
-    font-size: 14px;
+    border: 1px solid #ddd;
     background: #fafafa;
-    transition: all 0.2s ease;
 }
 
-    .payment-form input:focus {
-        background: #fff;
-        border-color: #ff9800;
-        box-shadow: 0 0 0 3px rgba(255,152,0,0.15);
-        outline: none;
-    }
+.cartao-form select {
+    grid-column: span 2;
+}
 
-/* =========================
-   CHECKOUT ADDRESS
-========================= */
+.checkbox-inline {
+    grid-column: span 2;
+}
 
 .checkout-address-grid {
     display: grid;
-    grid-template-columns: 3fr 1fr; /* logradouro maior */
-    gap: 18px;
-    margin-top: 20px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 10px;
 }
 
-    /* CEP ocupa linha inteira */
-    .checkout-address-grid input:nth-child(1) {
-        grid-column: span 2;
+.checkout-address-grid input {
+    width: 100%;
+    padding: 15px 16px;
+    border-radius: 12px;
+    border: 1px solid #e4e4e4;
+    background: #fdfdfd;
+    font-size: 14px;
+}
+
+.checkout-address-grid input:focus,
+.cartao-form select:focus,
+.cartao-form input:focus,
+.payment-block select:focus,
+.payment-block input:focus,
+.checkout-summary input:focus {
+    border-color: #ff9800;
+    box-shadow: 0 0 0 3px rgba(255,152,0,0.15);
+    outline: none;
+    background: #fff;
+}
+
+.checkout-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    font-size: 14px;
+    color: #374151;
+}
+
+.checkout-checkbox input {
+    width: auto;
+    margin: 0;
+}
+
+@media (max-width: 900px) {
+    .checkout-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .checkout-address-grid,
+    .cartao-form,
+    .new-card-fields {
+        grid-template-columns: 1fr;
     }
 
-    /* Logradouro + Número */
-    .checkout-address-grid input:nth-child(2) {
+    .cartao-form select,
+    .checkbox-inline {
         grid-column: span 1;
     }
-
-    .checkout-address-grid input:nth-child(3) {
-        grid-column: span 1;
-    }
-
-    /* Complemento + Bairro */
-    .checkout-address-grid input:nth-child(4) {
-        grid-column: span 1;
-    }
-
-    .checkout-address-grid input:nth-child(5) {
-        grid-column: span 1;
-    }
-
-    /* Cidade + Estado */
-    .checkout-address-grid input:nth-child(6) {
-        grid-column: span 1;
-    }
-
-    .checkout-address-grid input:nth-child(7) {
-        grid-column: span 1;
-    }
-
-    /* Estética */
-    .checkout-address-grid input {
-        width: 100%;
-        padding: 15px 16px;
-        border-radius: 12px;
-        border: 1px solid #e4e4e4;
-        background: #fdfdfd;
-        font-size: 14px;
-        transition: all 0.2s ease;
-    }
-
-        .checkout-address-grid input:focus {
-            border-color: #ff9800;
-            box-shadow: 0 0 0 3px rgba(255,152,0,0.15);
-            outline: none;
-            background: #fff;
-        }
+}
