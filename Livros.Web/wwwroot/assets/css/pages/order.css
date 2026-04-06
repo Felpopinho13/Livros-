@@ -1,4 +1,4 @@
-.order-success {
+﻿.order-success {
     padding: 20px 0;
     display: flex;
     justify-content: center;
@@ -227,5 +227,49 @@
 
     .success-actions .btn {
         min-width: 0;
+    }
+}
+
+.empty-orders-state {
+    width: 100%;
+}
+
+.empty-order-body {
+    justify-content: center;
+    text-align: center;
+    min-height: 220px;
+}
+
+.empty-order-body .order-info {
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.empty-order-body .order-info p {
+    color: #6b7280;
+    margin-bottom: 18px;
+}
+
+.orders-page .order-info > p:not(.status) {
+    color: #4b5563;
+}
+
+@media (max-width: 768px) {
+    .order-header {
+        gap: 16px;
+    }
+
+    .order-body {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .order-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .order-buttons .btn {
+        width: 100%;
     }
 }

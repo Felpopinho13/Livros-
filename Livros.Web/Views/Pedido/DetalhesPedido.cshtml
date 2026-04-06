@@ -1,0 +1,243 @@
+@model DetalhesPedidoViewModel
+
+@{
+    var itemPrincipal = Model.Itens.FirstOrDefault();
+    var statusTexto = Model.Status == "EM PROCESSAMENTO"
+        ? "Em processamento"
+        : Model.Status;
+}
+
+<section class="order-detail-page">
+    <div class="order-detail-container">
+        <div class="breadcrumb">
+            Sua conta > Seus pedidos > Detalhes do pedido
+        </div>
+
+        <h2>Detalhes do pedido</h2>
+
+        <div class="order-meta">
+            Pedido realizado em @Model.Data.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-BR")) | Nº do pedido #@Model.PedidoId
+        </div>
+
+        @if (TempData["SucessoTroca"] != null) {
+            <div class="checkout-alert checkout-alert-success">@TempData["SucessoTroca"]</div>
+        }
+
+        @if (TempData["ErroTroca"] != null) {
+            <div class="checkout-alert checkout-alert-error">@TempData["ErroTroca"]</div>
+        }
+
+        @if (itemPrincipal != null) {
+            <div class="order-top-box a-box">
+                @if (!string.IsNullOrWhiteSpace(itemPrincipal.ImagemUrl)) {
+                    <div class="product-image">
+                        <img src="@itemPrincipal.ImagemUrl" alt="@itemPrincipal.Titulo">
+                    </div>
+                }
+
+                <div class="product-info">
+                    <h5>@itemPrincipal.Titulo</h5>
+                    @if (!string.IsNullOrWhiteSpace(itemPrincipal.Autor)) {
+                        <p>@itemPrincipal.Autor</p>
+                    }
+                    <p class="delivery-status">@statusTexto</p>
+                    <span class="price">R$ @itemPrincipal.TotalItem.ToString("N2")</span>
+
+                    @if (Model.Itens.Count > 1) {
+                        <div class="detail-extra-items">
+                            <h4>Outros itens do pedido</h4>
+                            @foreach (var item in Model.Itens.Skip(1)) {
+                                <p>@item.Titulo - @item.Quantidade x R$ @item.PrecoUnitario.ToString("N2")</p>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="product-actions">
+                    <a asp-controller="Home" asp-action="Detalhes" asp-route-id="@itemPrincipal.LivroId" class="btn-amazon btn-primary">Comprar novamente</a>
+                    <a asp-controller="Pedido" asp-action="MeusPedidos" class="btn-amazon btn-secondary">Voltar para pedidos</a>
+                </div>
+
+                <div class="a-row">
+                    <div class="a-column a-span4">
+                        <h4>Enviar para</h4>
+                        @if (!string.IsNullOrWhiteSpace(Model.ClienteNome)) {
+                            <p>@Model.ClienteNome</p>
+                        }
+                        <p>@Model.Logradouro, @Model.Numero</p>
+                        @if (!string.IsNullOrWhiteSpace(Model.Complemento)) {
+                            <p>@Model.Complemento</p>
+                        }
+                        <p>@Model.Bairro - @Model.Cidade/@Model.Estado</p>
+                        <p>CEP: @Model.CEP</p>
+                    </div>
+
+                    <div class="a-column a-span4">
+                        <h4>Forma de pagamento</h4>
+                        @foreach (var pagamento in Model.Pagamentos) {
+                            <p>@pagamento.Metodo - R$ @pagamento.Valor.ToString("N2")</p>
+                            <p>Status: @pagamento.Status</p>
+                        }
+                    </div>
+
+                    <div class="a-column a-span4">
+                        <h4>Resumo do pedido</h4>
+                        <div class="summary-row">
+                            <span>Subtotal</span><span>R$ @Model.Subtotal.ToString("N2")</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Frete</span><span>R$ @Model.Frete.ToString("N2")</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Desconto</span><span>R$ @Model.Desconto.ToString("N2")</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>Total</span><span>R$ @Model.Total.ToString("N2")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="order-exchange-box">
+                <div class="order-exchange-header">
+                    <h3>Trocas e devoluções</h3>
+                    <p>Solicite a análise de troca por item do pedido. Quando aprovada, você verá o cupom liberado aqui para usar no checkout.</p>
+                </div>
+
+                <div class="order-exchange-list">
+                    @foreach (var item in Model.Itens) {
+                        var tituloEscapado = item.Titulo.Replace("\\", "\\\\").Replace("'", "\\'");
+
+                        <div class="order-exchange-item">
+                            <div class="order-exchange-item-info">
+                                @if (!string.IsNullOrWhiteSpace(item.ImagemUrl)) {
+                                    <img src="@item.ImagemUrl" alt="@item.Titulo" class="order-exchange-thumb" />
+                                }
+
+                                <div>
+                                    <strong>@item.Titulo</strong>
+                                    @if (!string.IsNullOrWhiteSpace(item.Autor)) {
+                                        <p>@item.Autor</p>
+                                    }
+                                    <p>@item.Quantidade x R$ @item.PrecoUnitario.ToString("N2")</p>
+
+                                    @if (item.TemCupomTroca) {
+                                        <div class="exchange-customer-coupon">
+                                            <span class="exchange-customer-label">Cupom liberado</span>
+                                            <strong>@item.CodigoCupomTroca</strong>
+                                            <small>Desconto de R$ @item.ValorCupomTroca?.ToString("N2") para usar no checkout.</small>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="order-exchange-item-status">
+                                @if (item.PodeSolicitarTroca) {
+                                    <span class="exchange-chip available">Elegível para troca</span>
+                                }
+                                else {
+                                    <span class="exchange-chip status-@((item.TrocaStatus ?? string.Empty).ToLowerInvariant().Replace(" ", "-"))">@item.TrocaStatus</span>
+                                }
+                            </div>
+
+                            <div class="order-exchange-item-actions">
+                                @if (item.PodeSolicitarTroca) {
+                                    <button type="button"
+                                            class="btn-amazon btn-secondary"
+                                            onclick="abrirModalTroca(@Model.PedidoId, @item.PedidoItemId, '@tituloEscapado')">
+                                        Solicitar troca
+                                    </button>
+                                }
+                                else if (item.TemCupomTroca) {
+                                    <button type="button" class="btn-amazon btn-secondary" onclick="copiarCupom('@item.CodigoCupomTroca')">
+                                        Copiar cupom
+                                    </button>
+                                }
+                                else {
+                                    <button type="button" class="btn-amazon btn-secondary" disabled>
+                                        Solicitação enviada
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+<div class="admin-modal-overlay" id="trocaModal" style="display:none;">
+    <div class="admin-modal exchange-modal">
+        <div class="admin-modal-header">
+            <h3>Solicitar troca</h3>
+            <button type="button" class="modal-close" onclick="fecharModalTroca()">&times;</button>
+        </div>
+
+        <form asp-controller="Pedido" asp-action="SolicitarTroca" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="admin-modal-body">
+                <input type="hidden" id="trocaPedidoId" name="pedidoId" />
+                <input type="hidden" id="trocaPedidoItemId" name="pedidoItemId" />
+
+                <div class="stock-modal-book" id="trocaLivroTitulo"></div>
+
+                <div class="admin-form-group">
+                    <label for="trocaMotivo">Motivo da troca</label>
+                    <select id="trocaMotivo" name="motivo" class="admin-select" required>
+                        <option value="">Selecione</option>
+                        <option value="Produto danificado">Produto danificado</option>
+                        <option value="Livro errado">Livro errado</option>
+                        <option value="Arrependimento">Arrependimento</option>
+                        <option value="Defeito de impressão">Defeito de impressão</option>
+                    </select>
+                </div>
+
+                <div class="admin-form-group">
+                    <label for="trocaObservacao">Observação</label>
+                    <textarea id="trocaObservacao" name="observacaoCliente" class="admin-input" rows="4" placeholder="Se quiser, descreva o problema com mais detalhes."></textarea>
+                </div>
+            </div>
+
+            <div class="admin-modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModalTroca()">Cancelar</button>
+                <button type="submit" class="btn-primary">Enviar solicitação</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function abrirModalTroca(pedidoId, pedidoItemId, titulo) {
+        document.getElementById('trocaPedidoId').value = pedidoId;
+        document.getElementById('trocaPedidoItemId').value = pedidoItemId;
+        document.getElementById('trocaLivroTitulo').textContent = titulo;
+        document.getElementById('trocaMotivo').value = '';
+        document.getElementById('trocaObservacao').value = '';
+        document.getElementById('trocaModal').style.display = 'flex';
+    }
+
+    function fecharModalTroca() {
+        document.getElementById('trocaModal').style.display = 'none';
+    }
+
+    function copiarCupom(codigo) {
+        navigator.clipboard.writeText(codigo);
+        alert('Cupom copiado: ' + codigo);
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            fecharModalTroca();
+        }
+    });
+
+    document.getElementById('trocaModal').addEventListener('click', function (event) {
+        if (event.target === this) {
+            fecharModalTroca();
+        }
+    });
+</script>
+}

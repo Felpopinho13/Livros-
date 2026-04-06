@@ -1,0 +1,79 @@
+﻿@model MeusPedidosViewModel
+
+<section class="orders-page">
+    <div class="container orders-container">
+        <h2>Seus pedidos</h2>
+
+        @if (!Model.Pedidos.Any()) {
+            <div class="order-card card empty-orders-state">
+                <div class="order-body empty-order-body">
+                    <div class="order-info">
+                        <h3>Você ainda não fez nenhum pedido.</h3>
+                        <p>Assim que uma compra for concluída, ela vai aparecer aqui.</p>
+                        <div class="order-buttons">
+                            <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Ir para a loja</a>
+                            <a asp-controller="Pedido" asp-action="Carrinho" class="btn btn-secondary">Ver carrinho</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else {
+            @foreach (var pedido in Model.Pedidos) {
+                var statusClass = pedido.Status == "EM PROCESSAMENTO" ? "processing" : "success";
+                var dataFormatada = pedido.Data.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-BR"));
+                var tituloExibido = pedido.QuantidadeItens > 1
+                    ? $"{pedido.LivroTitulo} e mais {pedido.QuantidadeItens - 1} item(ns)"
+                    : pedido.LivroTitulo;
+
+                <div class="order-card card">
+                    <div class="order-header">
+                        <div>
+                            <span class="label">Pedido realizado</span>
+                            <strong>@dataFormatada</strong>
+                        </div>
+
+                        <div>
+                            <span class="label">Total</span>
+                            <strong>R$ @pedido.Total.ToString("N2")</strong>
+                        </div>
+
+                        <div>
+                            <span class="label">Pedido nº</span>
+                            <strong>#@pedido.PedidoId</strong>
+                        </div>
+                    </div>
+
+                    <div class="order-body">
+                        @if (!string.IsNullOrWhiteSpace(pedido.LivroImagemUrl)) {
+                            <img src="@pedido.LivroImagemUrl" alt="@pedido.LivroTitulo">
+                        }
+
+                        <div class="order-info">
+                            <h3>@tituloExibido</h3>
+
+                            @if (!string.IsNullOrWhiteSpace(pedido.LivroAutor)) {
+                                <p>@pedido.LivroAutor</p>
+                            }
+
+                            <p><strong>Total de livros:</strong> @pedido.QuantidadeLivros</p>
+                            <p class="status @statusClass">@pedido.Status</p>
+
+                            <div class="order-buttons">
+                                <a asp-controller="Pedido" asp-action="DetalhesPedido" asp-route-id="@pedido.PedidoId" class="btn btn-secondary">
+                                    Ver detalhes
+                                </a>
+
+                                @if (pedido.LivroIdPrincipal > 0) {
+                                    <a asp-controller="Home" asp-action="Detalhes" asp-route-id="@pedido.LivroIdPrincipal" class="btn btn-primary">
+                                        Comprar novamente
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</section>

@@ -1,4 +1,4 @@
-ï»¿const checkoutLayout = document.querySelector('.checkout-layout');
+const checkoutLayout = document.querySelector('.checkout-layout');
 
 if (checkoutLayout) {
     const quantidadeInput = document.getElementById('quantidade');
@@ -16,7 +16,9 @@ if (checkoutLayout) {
     const permiteQuantidade = checkoutLayout.dataset.permiteQuantidade === 'true';
     const freteBase = parseFloat(checkoutLayout.dataset.freteBase || '15');
     const freteExtra = parseFloat(checkoutLayout.dataset.freteExtra || '2');
-    const cupomValido = (checkoutLayout.dataset.cupom || '').toUpperCase();
+
+    let descontoAplicado = parseDecimal(document.getElementById('descontoValor')?.textContent || '0');
+    let cupomAplicadoCodigo = cupomInput?.value?.trim() || '';
 
     function formatCurrency(value) {
         return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -29,6 +31,7 @@ if (checkoutLayout) {
 
         const normalized = value
             .toString()
+            .replace(/R\$/g, '')
             .trim()
             .replace(/\./g, '')
             .replace(',', '.');
@@ -63,18 +66,14 @@ if (checkoutLayout) {
         return freteBase + Math.max(quantidade - 1, 0) * freteExtra;
     }
 
-    function calcularDesconto(subtotal) {
-        return cupomInput.value.trim().toUpperCase() === cupomValido ? subtotal * 0.10 : 0;
-    }
-
     function obterTotalAtual() {
-        return calcularSubtotal() + calcularFrete() - calcularDesconto(calcularSubtotal());
+        return calcularSubtotal() + calcularFrete() - descontoAplicado;
     }
 
     function atualizarResumo() {
         const subtotal = calcularSubtotal();
         const frete = calcularFrete();
-        const desconto = calcularDesconto(subtotal);
+        const desconto = Math.min(subtotal, descontoAplicado);
         const total = subtotal + frete - desconto;
 
         document.getElementById('subtotalValor').innerText = `R$ ${formatCurrency(subtotal)}`;
@@ -141,8 +140,54 @@ if (checkoutLayout) {
         novoCartaoForm.style.display = select.value ? 'none' : 'grid';
     }
 
-    quantidadeInput?.addEventListener('input', atualizarResumo);
-    aplicarCupomBtn?.addEventListener('click', atualizarResumo);
+    async function aplicarCupom() {
+        if (!cupomInput) {
+            return;
+        }
+
+        const codigo = cupomInput.value.trim();
+        if (!codigo) {
+            descontoAplicado = 0;
+            cupomAplicadoCodigo = '';
+            atualizarResumo();
+            return;
+        }
+
+        const subtotal = calcularSubtotal();
+        const url = `/Pedido/ValidarCupom?codigo=${encodeURIComponent(codigo)}&subtotal=${encodeURIComponent(subtotal.toFixed(2))}`;
+
+        try {
+            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const data = await response.json();
+
+            if (data?.valido) {
+                descontoAplicado = parseFloat(data.desconto || 0);
+                cupomAplicadoCodigo = data.codigo || codigo;
+                cupomInput.value = cupomAplicadoCodigo;
+            } else {
+                descontoAplicado = 0;
+                cupomAplicadoCodigo = '';
+                window.alert(data?.mensagem || 'Cupom inválido ou indisponível.');
+            }
+        } catch (_) {
+            descontoAplicado = 0;
+            cupomAplicadoCodigo = '';
+            window.alert('Não foi possível validar o cupom agora.');
+        }
+
+        atualizarResumo();
+    }
+
+    quantidadeInput?.addEventListener('input', async () => {
+        if (cupomAplicadoCodigo) {
+            await aplicarCupom();
+            return;
+        }
+
+        atualizarResumo();
+    });
+
+    aplicarCupomBtn?.addEventListener('click', aplicarCupom);
     valor1Input?.addEventListener('input', () => recalcularDivisao(obterTotalAtual()));
     valor2Input?.addEventListener('input', () => recalcularDivisao(obterTotalAtual()));
 
@@ -153,5 +198,10 @@ if (checkoutLayout) {
     toggleNovoEndereco();
     togglePagamento(1);
     togglePagamento(2);
-    atualizarResumo();
+
+    if (cupomInput?.value?.trim()) {
+        aplicarCupom();
+    } else {
+        atualizarResumo();
+    }
 }

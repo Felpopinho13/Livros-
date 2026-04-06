@@ -1,0 +1,271 @@
+@model AdminTrocasViewModel
+
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Trocas";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/assets/css/admin/admin-trocas.css" />
+}
+
+<div class="admin-page-header exchange-page-header">
+    <h2>Trocas e Devoluções</h2>
+</div>
+
+@if (TempData["Sucesso"] != null) {
+    <div class="checkout-alert checkout-alert-success">@TempData["Sucesso"]</div>
+}
+
+@if (TempData["Erro"] != null) {
+    <div class="checkout-alert checkout-alert-error">@TempData["Erro"]</div>
+}
+
+<div class="exchange-toolbar">
+    <form asp-controller="Admin" asp-action="Trocas" method="get" class="exchange-filters">
+        <input type="text" name="busca" value="@Model.Busca" class="admin-input exchange-search" placeholder="Buscar por cliente, pedido ou troca..." />
+
+        <select name="status" class="admin-select exchange-select">
+            <option value="">Todos Status</option>
+            <option value="Solicitado" selected="@(Model.StatusFiltro == "Solicitado")">Solicitado</option>
+            <option value="Aprovado" selected="@(Model.StatusFiltro == "Aprovado")">Aprovado</option>
+            <option value="Recusado" selected="@(Model.StatusFiltro == "Recusado")">Recusado</option>
+        </select>
+
+        <button type="submit" class="btn-secondary exchange-filter-btn">Filtrar</button>
+    </form>
+
+    <button type="button" class="btn-primary exchange-create-btn" onclick="abrirModalCupom()">
+        Gerar cupom promocional
+    </button>
+</div>
+
+<div class="admin-table-wrapper exchange-table-wrapper">
+    <table class="admin-table exchange-table">
+        <thead>
+            <tr>
+                <th>#Troca</th>
+                <th>#Pedido</th>
+                <th>Cliente</th>
+                <th>Livro</th>
+                <th>Motivo</th>
+                <th>Status</th>
+                <th>Data</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Trocas.Any()) {
+                <tr>
+                    <td colspan="8" class="exchange-empty-state">Nenhuma solicitação de troca encontrada.</td>
+                </tr>
+            }
+            else {
+                @foreach (var troca in Model.Trocas) {
+                    var clienteEscapado = troca.ClienteNome.Replace("\\", "\\\\").Replace("'", "\\'");
+                    var motivoEscapado = troca.Motivo.Replace("\\", "\\\\").Replace("'", "\\'");
+                    var observacaoClienteEscapada = (troca.ObservacaoCliente ?? string.Empty).Replace("\\", "\\\\").Replace("'", "\\'");
+                    var observacaoAdminEscapada = (troca.ObservacaoAdmin ?? string.Empty).Replace("\\", "\\\\").Replace("'", "\\'");
+                    var codigoCupomEscapado = (troca.CodigoCupom ?? string.Empty).Replace("\\", "\\\\").Replace("'", "\\'");
+                    var statusClass = troca.Status.ToLowerInvariant().Replace(" ", "-");
+
+                    <tr>
+                        <td>@troca.Codigo</td>
+                        <td>#@troca.PedidoId</td>
+                        <td>@troca.ClienteNome</td>
+                        <td>@troca.LivroTitulo</td>
+                        <td>@troca.Motivo</td>
+                        <td>
+                            <span class="exchange-status @statusClass">@troca.Status</span>
+                        </td>
+                        <td>@troca.DataSolicitacao.ToString("dd/MM/yyyy")</td>
+                        <td class="admin-actions exchange-actions">
+                            <button type="button"
+                                    class="@(troca.Status == "Solicitado" ? "btn-primary" : "btn-secondary") exchange-action-btn"
+                                    onclick="abrirModalTroca(@troca.Id, '@troca.Codigo', '#@troca.PedidoId', '@clienteEscapado', '@motivoEscapado', '@observacaoClienteEscapada', '@observacaoAdminEscapada', @troca.ValorSugeridoCupom.ToString(System.Globalization.CultureInfo.InvariantCulture), '@codigoCupomEscapado', '@troca.Status')">
+                                @(troca.Status == "Solicitado" ? "Analisar" : "Ver")
+                            </button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (Model.CuponsRecentes.Any()) {
+    <div class="exchange-coupons-panel">
+        <div class="exchange-coupons-header">
+            <h3>Cupons recentes</h3>
+            <p>Últimos cupons gerados no painel para promoção ou troca.</p>
+        </div>
+
+        <div class="exchange-coupon-grid">
+            @foreach (var cupom in Model.CuponsRecentes) {
+                var tipoClass = cupom.Tipo.ToLowerInvariant();
+                <div class="exchange-coupon-card">
+                    <span class="exchange-coupon-type @tipoClass">@cupom.Tipo</span>
+                    <strong>@cupom.Codigo</strong>
+                    <span>R$ @cupom.Valor.ToString("N2")</span>
+                    <small>@(cupom.IsAtivo ? "Ativo" : "Utilizado")</small>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<div class="admin-modal-overlay" id="trocaModal" style="display:none;">
+    <div class="admin-modal exchange-modal">
+        <div class="admin-modal-header">
+            <h3 id="trocaModalTitulo">Analisar troca</h3>
+            <button type="button" class="modal-close" onclick="fecharModal('trocaModal')">&times;</button>
+        </div>
+
+        <form asp-controller="Admin" asp-action="AnalisarTroca" method="post" id="trocaForm">
+            @Html.AntiForgeryToken()
+            <div class="admin-modal-body">
+                <input type="hidden" id="trocaId" name="trocaId" />
+
+                <div class="exchange-modal-grid">
+                    <div>
+                        <label>Nº Troca</label>
+                        <div class="exchange-modal-value" id="trocaCodigo"></div>
+                    </div>
+                    <div>
+                        <label>Pedido</label>
+                        <div class="exchange-modal-value" id="trocaPedido"></div>
+                    </div>
+                    <div>
+                        <label>Cliente</label>
+                        <div class="exchange-modal-value" id="trocaCliente"></div>
+                    </div>
+                    <div>
+                        <label>Status</label>
+                        <div class="exchange-modal-value" id="trocaStatusAtual"></div>
+                    </div>
+                </div>
+
+                <div class="admin-form-group">
+                    <label>Motivo</label>
+                    <div class="exchange-modal-box" id="trocaMotivo"></div>
+                </div>
+
+                <div class="admin-form-group">
+                    <label>Observação do cliente</label>
+                    <div class="exchange-modal-box" id="trocaObservacaoCliente"></div>
+                </div>
+
+                <div class="admin-form-group exchange-analysis-fields">
+                    <label for="decisaoTroca">Decisão</label>
+                    <select id="decisaoTroca" name="decisao" class="admin-select">
+                        <option value="aprovar">Aprovar</option>
+                        <option value="recusar">Recusar</option>
+                    </select>
+                </div>
+
+                <div class="admin-form-group exchange-analysis-fields">
+                    <label for="valorCupomTroca">Valor do cupom gerado</label>
+                    <input type="text" id="valorCupomTroca" name="valorCupom" class="admin-input" inputmode="decimal" placeholder="0,00" />
+                    <small class="exchange-help">Se a troca for aprovada, este valor será salvo como cupom para o cliente.</small>
+                </div>
+
+                <div class="admin-form-group">
+                    <label for="observacaoAdminTroca">Observação do admin</label>
+                    <textarea id="observacaoAdminTroca" name="observacaoAdmin" class="admin-input" rows="4" placeholder="Descreva a análise da solicitação."></textarea>
+                </div>
+
+                <div class="exchange-coupon-box" id="cupomGeradoBox" style="display:none;">
+                    <span>Cupom gerado</span>
+                    <strong id="cupomGeradoCodigo"></strong>
+                </div>
+            </div>
+
+            <div class="admin-modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModal('trocaModal')">Fechar</button>
+                <button type="submit" class="btn-primary exchange-analysis-submit">Confirmar análise</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="admin-modal-overlay" id="cupomModal" style="display:none;">
+    <div class="admin-modal exchange-modal exchange-coupon-modal">
+        <div class="admin-modal-header">
+            <h3>Gerar cupom promocional</h3>
+            <button type="button" class="modal-close" onclick="fecharModal('cupomModal')">&times;</button>
+        </div>
+
+        <form asp-controller="Admin" asp-action="GerarCupomDesconto" method="post">
+            @Html.AntiForgeryToken()
+            <div class="admin-modal-body">
+                <div class="admin-form-group">
+                    <label for="valorCupomPromocional">Valor do desconto</label>
+                    <input type="text" id="valorCupomPromocional" name="valor" class="admin-input" inputmode="decimal" placeholder="0,00" required />
+                </div>
+            </div>
+
+            <div class="admin-modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModal('cupomModal')">Cancelar</button>
+                <button type="submit" class="btn-primary">Gerar cupom</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function abrirModalTroca(id, codigo, pedido, cliente, motivo, observacaoCliente, observacaoAdmin, valorCupom, codigoCupom, status) {
+        document.getElementById('trocaId').value = id;
+        document.getElementById('trocaCodigo').textContent = codigo;
+        document.getElementById('trocaPedido').textContent = pedido;
+        document.getElementById('trocaCliente').textContent = cliente;
+        document.getElementById('trocaStatusAtual').textContent = status;
+        document.getElementById('trocaMotivo').textContent = motivo || '-';
+        document.getElementById('trocaObservacaoCliente').textContent = observacaoCliente || 'Sem observação informada.';
+        document.getElementById('observacaoAdminTroca').value = observacaoAdmin || '';
+        document.getElementById('valorCupomTroca').value = valorCupom > 0 ? valorCupom.toFixed(2).replace('.', ',') : '';
+        document.getElementById('cupomGeradoCodigo').textContent = codigoCupom || '';
+
+        const camposAnalise = document.querySelectorAll('.exchange-analysis-fields');
+        const submitButton = document.querySelector('.exchange-analysis-submit');
+        const cupomGeradoBox = document.getElementById('cupomGeradoBox');
+        const somenteLeitura = status !== 'Solicitado';
+
+        camposAnalise.forEach((campo) => {
+            campo.style.display = somenteLeitura ? 'none' : '';
+        });
+
+        submitButton.style.display = somenteLeitura ? 'none' : '';
+        document.getElementById('decisaoTroca').disabled = somenteLeitura;
+        document.getElementById('valorCupomTroca').disabled = somenteLeitura;
+        document.getElementById('observacaoAdminTroca').readOnly = somenteLeitura;
+        cupomGeradoBox.style.display = codigoCupom ? 'flex' : 'none';
+        document.getElementById('trocaModalTitulo').textContent = somenteLeitura ? 'Detalhes da troca' : 'Analisar troca';
+        document.getElementById('trocaModal').style.display = 'flex';
+    }
+
+    function abrirModalCupom() {
+        document.getElementById('valorCupomPromocional').value = '';
+        document.getElementById('cupomModal').style.display = 'flex';
+    }
+
+    function fecharModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    document.querySelectorAll('.admin-modal-overlay').forEach((overlay) => {
+        overlay.addEventListener('click', function (event) {
+            if (event.target === overlay) {
+                overlay.style.display = 'none';
+            }
+        });
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            fecharModal('trocaModal');
+            fecharModal('cupomModal');
+        }
+    });
+</script>
+}

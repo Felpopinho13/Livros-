@@ -1,0 +1,294 @@
+.checkout-alert {
+    margin-bottom: 18px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+}
+
+.checkout-alert-success {
+    background: #ecfdf5;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.checkout-alert-error {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+.exchange-page-header {
+    margin-bottom: 28px;
+}
+
+.exchange-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.exchange-filters {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.exchange-search,
+.exchange-select {
+    min-height: 44px;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.exchange-search {
+    width: 320px;
+}
+
+.exchange-select {
+    width: 200px;
+}
+
+.exchange-filter-btn,
+.exchange-create-btn {
+    min-height: 44px;
+    border-radius: 10px;
+    font-weight: 700;
+}
+
+.exchange-table-wrapper {
+    border-radius: 14px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+}
+
+.exchange-table th,
+.exchange-table td {
+    padding: 18px 16px;
+    vertical-align: middle;
+}
+
+.exchange-table th {
+    font-size: 15px;
+    font-weight: 700;
+    color: #3f4b5a;
+}
+
+.exchange-table td {
+    font-size: 15px;
+}
+
+.exchange-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 110px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.exchange-status.solicitado {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.exchange-status.aprovado {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.exchange-status.recusado {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.exchange-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.exchange-action-btn {
+    min-width: 110px;
+    min-height: 42px;
+    border-radius: 10px;
+    font-weight: 700;
+}
+
+.exchange-empty-state {
+    padding: 36px 20px;
+    text-align: center;
+    color: #6b7280;
+}
+
+.exchange-coupons-panel {
+    margin-top: 24px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 24px;
+}
+
+.exchange-coupons-header {
+    margin-bottom: 18px;
+}
+
+.exchange-coupons-header h3 {
+    margin: 0 0 6px;
+    font-size: 22px;
+}
+
+.exchange-coupons-header p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.exchange-coupon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.exchange-coupon-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 18px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.exchange-coupon-card strong {
+    font-size: 18px;
+}
+
+.exchange-coupon-card span,
+.exchange-coupon-card small {
+    color: #374151;
+}
+
+.exchange-coupon-type {
+    align-self: flex-start;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.exchange-coupon-type.promocional {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.exchange-coupon-type.troca {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.exchange-modal {
+    width: 700px;
+    max-width: 95%;
+    border-radius: 16px;
+}
+
+.exchange-modal .admin-modal-header,
+.exchange-modal .admin-modal-body,
+.exchange-modal .admin-modal-footer {
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+.exchange-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.exchange-modal-grid label,
+.exchange-modal .admin-form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #4b5563;
+    margin-bottom: 6px;
+}
+
+.exchange-modal-value,
+.exchange-modal-box {
+    min-height: 44px;
+    padding: 12px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #f9fafb;
+    color: #111827;
+}
+
+.exchange-modal-box {
+    min-height: 72px;
+    white-space: pre-wrap;
+}
+
+.exchange-modal .admin-select,
+.exchange-modal .admin-input {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 10px;
+}
+
+.exchange-help {
+    display: block;
+    margin-top: 6px;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.exchange-coupon-box {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #dbeafe;
+}
+
+.exchange-coupon-box span {
+    color: #475569;
+}
+
+.exchange-coupon-box strong {
+    font-size: 18px;
+    color: #1d4ed8;
+}
+
+@media (max-width: 768px) {
+    .exchange-toolbar,
+    .exchange-filters {
+        flex-direction: column;
+    }
+
+    .exchange-search,
+    .exchange-select,
+    .exchange-filter-btn,
+    .exchange-create-btn {
+        width: 100%;
+    }
+
+    .exchange-table th,
+    .exchange-table td {
+        padding: 14px 12px;
+        font-size: 14px;
+    }
+
+    .exchange-modal-grid {
+        grid-template-columns: 1fr;
+    }
+}
+

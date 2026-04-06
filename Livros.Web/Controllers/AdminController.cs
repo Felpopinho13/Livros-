@@ -1,8 +1,9 @@
 using Livros.Domain;
 using Livros.Infrastructure.Data;
+using Livros.Infrastructure.Services;
+using Livros.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Livros.Infrastructure.Services;
 using System.Globalization;
 
 public class AdminController : Controller {
@@ -82,14 +83,12 @@ public class AdminController : Controller {
         }
 
         cliente.Senha = BCrypt.Net.BCrypt.HashPassword(cliente.Senha);
-
         cliente.IsAtivo = true;
 
         _context.Clientes.Add(cliente);
         _context.SaveChanges();
 
         TempData["Sucesso"] = "Cliente criado com sucesso!";
-
         return RedirectToAction("Clientes");
     }
 
@@ -154,7 +153,6 @@ public class AdminController : Controller {
             _context.Cartoes.RemoveRange(cliente.Cartoes);
 
         _context.Clientes.Remove(cliente);
-
         _context.SaveChanges();
 
         return RedirectToAction("Clientes");
@@ -167,10 +165,14 @@ public class AdminController : Controller {
 
     [HttpPost]
     public IActionResult CriarLivro(Livro livro, IFormFile ImagemArquivo) {
-        // ?? 1. TRATAR IMAGEM ANTES DA VALIDAÇÃO
+        livro.Preco = ObterDecimalFormulario("Preco", livro.Preco);
+        livro.Altura = ObterDecimalFormulario("Altura", livro.Altura);
+        livro.Largura = ObterDecimalFormulario("Largura", livro.Largura);
+        livro.Peso = ObterDecimalFormulario("Peso", livro.Peso);
+        livro.Profundidade = ObterDecimalFormulario("Profundidade", livro.Profundidade);
+
         if (ImagemArquivo != null && ImagemArquivo.Length > 0) {
             var nomeArquivo = Guid.NewGuid() + Path.GetExtension(ImagemArquivo.FileName);
-
             var pasta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/assets/img");
 
             if (!Directory.Exists(pasta)) {
@@ -184,26 +186,15 @@ public class AdminController : Controller {
             }
 
             livro.ImagemUrl = "/assets/img/" + nomeArquivo;
-
-            // ?? remove erro de validação
             ModelState.Remove("ImagemUrl");
         }
 
-        // ?? 2. VALIDAR AGORA
         if (!ModelState.IsValid) {
-            var erros = ModelState.Values.SelectMany(v => v.Errors);
-
-            foreach (var erro in erros) {
-                System.Diagnostics.Debug.WriteLine(erro.ErrorMessage);
-            }
-
             TempData["Erro"] = "Dados inválidos!";
             return RedirectToAction("Livros");
         }
 
-        // ?? 3. SALVAR
         _livroService.Criar(livro);
-
         TempData["Sucesso"] = "Livro cadastrado com sucesso!";
         return RedirectToAction("Livros");
     }
@@ -224,4 +215,167 @@ public class AdminController : Controller {
         _estoqueService.AjustarEstoque(livroId, quantidade);
         return RedirectToAction("Estoque");
     }
+
+    [HttpGet]
+    public IActionResult Trocas(string? busca, string? status) {
+        var query = _context.Trocas
+            .Include(t => t.Cliente)
+            .Include(t => t.PedidoItem)
+                .ThenInclude(i => i.Livro)
+            .Include(t => t.CupomDesconto)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(busca)) {
+            var buscaNormalizada = busca.Trim();
+            query = query.Where(t =>
+                t.Codigo.Contains(buscaNormalizada) ||
+                t.Cliente.Nome.Contains(buscaNormalizada) ||
+                t.PedidoId.ToString().Contains(buscaNormalizada) ||
+                t.PedidoItem.Livro.Titulo.Contains(buscaNormalizada));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status)) {
+            query = query.Where(t => t.Status == status);
+        }
+
+        var trocas = query
+            .OrderByDescending(t => t.DataSolicitacao)
+            .ToList();
+
+        var vm = new AdminTrocasViewModel {
+            Busca = busca,
+            StatusFiltro = status,
+            Trocas = trocas.Select(t => new AdminTrocaItemViewModel {
+                Id = t.Id,
+                Codigo = t.Codigo,
+                PedidoId = t.PedidoId,
+                ClienteNome = t.Cliente?.Nome ?? string.Empty,
+                LivroTitulo = t.PedidoItem?.Livro?.Titulo ?? "Livro",
+                Motivo = t.Motivo,
+                ObservacaoCliente = t.ObservacaoCliente,
+                ObservacaoAdmin = t.ObservacaoAdmin,
+                Status = t.Status,
+                DataSolicitacao = t.DataSolicitacao,
+                ValorSugeridoCupom = t.PedidoItem != null ? t.PedidoItem.PrecoUnitario * t.PedidoItem.Quantidade : 0,
+                CodigoCupom = t.CupomDesconto?.Codigo
+            }).ToList(),
+            CuponsRecentes = _context.CuponsDesconto
+                .OrderByDescending(c => c.DataCriacao)
+                .Take(8)
+                .ToList()
+        };
+
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AnalisarTroca(int trocaId, string decisao, string? observacaoAdmin, decimal? valorCupom) {
+        var troca = _context.Trocas
+            .Include(t => t.PedidoItem)
+                .ThenInclude(i => i.Livro)
+            .Include(t => t.CupomDesconto)
+            .FirstOrDefault(t => t.Id == trocaId);
+
+        if (troca == null) {
+            TempData["Erro"] = "Solicitação de troca não encontrada.";
+            return RedirectToAction("Trocas");
+        }
+
+        if (troca.Status != "Solicitado") {
+            TempData["Erro"] = "Esta solicitação já foi analisada.";
+            return RedirectToAction("Trocas");
+        }
+
+        troca.ObservacaoAdmin = observacaoAdmin?.Trim();
+        troca.DataAnalise = DateTime.Now;
+
+        if (string.Equals(decisao, "aprovar", StringComparison.OrdinalIgnoreCase)) {
+            var valorCupomNormalizado = ObterDecimalFormulario("valorCupom", valorCupom ?? 0);
+            if (valorCupomNormalizado <= 0) {
+                TempData["Erro"] = "Informe um valor válido para gerar o cupom da troca.";
+                return RedirectToAction("Trocas");
+            }
+
+            var cupom = new CupomDesconto {
+                Codigo = GerarCodigoCupom("TROCA"),
+                Valor = valorCupomNormalizado,
+                Tipo = "TROCA",
+                IsAtivo = true,
+                ClienteId = troca.ClienteId,
+                DataCriacao = DateTime.Now
+            };
+
+            _context.CuponsDesconto.Add(cupom);
+            _context.SaveChanges();
+
+            troca.Status = "Aprovado";
+            troca.CupomDescontoId = cupom.Id;
+
+            _context.SaveChanges();
+            TempData["Sucesso"] = $"Troca aprovada e cupom {cupom.Codigo} gerado com sucesso.";
+            return RedirectToAction("Trocas");
+        }
+
+        troca.Status = "Recusado";
+        _context.SaveChanges();
+        TempData["Sucesso"] = "Solicitação de troca recusada com sucesso.";
+        return RedirectToAction("Trocas");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult GerarCupomDesconto(decimal? valor) {
+        var valorNormalizado = ObterDecimalFormulario("valor", valor ?? 0);
+        if (valorNormalizado <= 0) {
+            TempData["Erro"] = "Informe um valor válido para gerar o cupom promocional.";
+            return RedirectToAction("Trocas");
+        }
+
+        var cupom = new CupomDesconto {
+            Codigo = GerarCodigoCupom("PROMO"),
+            Valor = valorNormalizado,
+            Tipo = "PROMOCIONAL",
+            IsAtivo = true,
+            DataCriacao = DateTime.Now
+        };
+
+        _context.CuponsDesconto.Add(cupom);
+        _context.SaveChanges();
+
+        TempData["Sucesso"] = $"Cupom promocional {cupom.Codigo} gerado com sucesso.";
+        return RedirectToAction("Trocas");
+    }
+
+    private string GerarCodigoCupom(string prefixo) {
+        return $"{prefixo}-{DateTime.Now:yyyyMMddHHmmss}";
+    }
+
+    private decimal ObterDecimalFormulario(string campo, decimal valorPadrao) {
+        if (Request?.Form == null || !Request.Form.ContainsKey(campo)) {
+            return valorPadrao;
+        }
+
+        var valorBruto = Request.Form[campo].ToString();
+        if (string.IsNullOrWhiteSpace(valorBruto)) {
+            return valorPadrao;
+        }
+
+        var normalizado = valorBruto.Trim().Replace(".", string.Empty).Replace(',', '.');
+
+        if (decimal.TryParse(normalizado, NumberStyles.Number, CultureInfo.InvariantCulture, out var valorNormalizado)) {
+            return valorNormalizado;
+        }
+
+        if (decimal.TryParse(valorBruto, NumberStyles.Number, CultureInfo.GetCultureInfo("pt-BR"), out var valorPtBr)) {
+            return valorPtBr;
+        }
+
+        if (decimal.TryParse(valorBruto, NumberStyles.Number, CultureInfo.InvariantCulture, out var valorInvariant)) {
+            return valorInvariant;
+        }
+
+        return valorPadrao;
+    }
 }
+

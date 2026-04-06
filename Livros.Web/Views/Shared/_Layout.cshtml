@@ -1,4 +1,4 @@
-﻿@using System.Text.Json
+@using System.Text.Json
 @using Livros.Web.Models.ViewModels
 @{
     var usuario = Context.Session.GetString("Usuario");
@@ -20,11 +20,10 @@
 
     <link rel="stylesheet" href="~/assets/css/main.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 </head>
 
 <body>
-
     <header class="header">
         <div class="container">
             <a asp-controller="Home" asp-action="Index" class="logo">
@@ -33,18 +32,17 @@
 
             <form class="search-box">
                 <input type="text" placeholder="Buscar livros..." class="input">
-                <button type="submit">🔍</button>
+                <button type="submit"><i class="bx bx-search"></i></button>
             </form>
 
             <nav class="nav-icons">
-                <a asp-controller="Home" asp-action="Index">🏠</a>
-                <a asp-controller="Pedido" asp-action="Carrinho">🛒 <span id="cart-count">@carrinhoCount</span></a>
-                <a href="#">❤</a>
-
-                <a asp-controller="Cliente" asp-action="AreaCliente">👤</a>
+                <a asp-controller="Home" asp-action="Index" aria-label="Home"><i class="bx bxs-home"></i></a>
+                <a asp-controller="Pedido" asp-action="Carrinho" aria-label="Carrinho"><i class="bx bx-cart"></i> <span id="cart-count">@carrinhoCount</span></a>
+                <a href="#" aria-label="Favoritos"><i class="bx bx-heart"></i></a>
+                <a asp-controller="Cliente" asp-action="AreaCliente" aria-label="�rea do cliente"><i class="bx bx-user"></i></a>
 
                 @if (isAdmin == "True") {
-                    <a asp-controller="Admin" asp-action="Dashboard">⚙</a>
+                    <a asp-controller="Admin" asp-action="Dashboard" aria-label="Admin"><i class="bx bx-cog"></i></a>
                 }
 
                 @if (usuario != null) {
@@ -58,12 +56,13 @@
 
     <footer class="footer">
         <div class="container">
-            <p>© 2026 BookStore - Todos os direitos reservados</p>
+            <p>&copy; 2026 BookStore - Todos os direitos reservados</p>
         </div>
     </footer>
 
     <script src="~/assets/js/main.js"></script>
     <script src="~/assets/js/cart.js"></script>
     <script src="~/assets/js/wishlist.js"></script>
+    @RenderSection("Scripts", required: false)
 </body>
 </html>

@@ -8,7 +8,7 @@
         <aside class="account-menu">
             <h3>Minha Conta</h3>
             <ul>
-                <li><a href="#">Meus pedidos</a></li>
+                <li><a asp-controller="Pedido" asp-action="MeusPedidos">Meus pedidos</a></li>
                 <li><a asp-controller="Cliente" asp-action="Editar">Meus dados</a></li>
                 <li><a asp-controller="Cliente" asp-action="Enderecos">Endereços</a></li>
                 <li><a asp-controller="Cliente" asp-action="Cartoes">Cartões</a></li>
@@ -38,3 +38,4 @@
 
     </div>
 </section>
+
