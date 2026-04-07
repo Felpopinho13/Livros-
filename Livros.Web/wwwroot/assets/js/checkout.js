@@ -12,17 +12,18 @@ if (checkoutLayout) {
     const toggleSegundoPagamentoBtn = document.getElementById('toggleSegundoPagamento');
     const segundoPagamentoWrapper = document.getElementById('segundoPagamentoWrapper');
     const metodo2Select = document.querySelector("[name='Metodo2']");
+    const estadoNovoEnderecoInput = document.getElementById('estadoNovoEndereco');
 
     const unitPrice = parseFloat(checkoutLayout.dataset.unitPrice || '0');
     const subtotalBase = parseFloat(checkoutLayout.dataset.subtotalBase || '0');
     const quantidadeBase = parseInt(checkoutLayout.dataset.quantidadeBase || '1', 10);
     const permiteQuantidade = checkoutLayout.dataset.permiteQuantidade === 'true';
-    const freteBase = parseFloat(checkoutLayout.dataset.freteBase || '15');
-    const freteExtra = parseFloat(checkoutLayout.dataset.freteExtra || '2');
+    const freightUrl = checkoutLayout.dataset.freteUrl || '';
 
     let descontoAplicado = parseDecimal(document.getElementById('descontoValor')?.textContent || '0');
     let cupomAplicadoCodigo = cupomInput?.value?.trim() || '';
     let segundoPagamentoAtivo = segundoPagamentoWrapper?.style.display !== 'none';
+    let freteAtual = parseFloat(checkoutLayout.dataset.frete || '0');
 
     function formatCurrency(value) {
         return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -65,23 +66,17 @@ if (checkoutLayout) {
         return unitPrice * getQuantidade();
     }
 
-    function calcularFrete() {
-        const quantidade = getQuantidade();
-        return freteBase + Math.max(quantidade - 1, 0) * freteExtra;
-    }
-
     function obterTotalAtual() {
-        return calcularSubtotal() + calcularFrete() - descontoAplicado;
+        return calcularSubtotal() + freteAtual - descontoAplicado;
     }
 
     function atualizarResumo() {
         const subtotal = calcularSubtotal();
-        const frete = calcularFrete();
         const desconto = Math.min(subtotal, descontoAplicado);
-        const total = subtotal + frete - desconto;
+        const total = subtotal + freteAtual - desconto;
 
         document.getElementById('subtotalValor').innerText = `R$ ${formatCurrency(subtotal)}`;
-        document.getElementById('freteValor').innerText = `R$ ${formatCurrency(frete)}`;
+        document.getElementById('freteValor').innerText = `R$ ${formatCurrency(freteAtual)}`;
         document.getElementById('descontoValor').innerText = `R$ ${formatCurrency(desconto)}`;
         document.getElementById('totalCompra').innerText = formatCurrency(total);
 
@@ -116,6 +111,49 @@ if (checkoutLayout) {
         if (novoEnderecoForm) {
             novoEnderecoForm.style.display = novoEnderecoSelecionado ? 'block' : 'none';
         }
+    }
+
+    function obterEstadoSelecionado() {
+        const selecionado = document.querySelector("input[name='EnderecoId']:checked");
+        if (!selecionado) {
+            return '';
+        }
+
+        if (selecionado.value === '0') {
+            return estadoNovoEnderecoInput?.value?.trim() || '';
+        }
+
+        return selecionado.dataset.estado || '';
+    }
+
+    async function atualizarFrete() {
+        if (!freightUrl) {
+            atualizarResumo();
+            return;
+        }
+
+        const selecionado = document.querySelector("input[name='EnderecoId']:checked");
+        const quantidade = getQuantidade();
+        const enderecoId = selecionado && selecionado.value !== '0' ? selecionado.value : '';
+        const estado = obterEstadoSelecionado();
+        const url = `${freightUrl}?enderecoId=${encodeURIComponent(enderecoId)}&estado=${encodeURIComponent(estado)}&quantidade=${encodeURIComponent(quantidade)}`;
+
+        try {
+            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const data = await response.json();
+
+            if (data?.sucesso) {
+                freteAtual = parseFloat(data.frete || 0);
+            }
+        } catch (_) {
+        }
+
+        if (cupomAplicadoCodigo) {
+            await aplicarCupom();
+            return;
+        }
+
+        atualizarResumo();
     }
 
     function togglePagamento(index) {
@@ -204,14 +242,7 @@ if (checkoutLayout) {
         atualizarResumo();
     }
 
-    quantidadeInput?.addEventListener('input', async () => {
-        if (cupomAplicadoCodigo) {
-            await aplicarCupom();
-            return;
-        }
-
-        atualizarResumo();
-    });
+    quantidadeInput?.addEventListener('input', atualizarFrete);
 
     aplicarCupomBtn?.addEventListener('click', aplicarCupom);
     valor1Input?.addEventListener('input', () => recalcularDivisao(obterTotalAtual()));
@@ -221,17 +252,21 @@ if (checkoutLayout) {
         atualizarSegundoPagamentoUI();
     });
 
-    enderecoRadios.forEach((radio) => radio.addEventListener('change', toggleNovoEndereco));
+    enderecoRadios.forEach((radio) => radio.addEventListener('change', async () => {
+        toggleNovoEndereco();
+        await atualizarFrete();
+    }));
     metodoSelects.forEach((select) => select.addEventListener('change', () => togglePagamento(select.dataset.index)));
     cardSelects.forEach((select) => select.addEventListener('change', () => toggleNovoCartao(select.dataset.index)));
+    estadoNovoEnderecoInput?.addEventListener('input', atualizarFrete);
 
     toggleNovoEndereco();
     togglePagamento(1);
     atualizarSegundoPagamentoUI();
 
     if (cupomInput?.value?.trim()) {
-        aplicarCupom();
+        atualizarFrete();
     } else {
-        atualizarResumo();
+        atualizarFrete();
     }
 }

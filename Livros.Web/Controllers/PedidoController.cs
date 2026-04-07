@@ -180,6 +180,24 @@ namespace Livros.Web.Controllers {
                 mensagem = "Cupom aplicado com sucesso."
             });
         }
+
+        [HttpGet]
+        public IActionResult CalcularFreteCheckout(int? enderecoId, string? estado, int quantidade = 1) {
+            var clienteId = ObterClienteId();
+            if (clienteId == null) {
+                return Json(new { sucesso = false, mensagem = "Faca login para calcular o frete." });
+            }
+
+            var estadoDestino = ResolverEstadoFrete(clienteId.Value, enderecoId, estado);
+            var frete = CalcularFrete(quantidade, estadoDestino);
+
+            return Json(new {
+                sucesso = true,
+                estado = estadoDestino,
+                frete
+            });
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult FinalizarPedido(CheckoutFormData form) {
@@ -204,7 +222,8 @@ namespace Livros.Web.Controllers {
             var enderecoId = ResolverEndereco(clienteId.Value, form);
             var subtotal = itensCheckout.Sum(i => i.PrecoUnitario * i.Quantidade);
             var quantidadeTotal = itensCheckout.Sum(i => i.Quantidade);
-            var frete = CalcularFrete(quantidadeTotal);
+            var estadoFrete = ObterEstadoFreteDoFormularioOuEndereco(clienteId.Value, form, enderecoId);
+            var frete = CalcularFrete(quantidadeTotal, estadoFrete);
             var cupomAplicado = ObterCupomValido(clienteId.Value, form.Cupom);
             var desconto = CalcularDesconto(cupomAplicado, form.Cupom, subtotal);
             var total = subtotal + frete - desconto;
@@ -621,7 +640,8 @@ namespace Livros.Web.Controllers {
 
             var subtotal = itensCheckout.Sum(i => i.PrecoUnitario * i.Quantidade);
             var quantidadeTotal = itensCheckout.Sum(i => i.Quantidade);
-            var frete = CalcularFrete(quantidadeTotal);
+            var estadoFrete = ObterEstadoFreteDoFormularioOuEndereco(clienteId, form, form.EnderecoId > 0 ? form.EnderecoId : null);
+            var frete = CalcularFrete(quantidadeTotal, estadoFrete);
             var cupomAplicado = ObterCupomValido(clienteId, form.Cupom);
             var desconto = CalcularDesconto(cupomAplicado, form.Cupom, subtotal);
             var primeiroLivro = itensCheckout.FirstOrDefault()?.Livro;
@@ -815,12 +835,58 @@ namespace Livros.Web.Controllers {
             cupomAplicado.PedidoId = pedido.Id;
         }
 
-        private decimal CalcularFrete(int quantidade) {
+        private string ObterEstadoFreteDoFormularioOuEndereco(int clienteId, CheckoutFormData form, int? enderecoId) {
+            if (enderecoId.HasValue && enderecoId.Value > 0) {
+                return ResolverEstadoFrete(clienteId, enderecoId, null);
+            }
+
+            if (!string.IsNullOrWhiteSpace(form.Estado)) {
+                return form.Estado.Trim().ToUpperInvariant();
+            }
+
+            return "SP";
+        }
+
+        private string ResolverEstadoFrete(int clienteId, int? enderecoId, string? estadoInformado) {
+            if (enderecoId.HasValue && enderecoId.Value > 0) {
+                var estadoEndereco = _context.Enderecos
+                    .Where(e => e.Id == enderecoId.Value && e.ClienteId == clienteId)
+                    .Select(e => e.Cidade.Estado.Sigla)
+                    .FirstOrDefault();
+
+                if (!string.IsNullOrWhiteSpace(estadoEndereco)) {
+                    return estadoEndereco.Trim().ToUpperInvariant();
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(estadoInformado)) {
+                return estadoInformado.Trim().ToUpperInvariant();
+            }
+
+            return "SP";
+        }
+
+        private decimal CalcularFrete(int quantidade, string? estadoDestino) {
             if (quantidade <= 0) {
                 quantidade = 1;
             }
 
-            return 15 + Math.Max(quantidade - 1, 0) * 2;
+            var uf = string.IsNullOrWhiteSpace(estadoDestino)
+                ? "SP"
+                : estadoDestino.Trim().ToUpperInvariant();
+
+            decimal freteBase = uf switch {
+                "SP" => 12m,
+                "RJ" or "MG" or "ES" => 15m,
+                "PR" or "SC" or "RS" => 18m,
+                "DF" or "GO" or "MS" or "MT" => 20m,
+                "BA" or "SE" or "AL" or "PE" or "PB" or "RN" or "CE" or "PI" or "MA" => 24m,
+                "PA" or "AP" or "AM" or "RR" or "RO" or "AC" or "TO" => 29m,
+                _ => 22m
+            };
+
+            var adicionalPorItem = uf == "SP" ? 1.50m : uf is "RJ" or "MG" or "ES" ? 2m : 2.50m;
+            return freteBase + Math.Max(quantidade - 1, 0) * adicionalPorItem;
         }
 
         private CupomDesconto? ObterCupomValido(int clienteId, string? cupom) {

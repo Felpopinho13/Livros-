@@ -220,6 +220,7 @@ public class AdminController : Controller {
     public IActionResult Trocas(string? busca, string? status) {
         var query = _context.Trocas
             .Include(t => t.Cliente)
+            .Include(t => t.Pedido)
             .Include(t => t.PedidoItem)
                 .ThenInclude(i => i.Livro)
             .Include(t => t.CupomDesconto)
@@ -256,7 +257,7 @@ public class AdminController : Controller {
                 ObservacaoAdmin = t.ObservacaoAdmin,
                 Status = t.Status,
                 DataSolicitacao = t.DataSolicitacao,
-                ValorSugeridoCupom = t.PedidoItem != null ? t.PedidoItem.PrecoUnitario * t.PedidoItem.Quantidade : 0,
+                ValorSugeridoCupom = CalcularValorCupomTroca(t.PedidoItem, t.Pedido),
                 CodigoCupom = t.CupomDesconto?.Codigo
             }).ToList(),
             CuponsRecentes = _context.CuponsDesconto
@@ -287,6 +288,7 @@ public class AdminController : Controller {
     [ValidateAntiForgeryToken]
     public IActionResult AnalisarTroca(int trocaId, string decisao, string? observacaoAdmin, decimal? valorCupom) {
         var troca = _context.Trocas
+            .Include(t => t.Pedido)
             .Include(t => t.PedidoItem)
                 .ThenInclude(i => i.Livro)
             .Include(t => t.CupomDesconto)
@@ -306,11 +308,7 @@ public class AdminController : Controller {
         troca.DataAnalise = DateTime.Now;
 
         if (string.Equals(decisao, "aprovar", StringComparison.OrdinalIgnoreCase)) {
-            var valorCupomNormalizado = ObterDecimalFormulario("valorCupom", valorCupom ?? 0);
-            if (valorCupomNormalizado <= 0) {
-                TempData["Erro"] = "Informe um valor válido para gerar o cupom da troca.";
-                return RedirectToAction("Trocas");
-            }
+            var valorCupomNormalizado = CalcularValorCupomTroca(troca.PedidoItem, troca.Pedido);
 
             var cupom = new CupomDesconto {
                 Codigo = GerarCodigoCupom("TROCA"),
@@ -391,6 +389,30 @@ public class AdminController : Controller {
     }
     private string GerarCodigoCupom(string prefixo) {
         return $"{prefixo}-{DateTime.Now:yyyyMMddHHmmss}";
+    }
+
+    private decimal CalcularValorCupomTroca(PedidoItem? pedidoItem, Pedido? pedido) {
+        if (pedidoItem == null || pedido == null) {
+            return 0;
+        }
+
+        var subtotalPedido = _context.PedidoItens
+            .Where(i => i.PedidoId == pedido.Id)
+            .Sum(i => i.PrecoUnitario * i.Quantidade);
+        var descontoPedido = _context.CuponsDesconto
+            .Where(c => c.PedidoId == pedido.Id)
+            .Sum(c => c.Valor);
+
+        var totalItem = pedidoItem.PrecoUnitario * pedidoItem.Quantidade;
+        if (subtotalPedido <= 0) {
+            return decimal.Round(totalItem, 2);
+        }
+
+        var fretePedido = Math.Max(pedido.Total - subtotalPedido + descontoPedido, 0);
+        var proporcaoItem = totalItem / subtotalPedido;
+        var freteProporcional = decimal.Round(fretePedido * proporcaoItem, 2);
+
+        return decimal.Round(totalItem + freteProporcional, 2);
     }
 
     private decimal ObterDecimalFormulario(string campo, decimal valorPadrao) {

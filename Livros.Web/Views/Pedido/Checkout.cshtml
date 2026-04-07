@@ -31,8 +31,8 @@
                  data-subtotal-base="@Model.Subtotal.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                  data-quantidade-base="@Model.Quantidade"
                  data-permite-quantidade="@Model.PermiteAlterarQuantidade.ToString().ToLower()"
-                 data-frete-base="15"
-                 data-frete-extra="2"
+                 data-frete="@Model.Frete.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                 data-frete-url="@Url.Action("CalcularFreteCheckout", "Pedido")"
                  data-cupom="DESCONTO10">
                 <div class="checkout-form">
                     <div class="card checkout-card">
@@ -43,7 +43,7 @@
                                 var selected = form.EnderecoId == endereco.Id;
 
                                 <label class="address-card @(selected ? "selected" : "")">
-                                    <input type="radio" name="EnderecoId" value="@endereco.Id" @(selected ? "checked" : "") />
+                                    <input type="radio" name="EnderecoId" value="@endereco.Id" data-estado="@endereco.Cidade.Estado.Sigla" @(selected ? "checked" : "") />
                                     <h4>@endereco.NomeEndereco</h4>
                                     <p>@endereco.Logradouro, @endereco.Numero</p>
                                     <p>@endereco.Bairro.Nome - @endereco.Cidade.Nome/@endereco.Cidade.Estado.Sigla</p>
@@ -52,7 +52,7 @@
                             }
 
                             <label class="address-card novo-endereco @(form.EnderecoId == 0 ? "selected" : "")">
-                                <input type="radio" name="EnderecoId" value="0" @(form.EnderecoId == 0 ? "checked" : "") />
+                                <input type="radio" name="EnderecoId" value="0" data-estado="@form.Estado" @(form.EnderecoId == 0 ? "checked" : "") />
                                 <strong>+ Novo Endereço</strong>
                                 <span>Cadastre um endereço para esta compra.</span>
                             </label>
@@ -67,7 +67,7 @@
                                 <input name="Complemento" maxlength="50" placeholder="Complemento" value="@form.Complemento">
                                 <input name="Bairro" maxlength="50" placeholder="Bairro" value="@form.Bairro">
                                 <input name="Cidade" maxlength="50" placeholder="Cidade" value="@form.Cidade">
-                                <input name="Estado" maxlength="2" placeholder="UF" value="@form.Estado">
+                                <input id="estadoNovoEndereco" name="Estado" maxlength="2" placeholder="UF" value="@form.Estado">
                             </div>
 
                             <label class="checkout-checkbox">
