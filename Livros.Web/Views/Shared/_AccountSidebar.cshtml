@@ -13,7 +13,7 @@
         <li><a asp-controller="Cliente" asp-action="Enderecos" class="@ActiveIf("Enderecos", "EditarEndereco")">Endereços</a></li>
         <li><a asp-controller="Cliente" asp-action="Cartoes" class="@ActiveIf("Cartoes")">Cartões</a></li>
         <li><a asp-controller="Pedido" asp-action="Carrinho">Meu carrinho</a></li>
-        <li><a asp-controller="Pedido" asp-action="MeusPedidos" class="@ActiveIf("DetalhesPedido")">Trocas</a></li>
+        <li><a asp-controller="Cliente" asp-action="Cupons" class="@ActiveIf("Cupons")">Meus cupons</a></li>
         <li>
             <form asp-controller="Cliente"
                   asp-action="ExcluirConta"

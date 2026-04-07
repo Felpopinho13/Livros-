@@ -104,6 +104,54 @@ public class ClienteController : Controller {
         return View(vm);
     }
 
+    public IActionResult Cupons() {
+        var usuario = HttpContext.Session.GetString("Usuario");
+
+        if (usuario == null) {
+            return RedirectToAction("Login", "Auth");
+        }
+
+        var cliente = _context.Clientes
+            .FirstOrDefault(c => c.Email == usuario && c.IsAtivo);
+
+        if (cliente == null) {
+            HttpContext.Session.Clear();
+            return RedirectToAction("Login", "Auth");
+        }
+
+        var cupons = _context.CuponsDesconto
+            .Where(c => c.ClienteId == cliente.Id)
+            .OrderByDescending(c => c.DataCriacao)
+            .ToList();
+
+        var vm = new MeusCuponsViewModel {
+            NomeCliente = string.IsNullOrWhiteSpace(cliente.Nome) ? cliente.Email : cliente.Nome,
+            TotalCupons = cupons.Count,
+            CuponsDisponiveis = cupons.Count(c => c.IsAtivo && c.DataUtilizacao == null),
+            ValorDisponivel = cupons
+                .Where(c => c.IsAtivo && c.DataUtilizacao == null)
+                .Sum(c => c.Valor),
+            Cupons = cupons.Select(c => new MeuCupomItemViewModel {
+                Codigo = c.Codigo,
+                Tipo = c.Tipo,
+                Valor = c.Valor,
+                DataCriacao = c.DataCriacao,
+                DataUtilizacao = c.DataUtilizacao,
+                PedidoId = c.PedidoId,
+                Status = c.DataUtilizacao != null
+                    ? "Utilizado"
+                    : c.IsAtivo
+                        ? "Disponível"
+                        : "Inativo",
+                Descricao = c.Tipo == "TROCA"
+                    ? "Cupom liberado a partir de uma solicitação de troca aprovada."
+                    : "Cupom promocional disponibilizado para uso no checkout."
+            }).ToList()
+        };
+
+        return View(vm);
+    }
+
     public IActionResult Editar() {
         var email = HttpContext.Session.GetString("Usuario");
 

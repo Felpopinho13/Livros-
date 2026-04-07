@@ -7,27 +7,7 @@
 
 <section class="account-page">
     <div class="container account-layout">
-        <aside class="account-menu">
-            <h3>Minha Conta</h3>
-            <ul>
-                <li><a asp-controller="Pedido" asp-action="MeusPedidos">Meus pedidos</a></li>
-                <li><a asp-controller="Cliente" asp-action="Editar">Meus dados</a></li>
-                <li><a asp-controller="Cliente" asp-action="Enderecos">Endereços</a></li>
-                <li><a asp-controller="Cliente" asp-action="Cartoes">Cartões</a></li>
-                <li><a asp-controller="Pedido" asp-action="Carrinho">Meu carrinho</a></li>
-                <li><a asp-controller="Pedido" asp-action="MeusPedidos">Trocas</a></li>
-                <li>
-                    <form asp-controller="Cliente"
-                          asp-action="ExcluirConta"
-                          method="post"
-                          onsubmit="return confirm('Tem certeza que deseja excluir sua conta? Essa ação não pode ser desfeita.');">
-                        <button type="submit" class="btn-danger btn-sm btn-block">
-                            Excluir conta
-                        </button>
-                    </form>
-                </li>
-            </ul>
-        </aside>
+        @await Html.PartialAsync("_AccountSidebar")
 
         <div class="account-content">
             <div class="account-dashboard">
@@ -163,8 +143,8 @@
                                 <span class="account-coupon-type">@cupom.Tipo</span>
                                 <strong>@cupom.Codigo</strong>
                                 <p>Desconto disponível de @cupom.Valor.ToString("C").</p>
-                                <a asp-controller="Pedido" asp-action="Carrinho" class="btn-outline">
-                                    Usar no checkout
+                                <a asp-controller="Cliente" asp-action="Cupons" class="btn-outline">
+                                    Ver todos os cupons
                                 </a>
                             </div>
                         }
@@ -179,14 +159,14 @@
                         </div>
 
                         <div class="account-actions-list">
-                            <a asp-controller="Cliente" asp-action="Enderecos" class="account-action-link">
-                                Revisar meus endereços
+                            <a asp-controller="Cliente" asp-action="Cupons" class="account-action-link">
+                                Consultar meus cupons
                             </a>
                             <a asp-controller="Cliente" asp-action="Cartoes" class="account-action-link">
                                 Organizar cartões salvos
                             </a>
                             <a asp-controller="Pedido" asp-action="MeusPedidos" class="account-action-link">
-                                Consultar pedidos e trocas
+                                Consultar pedidos
                             </a>
                         </div>
                     </article>

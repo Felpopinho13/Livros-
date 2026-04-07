@@ -1,0 +1,122 @@
+@model Livros.Web.Models.ViewModels.MeusCuponsViewModel
+@{
+    ViewData["Title"] = "Meus Cupons";
+}
+
+<section class="account-page">
+    <div class="container account-layout">
+        @await Html.PartialAsync("_AccountSidebar")
+
+        <div class="account-content">
+            <div class="account-dashboard">
+                <section class="account-hero">
+                    <div class="account-hero-copy">
+                        <span class="account-eyebrow">Carteira de descontos</span>
+                        <h2>Meus cupons</h2>
+                        <p>
+                            Aqui você encontra todos os cupons disponíveis, utilizados e inativos
+                            vinculados à sua conta para acompanhar o histórico de benefícios.
+                        </p>
+
+                        <div class="account-hero-meta">
+                            <div>
+                                <span>Cliente</span>
+                                <strong>@Model.NomeCliente</strong>
+                            </div>
+                            <div>
+                                <span>Saldo disponível</span>
+                                <strong>@Model.ValorDisponivel.ToString("C")</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="account-hero-actions">
+                        <a asp-controller="Pedido" asp-action="Carrinho" class="btn-primary">
+                            Usar no checkout
+                        </a>
+                        <a asp-controller="Pedido" asp-action="MeusPedidos" class="btn-secondary">
+                            Ver meus pedidos
+                        </a>
+                    </div>
+                </section>
+
+                <section class="account-stats-grid">
+                    <article class="account-stat-card highlight">
+                        <span class="account-stat-label">Total de cupons</span>
+                        <strong>@Model.TotalCupons</strong>
+                        <p>Histórico completo de cupons promocionais e de troca da sua conta.</p>
+                    </article>
+
+                    <article class="account-stat-card">
+                        <span class="account-stat-label">Disponíveis</span>
+                        <strong>@Model.CuponsDisponiveis</strong>
+                        <p>@(Model.CuponsDisponiveis > 0 ? "Prontos para aplicar no checkout." : "Nenhum cupom ativo no momento.")</p>
+                    </article>
+
+                    <article class="account-stat-card">
+                        <span class="account-stat-label">Valor liberado</span>
+                        <strong>@Model.ValorDisponivel.ToString("C")</strong>
+                        <p>Soma dos descontos que ainda podem ser usados.</p>
+                    </article>
+                </section>
+
+                <section class="account-panel">
+                    <div class="account-panel-header">
+                        <div>
+                            <span class="account-panel-eyebrow">Lista completa</span>
+                            <h3>Cupons da sua conta</h3>
+                        </div>
+                    </div>
+
+                    @if (!Model.Cupons.Any()) {
+                        <div class="account-empty-state">
+                            <strong>Você ainda não recebeu cupons.</strong>
+                            <p>Assim que um cupom promocional ou de troca for liberado, ele vai aparecer aqui com status e valor.</p>
+                        </div>
+                    } else {
+                        <div class="account-coupons-list">
+                            @foreach (var cupom in Model.Cupons) {
+                                var statusClass = cupom.Status switch {
+                                    "Disponível" => "available",
+                                    "Utilizado" => "used",
+                                    _ => "inactive"
+                                };
+
+                                <article class="account-coupon-item">
+                                    <div class="account-coupon-item-top">
+                                        <div>
+                                            <span class="account-coupon-type">@cupom.Tipo</span>
+                                            <strong>@cupom.Codigo</strong>
+                                        </div>
+                                        <span class="account-status-chip @statusClass">@cupom.Status</span>
+                                    </div>
+
+                                    <p>@cupom.Descricao</p>
+
+                                    <div class="account-coupon-meta">
+                                        <div>
+                                            <span>Valor</span>
+                                            <strong>@cupom.Valor.ToString("C")</strong>
+                                        </div>
+                                        <div>
+                                            <span>Criado em</span>
+                                            <strong>@cupom.DataCriacao.ToString("dd/MM/yyyy HH:mm")</strong>
+                                        </div>
+                                        <div>
+                                            <span>Uso</span>
+                                            <strong>@(cupom.DataUtilizacao?.ToString("dd/MM/yyyy HH:mm") ?? "Ainda não utilizado")</strong>
+                                        </div>
+                                        <div>
+                                            <span>Pedido</span>
+                                            <strong>@(cupom.PedidoId.HasValue ? $"#{cupom.PedidoId}" : "Sem vínculo")</strong>
+                                        </div>
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                    }
+                </section>
+            </div>
+        </div>
+    </div>
+</section>

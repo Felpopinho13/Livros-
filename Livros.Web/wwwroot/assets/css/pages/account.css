@@ -272,6 +272,79 @@
     border: 1px solid #f5dfbd;
 }
 
+.account-coupons-list {
+    display: grid;
+    gap: 16px;
+}
+
+.account-coupon-item {
+    padding: 22px;
+    border-radius: 18px;
+    border: 1px solid #e8edf5;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.account-coupon-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.account-coupon-item-top strong {
+    display: block;
+    margin-top: 12px;
+    font-size: 24px;
+    color: #172033;
+    word-break: break-word;
+}
+
+.account-coupon-meta {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.account-coupon-meta div {
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e9eef5;
+}
+
+.account-coupon-meta span {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #8691a2;
+    font-weight: 700;
+}
+
+.account-coupon-meta strong {
+    font-size: 15px;
+    color: #172033;
+}
+
+.account-status-chip.available {
+    background: #dff7e5;
+    color: #13803f;
+}
+
+.account-status-chip.used {
+    background: #e7ecf3;
+    color: #516070;
+}
+
+.account-status-chip.inactive {
+    background: #f2f4f7;
+    color: #667085;
+}
+
 .account-coupon-type {
     margin-bottom: 14px;
     background: #fff0d8;
@@ -311,7 +384,8 @@
 @media (max-width: 1100px) {
     .account-layout,
     .account-panels-grid,
-    .account-stats-grid {
+    .account-stats-grid,
+    .account-coupon-meta {
         grid-template-columns: 1fr;
     }
 
@@ -344,6 +418,10 @@
 
     .account-hero-copy h2 {
         font-size: 30px;
+    }
+
+    .account-coupon-item-top {
+        flex-direction: column;
     }
 }
 
