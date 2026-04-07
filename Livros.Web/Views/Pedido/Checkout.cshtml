@@ -61,13 +61,13 @@
                         <div id="novoEnderecoForm" class="checkout-card-inner" style="@(form.EnderecoId == 0 ? "display:block;" : "display:none;")">
                             <div class="checkout-address-grid">
                                 <input name="NomeEndereco" maxlength="60" placeholder="Nome do endereço" value="@form.NomeEndereco">
-                                <input name="CEP" maxlength="9" placeholder="CEP" value="@form.CEP">
+                                <input name="CEP" maxlength="8" minlength="8" inputmode="numeric" pattern="\d{8}" placeholder="CEP (8 dígitos)" value="@form.CEP">
                                 <input name="Logradouro" maxlength="100" placeholder="Logradouro" value="@form.Logradouro">
                                 <input name="Numero" maxlength="10" placeholder="Número" value="@form.Numero">
                                 <input name="Complemento" maxlength="50" placeholder="Complemento" value="@form.Complemento">
                                 <input name="Bairro" maxlength="50" placeholder="Bairro" value="@form.Bairro">
                                 <input name="Cidade" maxlength="50" placeholder="Cidade" value="@form.Cidade">
-                                <input id="estadoNovoEndereco" name="Estado" maxlength="2" placeholder="UF" value="@form.Estado">
+                                <input id="estadoNovoEndereco" name="Estado" maxlength="2" minlength="2" pattern="[A-Za-z]{2}" placeholder="UF" value="@form.Estado">
                             </div>
 
                             <label class="checkout-checkbox">
@@ -140,9 +140,9 @@
 
                                 <div id="novoCartaoForm1" class="new-card-fields" style="@((form.CartaoId1.HasValue && form.CartaoId1.Value > 0) ? "display:none;" : "display:grid;")">
                                     <input name="NomeCartao1" maxlength="100" placeholder="Nome impresso" value="@form.NomeCartao1">
-                                    <input name="NumeroCartao1" maxlength="19" placeholder="Número do cartão" value="@form.NumeroCartao1">
-                                    <input name="CVV1" maxlength="3" placeholder="CVV" value="@form.CVV1">
-                                    <input name="Validade1" maxlength="5" placeholder="MM/AA" value="@form.Validade1">
+                                    <input name="NumeroCartao1" maxlength="16" minlength="16" inputmode="numeric" pattern="\d{16}" placeholder="Número do cartão (16 dígitos)" value="@form.NumeroCartao1">
+                                    <input name="CVV1" maxlength="3" minlength="3" inputmode="numeric" pattern="\d{3}" placeholder="CVV" value="@form.CVV1">
+                                    <input name="Validade1" maxlength="5" minlength="5" pattern="(0[1-9]|1[0-2])\/\d{2}" placeholder="MM/AA" value="@form.Validade1">
 
                                     <label class="checkout-checkbox checkbox-inline">
                                         <input type="checkbox" name="SalvarNovoCartao1" value="true" @(form.SalvarNovoCartao1 ? "checked" : "")>
@@ -221,9 +221,9 @@
 
                                     <div id="novoCartaoForm2" class="new-card-fields" style="@((form.CartaoId2.HasValue && form.CartaoId2.Value > 0) ? "display:none;" : "display:grid;")">
                                         <input name="NomeCartao2" maxlength="100" placeholder="Nome impresso" value="@form.NomeCartao2">
-                                        <input name="NumeroCartao2" maxlength="19" placeholder="Número do cartão" value="@form.NumeroCartao2">
-                                        <input name="CVV2" maxlength="3" placeholder="CVV" value="@form.CVV2">
-                                        <input name="Validade2" maxlength="5" placeholder="MM/AA" value="@form.Validade2">
+                                        <input name="NumeroCartao2" maxlength="16" minlength="16" inputmode="numeric" pattern="\d{16}" placeholder="Número do cartão (16 dígitos)" value="@form.NumeroCartao2">
+                                        <input name="CVV2" maxlength="3" minlength="3" inputmode="numeric" pattern="\d{3}" placeholder="CVV" value="@form.CVV2">
+                                        <input name="Validade2" maxlength="5" minlength="5" pattern="(0[1-9]|1[0-2])\/\d{2}" placeholder="MM/AA" value="@form.Validade2">
 
                                         <label class="checkout-checkbox checkbox-inline">
                                             <input type="checkbox" name="SalvarNovoCartao2" value="true" @(form.SalvarNovoCartao2 ? "checked" : "")>

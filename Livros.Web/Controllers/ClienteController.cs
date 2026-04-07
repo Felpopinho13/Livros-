@@ -346,8 +346,16 @@ public class ClienteController : Controller {
             .Include(e => e.Cliente)
             .FirstOrDefault(e => e.Id == id && e.Cliente.Email == email);
 
-        if (endereco == null)
-            return NotFound();
+        if (endereco == null) {
+            TempData["Erro"] = "Endereço não encontrado.";
+            return RedirectToAction("Enderecos");
+        }
+
+        var enderecoEmUso = _context.Pedidos.Any(p => p.EnderecoId == endereco.Id);
+        if (enderecoEmUso) {
+            TempData["Erro"] = "Este endereço já foi usado em um pedido e não pode ser excluído.";
+            return RedirectToAction("Enderecos");
+        }
 
         _context.Enderecos.Remove(endereco);
         _context.SaveChanges();

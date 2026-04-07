@@ -5,6 +5,7 @@ using Livros.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Text.Json;
 
 namespace Livros.Web.Controllers {
@@ -699,7 +700,17 @@ namespace Livros.Web.Controllers {
                 return null;
             }
 
+            var cepNormalizado = NormalizarDigitos(form.CEP);
+            if (cepNormalizado.Length != 8) {
+                ModelState.AddModelError(string.Empty, "O CEP deve conter exatamente 8 digitos.");
+                return null;
+            }
+
             var estadoSigla = form.Estado.Trim().ToUpper();
+            if (!Regex.IsMatch(estadoSigla, "^[A-Z]{2}$")) {
+                ModelState.AddModelError(string.Empty, "Informe uma UF valida com 2 letras.");
+                return null;
+            }
             var estadoEntity = _context.Estados.FirstOrDefault(e => e.Sigla == estadoSigla);
             if (estadoEntity == null) {
                 estadoEntity = new Estado {
@@ -734,7 +745,7 @@ namespace Livros.Web.Controllers {
 
             var endereco = new Endereco {
                 NomeEndereco = string.IsNullOrWhiteSpace(form.NomeEndereco) ? "Novo Endereco" : form.NomeEndereco.Trim(),
-                CEP = form.CEP.Trim(),
+                CEP = cepNormalizado,
                 Logradouro = form.Logradouro.Trim(),
                 Numero = form.Numero.Trim(),
                 Complemento = form.Complemento?.Trim(),
@@ -802,6 +813,21 @@ namespace Livros.Web.Controllers {
 
             if (string.IsNullOrWhiteSpace(nome) || string.IsNullOrWhiteSpace(numero) || string.IsNullOrWhiteSpace(validade) || string.IsNullOrWhiteSpace(cvv)) {
                 ModelState.AddModelError(string.Empty, $"Preencha os dados completos do novo cartao no pagamento {indice}.");
+                return;
+            }
+
+            var numeroNormalizado = NormalizarDigitos(numero);
+            if (numeroNormalizado.Length != 16) {
+                ModelState.AddModelError(string.Empty, $"O cartao do pagamento {indice} deve ter exatamente 16 digitos.");
+            }
+
+            var cvvNormalizado = NormalizarDigitos(cvv);
+            if (cvvNormalizado.Length != 3) {
+                ModelState.AddModelError(string.Empty, $"O CVV do pagamento {indice} deve ter exatamente 3 digitos.");
+            }
+
+            if (!Regex.IsMatch(validade.Trim(), "^(0[1-9]|1[0-2])\\/\\d{2}$")) {
+                ModelState.AddModelError(string.Empty, $"A validade do pagamento {indice} deve estar no formato MM/AA.");
             }
         }
 
@@ -815,9 +841,9 @@ namespace Livros.Web.Controllers {
                 var novoCartao = new Cartao {
                     ClienteId = clienteId,
                     NomeImpresso = (nomeCartao ?? string.Empty).Trim(),
-                    Numero = (numeroCartao ?? string.Empty).Trim(),
+                    Numero = NormalizarDigitos(numeroCartao),
                     Validade = (validade ?? string.Empty).Trim(),
-                    CVV = (cvv ?? string.Empty).Trim()
+                    CVV = NormalizarDigitos(cvv)
                 };
 
                 _context.Cartoes.Add(novoCartao);
@@ -958,6 +984,14 @@ namespace Livros.Web.Controllers {
             }
 
             return valorPadrao ?? 0;
+        }
+
+        private string NormalizarDigitos(string? valor) {
+            if (string.IsNullOrWhiteSpace(valor)) {
+                return string.Empty;
+            }
+
+            return new string(valor.Where(char.IsDigit).ToArray());
         }
 
         private int? ObterClienteId() {

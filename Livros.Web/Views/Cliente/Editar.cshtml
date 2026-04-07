@@ -1,73 +1,78 @@
-﻿@model Livros.Domain.Cliente
+@model Livros.Domain.Cliente
 
 @{
     ViewData["Title"] = "Editar Dados";
 }
-@if (TempData["Erro"] != null) {
-    <div class="alert-error">
-        @TempData["Erro"]
-    </div>
-}
 
-<section class="edit-profile-page">
+<section class="account-page">
+    <div class="container account-layout">
+        @await Html.PartialAsync("_AccountSidebar")
 
-    <div class="edit-profile-container">
-        <h2>Editar Dados</h2>
-        @if (TempData["Sucesso"] != null) {
-            <div class="alert-success">
-                @TempData["Sucesso"]
-            </div>
-        }
+        <div class="account-content">
+            @if (TempData["Erro"] != null) {
+                <div class="alert-error">
+                    @TempData["Erro"]
+                </div>
+            }
 
-        <div class="breadcrumb">
-            <a asp-controller="Cliente" asp-action="AreaCliente">
-                Central Minha Conta
-            </a>
-            / <strong>Meus dados</strong>
+            <section class="edit-profile-page account-section-page">
+                <div class="edit-profile-container">
+                    <h2>Editar Dados</h2>
+                    @if (TempData["Sucesso"] != null) {
+                        <div class="alert-success">
+                            @TempData["Sucesso"]
+                        </div>
+                    }
+
+                    <div class="breadcrumb">
+                        <a asp-controller="Cliente" asp-action="AreaCliente">
+                            Central Minha Conta
+                        </a>
+                        / <strong>Meus dados</strong>
+                    </div>
+
+                    <form asp-action="Editar" method="post" class="edit-profile-form">
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="form-group">
+                            <label>Nome completo</label>
+                            <input type="text" asp-for="Nome" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" asp-for="Email" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Telefone</label>
+                            <input type="text" asp-for="Telefone" maxlength="15">
+                        </div>
+
+                        <div class="form-group">
+                            <label>CPF</label>
+                            <input type="text" asp-for="CPF" maxlength="14" pattern="\d{3}\.\d{3}\.\d{3}-\d{2}">
+                        </div>
+
+                        <button type="submit" class="btn-primary btn-profile">
+                            Salvar Alterações
+                        </button>
+
+                        <button type="button" class="btn-outline btn-profile" id="openSenhaModal">
+                            Alterar Senha
+                        </button>
+                    </form>
+                </div>
+            </section>
         </div>
-
-        <form asp-action="Editar" method="post" class="edit-profile-form">
-
-            <input type="hidden" asp-for="Id" />
-
-            <div class="form-group">
-                <label>Nome completo</label>
-                <input type="text" asp-for="Nome" required>
-            </div>
-
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" asp-for="Email" required>
-            </div>
-
-            <div class="form-group">
-                <label>Telefone</label>
-                <input type="text" asp-for="Telefone" maxlength="15">
-            </div>
-
-            <div class="form-group">
-                <label>CPF</label>
-                <input type="text" asp-for="CPF" maxlength="14" pattern="\d{3}\.\d{3}\.\d{3}-\d{2}">
-            </div>
-
-            <button type="submit" class="btn-primary btn-profile">
-                Salvar Alterações
-            </button>
-
-            <button type="button" class="btn-outline btn-profile" id="openSenhaModal">
-                Alterar Senha
-            </button>
-
-        </form>
     </div>
 </section>
+
 <div class="modal-overlay" id="senhaModal">
     <div class="modal">
-
         <h3>Alterar Senha</h3>
 
         <form asp-action="AlterarSenha" method="post" onsubmit="return validarSenha()">
-
             <input type="password" name="novaSenha" id="novaSenha" placeholder="Nova senha" required>
             <input type="password" name="confirmarSenha" id="confirmarSenha" placeholder="Confirmar senha" required>
 
@@ -80,11 +85,8 @@
                     Salvar
                 </button>
             </div>
-
         </form>
-
     </div>
 </div>
-
 
 <script src="~/assets/js/cliente.js"></script>

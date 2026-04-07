@@ -1,0 +1,29 @@
+@{
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+
+    string ActiveIf(params string[] actions) =>
+        actions.Any(a => string.Equals(a, action, StringComparison.OrdinalIgnoreCase)) ? "active" : string.Empty;
+}
+
+<aside class="account-menu">
+    <h3>Minha Conta</h3>
+    <ul>
+        <li><a asp-controller="Pedido" asp-action="MeusPedidos" class="@ActiveIf("MeusPedidos", "DetalhesPedido", "PedidoConfirmado")">Meus pedidos</a></li>
+        <li><a asp-controller="Cliente" asp-action="Editar" class="@ActiveIf("Editar")">Meus dados</a></li>
+        <li><a asp-controller="Cliente" asp-action="Enderecos" class="@ActiveIf("Enderecos", "EditarEndereco")">Endereços</a></li>
+        <li><a asp-controller="Cliente" asp-action="Cartoes" class="@ActiveIf("Cartoes")">Cartões</a></li>
+        <li><a asp-controller="Pedido" asp-action="Carrinho">Meu carrinho</a></li>
+        <li><a asp-controller="Pedido" asp-action="MeusPedidos" class="@ActiveIf("DetalhesPedido")">Trocas</a></li>
+        <li>
+            <form asp-controller="Cliente"
+                  asp-action="ExcluirConta"
+                  method="post"
+                  onsubmit="return confirm('Tem certeza que deseja excluir sua conta? Essa ação não pode ser desfeita.');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-danger btn-sm btn-block">
+                    Excluir conta
+                </button>
+            </form>
+        </li>
+    </ul>
+</aside>

@@ -1,72 +1,73 @@
-﻿@model List<Livros.Domain.Cartao>
+@model List<Livros.Domain.Cartao>
 
-<section class="wallet-page">
-    
-    <div class="wallet-container">
-        <div class="breadcrumb">
-            <a asp-controller="Cliente" asp-action="AreaCliente">
-                Central Minha Conta
-            </a>
-            / <strong>Cartões</strong>
-        </div>
-        <div class="wallet-header">
-            <h2>Cartões</h2>
+<section class="account-page">
+    <div class="container account-layout">
+        @await Html.PartialAsync("_AccountSidebar")
 
-            <button class="btn-primary" id="openCardModal">
-                + Adicionar Cartão de Crédito
-            </button>
-        </div>
-
-        <div class="wallet-grid">
-
-            @foreach (var c in Model) {
-                <div class="wallet-card @(c.IsPadrao ? "primary" : "")">
-
-                    <div class="wallet-card-top">
-                        <strong>@c.NomeImpresso</strong>
-
-                        @if (c.IsPadrao) {
-                            <span class="badge">Padrão</span>
-                        }
+        <div class="account-content">
+            <section class="wallet-page account-section-page">
+                <div class="wallet-container">
+                    <div class="breadcrumb">
+                        <a asp-controller="Cliente" asp-action="AreaCliente">
+                            Central Minha Conta
+                        </a>
+                        / <strong>Cartões</strong>
                     </div>
 
-                    <p>**** **** **** @c.Numero.Substring(c.Numero.Length - 4)</p>
-                    <p>Vence em @c.Validade</p>
+                    <div class="wallet-header">
+                        <h2>Cartões</h2>
 
-                    <div class="wallet-actions">
+                        <button class="btn-primary" id="openCardModal">
+                            + Adicionar Cartão de Crédito
+                        </button>
+                    </div>
 
-                        <form asp-action="ExcluirCartao" method="post" style="display:inline;">
-                            <input type="hidden" name="id" value="@c.Id" />
+                    <div class="wallet-grid">
+                        @foreach (var c in Model) {
+                            <div class="wallet-card @(c.IsPadrao ? "primary" : "")">
+                                <div class="wallet-card-top">
+                                    <strong>@c.NomeImpresso</strong>
 
-                            <button type="submit" class="btn-danger btn-sm"
-                                    onclick="return confirm('Tem certeza que deseja remover este cartão?');">
-                                Remover
-                            </button>
-                        </form>
+                                    @if (c.IsPadrao) {
+                                        <span class="badge">Padrão</span>
+                                    }
+                                </div>
 
-                        @if (!c.IsPadrao) {
-                            <a asp-action="TornarCartaoPadrao" asp-route-id="@c.Id" class="make-default">
-                                Tornar padrão
-                            </a>
+                                <p>**** **** **** @c.Numero.Substring(c.Numero.Length - 4)</p>
+                                <p>Vence em @c.Validade</p>
+
+                                <div class="wallet-actions">
+                                    <form asp-action="ExcluirCartao" method="post" style="display:inline;">
+                                        <input type="hidden" name="id" value="@c.Id" />
+
+                                        <button type="submit" class="btn-danger btn-sm"
+                                                onclick="return confirm('Tem certeza que deseja remover este cartão?');">
+                                            Remover
+                                        </button>
+                                    </form>
+
+                                    @if (!c.IsPadrao) {
+                                        <a asp-action="TornarCartaoPadrao" asp-route-id="@c.Id" class="make-default">
+                                            Tornar padrão
+                                        </a>
+                                    }
+                                </div>
+                            </div>
                         }
-
                     </div>
                 </div>
-            }
-
+            </section>
         </div>
     </div>
 </section>
 
 <div class="modal-overlay" id="cardModal">
     <div class="modal">
-
         <h3>Novo Cartão</h3>
 
         <form asp-action="CadastrarCartao" method="post">
-
             <input type="text" name="nome" placeholder="Nome impresso" required>
-            <input type="text" id="numeroCartao" name="numero" placeholder="Número do cartão" maxlength="19" required>
+            <input type="text" id="numeroCartao" name="numero" placeholder="Número do cartão" maxlength="16" required>
 
             <div class="form-row">
                 <input type="text" id="validadeCartao" name="validade" placeholder="MM/AA" maxlength="5" required>
@@ -75,20 +76,17 @@
 
             <div class="modal-actions">
                 <div class="modal-actions">
-                    <button type="button"
-                            id="closeCardModal"
-                            class="btn-secondary">
+                    <button type="button" id="closeCardModal" class="btn-secondary">
                         Cancelar
                     </button>
 
-                    <button type="submit"
-                            class="btn-primary">
+                    <button type="submit" class="btn-primary">
                         Salvar
                     </button>
                 </div>
             </div>
-
         </form>
     </div>
 </div>
+
 <script src="~/assets/js/cartoes.js"></script>
