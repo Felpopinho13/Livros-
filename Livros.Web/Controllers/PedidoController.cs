@@ -294,7 +294,7 @@ namespace Livros.Web.Controllers {
             var itemPrincipal = pedido.Itens.FirstOrDefault();
             var vm = new PedidoConfirmadoViewModel {
                 PedidoId = pedido.Id,
-                Status = pedido.Status,
+                Status = FormatarStatusPedido(pedido.Status, _context.Trocas.Where(t => t.PedidoId == pedido.Id).ToList()),
                 Total = pedido.Total,
                 LivroTitulo = itemPrincipal?.Livro?.Titulo ?? "Pedido",
                 Quantidade = pedido.Itens.Sum(i => i.Quantidade)
@@ -317,6 +317,12 @@ namespace Livros.Web.Controllers {
                 .OrderByDescending(p => p.Data)
                 .ToList();
 
+            var trocasPorPedido = _context.Trocas
+                .Where(t => pedidos.Select(p => p.Id).Contains(t.PedidoId))
+                .ToList()
+                .GroupBy(t => t.PedidoId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
             var vm = new MeusPedidosViewModel {
                 Pedidos = pedidos.Select(p => {
                     var itemPrincipal = p.Itens.FirstOrDefault();
@@ -324,7 +330,7 @@ namespace Livros.Web.Controllers {
                         PedidoId = p.Id,
                         Data = p.Data,
                         Total = p.Total,
-                        Status = p.Status,
+                        Status = FormatarStatusPedido(p.Status, trocasPorPedido.TryGetValue(p.Id, out var trocasPedido) ? trocasPedido : null),
                         LivroTitulo = itemPrincipal?.Livro?.Titulo ?? "Pedido sem itens",
                         LivroAutor = itemPrincipal?.Livro?.Autor ?? string.Empty,
                         LivroImagemUrl = itemPrincipal?.Livro?.ImagemUrl ?? string.Empty,
@@ -376,7 +382,7 @@ namespace Livros.Web.Controllers {
             var vm = new DetalhesPedidoViewModel {
                 PedidoId = pedido.Id,
                 Data = pedido.Data,
-                Status = pedido.Status,
+                Status = FormatarStatusPedido(pedido.Status, trocas),
                 ClienteNome = pedido.Cliente?.Nome ?? string.Empty,
                 EnderecoNome = pedido.Endereco?.NomeEndereco ?? string.Empty,
                 Logradouro = pedido.Endereco?.Logradouro ?? string.Empty,
@@ -1021,6 +1027,14 @@ namespace Livros.Web.Controllers {
                 "boleto" => "Boleto",
                 _ => metodo
             };
+        }
+
+        private string FormatarStatusPedido(string? statusAtual, IEnumerable<Troca>? trocas = null) {
+            if (trocas != null && trocas.Any(t => string.Equals(t.Status, "Aprovado", StringComparison.OrdinalIgnoreCase))) {
+                return "Troca efetuada";
+            }
+
+            return statusAtual ?? "Nao informado";
         }
 
         private decimal ObterValorPagamento(string campo, decimal? valorPadrao) {

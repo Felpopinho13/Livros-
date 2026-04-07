@@ -19,6 +19,11 @@
     border: 1px solid #e5e7eb;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
     margin-left: 15px;
+    position: sticky;
+    top: 120px;
+    align-self: start;
+    max-height: calc(100vh - 150px);
+    overflow-y: auto;
 }
 
 .account-menu.collapsed {
@@ -387,6 +392,13 @@
     .account-stats-grid,
     .account-coupon-meta {
         grid-template-columns: 1fr;
+    }
+
+    .account-menu {
+        position: static;
+        top: auto;
+        max-height: none;
+        overflow-y: visible;
     }
 
     .account-hero {
