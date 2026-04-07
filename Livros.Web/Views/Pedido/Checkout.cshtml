@@ -1,7 +1,8 @@
-﻿@model CheckoutViewModel
+@model CheckoutViewModel
 
 @{
     var form = Model.Form;
+    var segundoPagamentoAtivo = !string.IsNullOrWhiteSpace(form.Metodo2);
 }
 
 <section class="checkout-page">
@@ -151,75 +152,84 @@
                             </div>
                         </div>
 
-                        <hr>
+                        <button type="button"
+                                id="toggleSegundoPagamento"
+                                class="btn btn-secondary checkout-second-payment-toggle"
+                                aria-expanded="@segundoPagamentoAtivo.ToString().ToLower()">
+                            @(segundoPagamentoAtivo ? "Remover segundo meio de pagamento" : "Adicionar segundo meio de pagamento")
+                        </button>
 
-                        <div class="payment-block" data-payment-index="2">
-                            <h4>Pagamento 2 (opcional)</h4>
+                        <div id="segundoPagamentoWrapper" class="checkout-second-payment-wrapper" style="@(segundoPagamentoAtivo ? "display:block;" : "display:none;")">
+                            <hr>
 
-                            <select name="Metodo2" class="payment-method-select" data-index="2">
-                                @if (string.IsNullOrWhiteSpace(form.Metodo2)) {
-                                    <option value="" selected>Nenhum</option>
-                                }
-                                else {
-                                    <option value="">Nenhum</option>
-                                }
+                            <div class="payment-block" data-payment-index="2">
+                                <h4>Pagamento 2 (opcional)</h4>
 
-                                @if (form.Metodo2 == "pix") {
-                                    <option value="pix" selected>Pix</option>
-                                }
-                                else {
-                                    <option value="pix">Pix</option>
-                                }
-
-                                @if (form.Metodo2 == "boleto") {
-                                    <option value="boleto" selected>Boleto</option>
-                                }
-                                else {
-                                    <option value="boleto">Boleto</option>
-                                }
-
-                                @if (form.Metodo2 == "cartao") {
-                                    <option value="cartao" selected>Cartão</option>
-                                }
-                                else {
-                                    <option value="cartao">Cartão</option>
-                                }
-                            </select>
-
-                            <input type="text" name="Valor2" placeholder="Valor" inputmode="decimal" value="@(form.Valor2?.ToString("N2"))">
-
-                            <div id="cartaoForm2" class="cartao-form" style="@(form.Metodo2 == "cartao" ? "display:grid;" : "display:none;")">
-                                <select name="CartaoId2" class="saved-card-select" data-index="2">
-                                    @if (!form.CartaoId2.HasValue || form.CartaoId2.Value == 0) {
-                                        <option value="" selected>Novo cartão</option>
+                                <select name="Metodo2" class="payment-method-select" data-index="2">
+                                    @if (string.IsNullOrWhiteSpace(form.Metodo2)) {
+                                        <option value="" selected>Nenhum</option>
                                     }
                                     else {
-                                        <option value="">Novo cartão</option>
+                                        <option value="">Nenhum</option>
                                     }
 
-                                    @foreach (var cartao in Model.Cartoes) {
-                                        var selecionado = form.CartaoId2 == cartao.Id;
-                                        var numeroFinal = cartao.Numero?.Length >= 4 ? cartao.Numero.Substring(cartao.Numero.Length - 4) : cartao.Numero;
+                                    @if (form.Metodo2 == "pix") {
+                                        <option value="pix" selected>Pix</option>
+                                    }
+                                    else {
+                                        <option value="pix">Pix</option>
+                                    }
 
-                                        if (selecionado) {
-                                            <option value="@cartao.Id" selected>@cartao.NomeImpresso - **** @numeroFinal</option>
-                                        }
-                                        else {
-                                            <option value="@cartao.Id">@cartao.NomeImpresso - **** @numeroFinal</option>
-                                        }
+                                    @if (form.Metodo2 == "boleto") {
+                                        <option value="boleto" selected>Boleto</option>
+                                    }
+                                    else {
+                                        <option value="boleto">Boleto</option>
+                                    }
+
+                                    @if (form.Metodo2 == "cartao") {
+                                        <option value="cartao" selected>Cartão</option>
+                                    }
+                                    else {
+                                        <option value="cartao">Cartão</option>
                                     }
                                 </select>
 
-                                <div id="novoCartaoForm2" class="new-card-fields" style="@((form.CartaoId2.HasValue && form.CartaoId2.Value > 0) ? "display:none;" : "display:grid;")">
-                                    <input name="NomeCartao2" maxlength="100" placeholder="Nome impresso" value="@form.NomeCartao2">
-                                    <input name="NumeroCartao2" maxlength="19" placeholder="Número do cartão" value="@form.NumeroCartao2">
-                                    <input name="CVV2" maxlength="3" placeholder="CVV" value="@form.CVV2">
-                                    <input name="Validade2" maxlength="5" placeholder="MM/AA" value="@form.Validade2">
+                                <input type="text" name="Valor2" placeholder="Valor" inputmode="decimal" value="@(form.Valor2?.ToString("N2"))">
 
-                                    <label class="checkout-checkbox checkbox-inline">
-                                        <input type="checkbox" name="SalvarNovoCartao2" value="true" @(form.SalvarNovoCartao2 ? "checked" : "")>
-                                        <span>Salvar este cartão</span>
-                                    </label>
+                                <div id="cartaoForm2" class="cartao-form" style="@(form.Metodo2 == "cartao" ? "display:grid;" : "display:none;")">
+                                    <select name="CartaoId2" class="saved-card-select" data-index="2">
+                                        @if (!form.CartaoId2.HasValue || form.CartaoId2.Value == 0) {
+                                            <option value="" selected>Novo cartão</option>
+                                        }
+                                        else {
+                                            <option value="">Novo cartão</option>
+                                        }
+
+                                        @foreach (var cartao in Model.Cartoes) {
+                                            var selecionado = form.CartaoId2 == cartao.Id;
+                                            var numeroFinal = cartao.Numero?.Length >= 4 ? cartao.Numero.Substring(cartao.Numero.Length - 4) : cartao.Numero;
+
+                                            if (selecionado) {
+                                                <option value="@cartao.Id" selected>@cartao.NomeImpresso - **** @numeroFinal</option>
+                                            }
+                                            else {
+                                                <option value="@cartao.Id">@cartao.NomeImpresso - **** @numeroFinal</option>
+                                            }
+                                        }
+                                    </select>
+
+                                    <div id="novoCartaoForm2" class="new-card-fields" style="@((form.CartaoId2.HasValue && form.CartaoId2.Value > 0) ? "display:none;" : "display:grid;")">
+                                        <input name="NomeCartao2" maxlength="100" placeholder="Nome impresso" value="@form.NomeCartao2">
+                                        <input name="NumeroCartao2" maxlength="19" placeholder="Número do cartão" value="@form.NumeroCartao2">
+                                        <input name="CVV2" maxlength="3" placeholder="CVV" value="@form.CVV2">
+                                        <input name="Validade2" maxlength="5" placeholder="MM/AA" value="@form.Validade2">
+
+                                        <label class="checkout-checkbox checkbox-inline">
+                                            <input type="checkbox" name="SalvarNovoCartao2" value="true" @(form.SalvarNovoCartao2 ? "checked" : "")>
+                                            <span>Salvar este cartão</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>

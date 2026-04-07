@@ -1,8 +1,12 @@
-﻿@model Livros.Domain.Livro
+@model Livros.Domain.Livro
+
+@{
+    var estoqueDisponivel = Model.Estoque?.Quantidade ?? 0;
+    var emEstoque = Model.IsAtivo && estoqueDisponivel > 0;
+}
 
 <section class="book-detail">
     <div class="container book-detail-grid">
-
         <div class="book-gallery">
             <img src="@Model.ImagemUrl" alt="@Model.Titulo">
         </div>
@@ -32,46 +36,80 @@
                 R$ @Model.Preco.ToString("N2")
             </p>
 
-            <p class="stock">
-                @(Model.IsAtivo ? "Em estoque" : "Indisponível")
+            <p class="stock-summary @(emEstoque ? "in-stock" : "out-of-stock")">
+                @(emEstoque ? $"{estoqueDisponivel} unidade(s) disponíveis em estoque" : "Indisponível no momento")
             </p>
 
-            <input type="number" id="quantidade" value="1" min="1" class="input">
+            <label for="quantidade" class="quantity-label">Quantidade desejada</label>
+            <input type="number"
+                   id="quantidade"
+                   value="@(emEstoque ? 1 : 0)"
+                   min="1"
+                   max="@(estoqueDisponivel > 0 ? estoqueDisponivel : 1)"
+                   class="input"
+                   @(emEstoque ? "" : "disabled")>
+            <small class="quantity-help">
+                Este campo indica quantos exemplares você quer comprar, não o total em estoque.
+            </small>
 
             <form asp-controller="Pedido" asp-action="AdicionarAoCarrinho" method="post" id="formAdicionarCarrinho">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="livroId" value="@Model.Id" />
-                <input type="hidden" name="quantidade" id="quantidadeCarrinho" value="1" />
-                <button type="submit" class="btn btn-primary btn-block">
+                <input type="hidden" name="quantidade" id="quantidadeCarrinho" value="@(emEstoque ? 1 : 0)" />
+                <button type="submit" class="btn btn-primary btn-block" @(emEstoque ? "" : "disabled")>
                     Adicionar ao carrinho
                 </button>
             </form>
 
-            <a href="#" id="btnComprar" class="btn btn-block">
+            <a href="#" id="btnComprar" class="btn btn-block @(emEstoque ? "" : "btn-disabled")" aria-disabled="@(!emEstoque)">
                 Comprar agora
             </a>
 
+            <div class="payment-options">
+                <h3>Formas de pagamento disponíveis</h3>
+                <div class="payment-option-list">
+                    <span>Cartão de crédito</span>
+                    <span>2 cartões na mesma compra</span>
+                    <span>Pix</span>
+                    <span>Boleto</span>
+                    <span>Cupom promocional</span>
+                    <span>Cupom de troca</span>
+                </div>
+            </div>
         </div>
-
     </div>
 </section>
 
 <script>
     const quantidadeInput = document.getElementById("quantidade");
     const quantidadeCarrinho = document.getElementById("quantidadeCarrinho");
+    const estoqueDisponivel = @estoqueDisponivel;
 
-    quantidadeInput.addEventListener("input", function () {
-        let quantidade = parseInt(quantidadeInput.value) || 1;
-        if (quantidade < 1) quantidade = 1;
-        quantidadeCarrinho.value = quantidade;
-    });
+    if (quantidadeInput && quantidadeCarrinho) {
+        quantidadeInput.addEventListener("input", function () {
+            let quantidade = parseInt(quantidadeInput.value) || 1;
+
+            if (quantidade < 1) quantidade = 1;
+            if (estoqueDisponivel > 0 && quantidade > estoqueDisponivel) {
+                quantidade = estoqueDisponivel;
+            }
+
+            quantidadeInput.value = quantidade;
+            quantidadeCarrinho.value = quantidade;
+        });
+    }
 
     document.getElementById("btnComprar").addEventListener("click", function (e) {
         e.preventDefault();
 
+        if (estoqueDisponivel <= 0) {
+            return;
+        }
+
         let quantidade = parseInt(quantidadeInput.value) || 1;
 
         if (quantidade < 1) quantidade = 1;
+        if (quantidade > estoqueDisponivel) quantidade = estoqueDisponivel;
 
         let livroId = @Model.Id;
 

@@ -5,6 +5,7 @@ using Livros.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 public class ClienteController : Controller {
     private readonly ClienteService _service;
@@ -27,9 +28,80 @@ public class ClienteController : Controller {
             return RedirectToAction("Login", "Auth");
         }
 
-        ViewBag.Usuario = usuario;
+        var cliente = _context.Clientes
+            .Include(c => c.Enderecos)
+            .Include(c => c.Cartoes)
+            .FirstOrDefault(c => c.Email == usuario && c.IsAtivo);
 
-        return View();
+        if (cliente == null) {
+            HttpContext.Session.Clear();
+            return RedirectToAction("Login", "Auth");
+        }
+
+        var pedidos = _context.Pedidos
+            .Where(p => p.ClienteId == cliente.Id)
+            .Include(p => p.Itens)
+                .ThenInclude(i => i.Livro)
+            .OrderByDescending(p => p.Data)
+            .ToList();
+
+        var ultimoPedido = pedidos.FirstOrDefault();
+
+        var trocasAbertas = _context.Trocas.Count(t =>
+            t.ClienteId == cliente.Id &&
+            t.Status != "Aprovado" &&
+            t.Status != "Recusado");
+
+        var cuponsDisponiveis = _context.CuponsDesconto
+            .Where(c => c.ClienteId == cliente.Id && c.IsAtivo && c.DataUtilizacao == null)
+            .OrderByDescending(c => c.DataCriacao)
+            .ToList();
+
+        var carrinhoJson = HttpContext.Session.GetString("Carrinho");
+        var itensNoCarrinho = 0;
+
+        if (!string.IsNullOrWhiteSpace(carrinhoJson)) {
+            var itensCarrinho = JsonSerializer.Deserialize<List<CarrinhoResumoSessionItem>>(carrinhoJson)
+                ?? new List<CarrinhoResumoSessionItem>();
+
+            itensNoCarrinho = itensCarrinho.Sum(i => i.Quantidade);
+        }
+
+        var nomeExibicao = string.IsNullOrWhiteSpace(cliente.Nome)
+            ? cliente.Email
+            : cliente.Nome;
+
+        var primeiroNome = nomeExibicao.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? nomeExibicao;
+
+        var vm = new AreaClienteViewModel {
+            NomeExibicao = nomeExibicao,
+            PrimeiroNome = primeiroNome,
+            Email = cliente.Email,
+            TotalPedidos = pedidos.Count,
+            ValorTotalCompras = pedidos.Sum(p => p.Total),
+            QuantidadeEnderecos = cliente.Enderecos?.Count ?? 0,
+            QuantidadeCartoes = cliente.Cartoes?.Count ?? 0,
+            QuantidadeCuponsDisponiveis = cuponsDisponiveis.Count,
+            QuantidadeTrocasAbertas = trocasAbertas,
+            ItensNoCarrinho = itensNoCarrinho,
+            UltimoPedido = ultimoPedido == null ? null : new AreaClientePedidoResumoViewModel {
+                Id = ultimoPedido.Id,
+                Data = ultimoPedido.Data,
+                Total = ultimoPedido.Total,
+                Status = ultimoPedido.Status,
+                QuantidadeItens = ultimoPedido.Itens?.Sum(i => i.Quantidade) ?? 0,
+                LivroPrincipal = ultimoPedido.Itens?.FirstOrDefault()?.Livro?.Titulo ?? "Pedido sem itens"
+            },
+            UltimoCupomDisponivel = cuponsDisponiveis
+                .Select(c => new AreaClienteCupomResumoViewModel {
+                    Codigo = c.Codigo,
+                    Valor = c.Valor,
+                    Tipo = c.Tipo
+                })
+                .FirstOrDefault()
+        };
+
+        return View(vm);
     }
 
     public IActionResult Editar() {
@@ -389,5 +461,10 @@ public class ClienteController : Controller {
         TempData["Sucesso"] = "Senha alterada com sucesso!";
 
         return RedirectToAction("Editar");
+    }
+
+    private sealed class CarrinhoResumoSessionItem {
+        public int LivroId { get; set; }
+        public int Quantidade { get; set; }
     }
 }

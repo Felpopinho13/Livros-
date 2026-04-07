@@ -9,6 +9,9 @@ if (checkoutLayout) {
     const cardSelects = document.querySelectorAll('.saved-card-select');
     const valor1Input = document.querySelector("[name='Valor1']");
     const valor2Input = document.querySelector("[name='Valor2']");
+    const toggleSegundoPagamentoBtn = document.getElementById('toggleSegundoPagamento');
+    const segundoPagamentoWrapper = document.getElementById('segundoPagamentoWrapper');
+    const metodo2Select = document.querySelector("[name='Metodo2']");
 
     const unitPrice = parseFloat(checkoutLayout.dataset.unitPrice || '0');
     const subtotalBase = parseFloat(checkoutLayout.dataset.subtotalBase || '0');
@@ -19,6 +22,7 @@ if (checkoutLayout) {
 
     let descontoAplicado = parseDecimal(document.getElementById('descontoValor')?.textContent || '0');
     let cupomAplicadoCodigo = cupomInput?.value?.trim() || '';
+    let segundoPagamentoAtivo = segundoPagamentoWrapper?.style.display !== 'none';
 
     function formatCurrency(value) {
         return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -90,9 +94,8 @@ if (checkoutLayout) {
         }
 
         const valor1 = parseDecimal(valor1Input.value);
-        const metodo2 = document.querySelector("[name='Metodo2']")?.value;
 
-        if (!metodo2) {
+        if (!segundoPagamentoAtivo || !metodo2Select?.value) {
             valor2Input.value = '';
             return;
         }
@@ -140,6 +143,29 @@ if (checkoutLayout) {
         novoCartaoForm.style.display = select.value ? 'none' : 'grid';
     }
 
+    function atualizarSegundoPagamentoUI() {
+        if (!segundoPagamentoWrapper || !toggleSegundoPagamentoBtn || !metodo2Select) {
+            return;
+        }
+
+        segundoPagamentoWrapper.style.display = segundoPagamentoAtivo ? 'block' : 'none';
+        toggleSegundoPagamentoBtn.textContent = segundoPagamentoAtivo
+            ? 'Remover segundo meio de pagamento'
+            : 'Adicionar segundo meio de pagamento';
+        toggleSegundoPagamentoBtn.setAttribute('aria-expanded', segundoPagamentoAtivo ? 'true' : 'false');
+
+        if (!segundoPagamentoAtivo) {
+            metodo2Select.value = '';
+            if (valor2Input) {
+                valor2Input.value = '';
+            }
+            togglePagamento(2);
+        } else {
+            togglePagamento(2);
+            recalcularDivisao(obterTotalAtual());
+        }
+    }
+
     async function aplicarCupom() {
         if (!cupomInput) {
             return;
@@ -167,12 +193,12 @@ if (checkoutLayout) {
             } else {
                 descontoAplicado = 0;
                 cupomAplicadoCodigo = '';
-                window.alert(data?.mensagem || 'Cupom inválido ou indisponível.');
+                window.alert(data?.mensagem || 'Cupom invÃ¡lido ou indisponÃ­vel.');
             }
         } catch (_) {
             descontoAplicado = 0;
             cupomAplicadoCodigo = '';
-            window.alert('Não foi possível validar o cupom agora.');
+            window.alert('NÃ£o foi possÃ­vel validar o cupom agora.');
         }
 
         atualizarResumo();
@@ -190,6 +216,10 @@ if (checkoutLayout) {
     aplicarCupomBtn?.addEventListener('click', aplicarCupom);
     valor1Input?.addEventListener('input', () => recalcularDivisao(obterTotalAtual()));
     valor2Input?.addEventListener('input', () => recalcularDivisao(obterTotalAtual()));
+    toggleSegundoPagamentoBtn?.addEventListener('click', () => {
+        segundoPagamentoAtivo = !segundoPagamentoAtivo;
+        atualizarSegundoPagamentoUI();
+    });
 
     enderecoRadios.forEach((radio) => radio.addEventListener('change', toggleNovoEndereco));
     metodoSelects.forEach((select) => select.addEventListener('change', () => togglePagamento(select.dataset.index)));
@@ -197,7 +227,7 @@ if (checkoutLayout) {
 
     toggleNovoEndereco();
     togglePagamento(1);
-    togglePagamento(2);
+    atualizarSegundoPagamentoUI();
 
     if (cupomInput?.value?.trim()) {
         aplicarCupom();

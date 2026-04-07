@@ -1,5 +1,6 @@
-﻿using Livros.Infrastructure.Data;
+using Livros.Infrastructure.Data;
 using Livros.Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace Livros.Infrastructure.Services {
     public class LivroService {
@@ -11,6 +12,7 @@ namespace Livros.Infrastructure.Services {
 
         public List<Livro> Listar() {
             return _context.Livros
+                .Include(l => l.Estoque)
                 .Where(l => l.IsAtivo)
                 .ToList();
         }
@@ -29,7 +31,9 @@ namespace Livros.Infrastructure.Services {
         }
 
         public Livro ObterPorId(int id) {
-            return _context.Livros.FirstOrDefault(l => l.Id == id && l.IsAtivo);
+            return _context.Livros
+                .Include(l => l.Estoque)
+                .FirstOrDefault(l => l.Id == id && l.IsAtivo);
         }
     }
 }

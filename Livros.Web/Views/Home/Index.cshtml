@@ -1,9 +1,9 @@
-﻿@model List<Livros.Domain.Livro>
+@model List<Livros.Domain.Livro>
 
 <section class="banner">
     <div class="container">
-        <h1>Descubra sua próxima leitura</h1>
-        <p>Os melhores livros com os melhores preços</p>
+        <h1>Descubra sua proxima leitura</h1>
+        <p>Os melhores livros com os melhores precos</p>
     </div>
 </section>
 
@@ -20,11 +20,11 @@
         }
 
         <div class="product-grid">
-
             @foreach (var livro in Model) {
                 <div class="card product-card">
-
-                    <img src="@livro.ImagemUrl" alt="Livro">
+                    <a asp-controller="Home" asp-action="Detalhes" asp-route-id="@livro.Id" class="product-image-link">
+                        <img src="@livro.ImagemUrl" alt="@livro.Titulo">
+                    </a>
 
                     <a asp-controller="Home" asp-action="Detalhes" asp-route-id="@livro.Id">
                         <h3>@livro.Titulo</h3>
@@ -44,10 +44,8 @@
                             Adicionar ao carrinho
                         </button>
                     </form>
-
                 </div>
             }
-
         </div>
     </div>
 </section>

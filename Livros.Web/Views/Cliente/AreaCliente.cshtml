@@ -1,10 +1,12 @@
-﻿@{
+@model Livros.Web.Models.ViewModels.AreaClienteViewModel
+@{
     ViewData["Title"] = "Área do Cliente";
+    var ultimoPedido = Model.UltimoPedido;
+    var cupom = Model.UltimoCupomDisponivel;
 }
 
 <section class="account-page">
     <div class="container account-layout">
-
         <aside class="account-menu">
             <h3>Minha Conta</h3>
             <ul>
@@ -13,13 +15,12 @@
                 <li><a asp-controller="Cliente" asp-action="Enderecos">Endereços</a></li>
                 <li><a asp-controller="Cliente" asp-action="Cartoes">Cartões</a></li>
                 <li><a asp-controller="Pedido" asp-action="Carrinho">Meu carrinho</a></li>
-                <li><a href="#">Trocas</a></li>
+                <li><a asp-controller="Pedido" asp-action="MeusPedidos">Trocas</a></li>
                 <li>
                     <form asp-controller="Cliente"
                           asp-action="ExcluirConta"
                           method="post"
                           onsubmit="return confirm('Tem certeza que deseja excluir sua conta? Essa ação não pode ser desfeita.');">
-
                         <button type="submit" class="btn-danger btn-sm btn-block">
                             Excluir conta
                         </button>
@@ -28,14 +29,169 @@
             </ul>
         </aside>
 
-        <div class="account-content card">
-            <div class="account-inner">
-                <h2>Bem-vindo, @ViewBag.Usuario 👋</h2>
-                <p><strong>Pedidos realizados:</strong> 3</p>
-                <p><strong>Último pedido:</strong> #123456</p>
+        <div class="account-content">
+            <div class="account-dashboard">
+                <section class="account-hero">
+                    <div class="account-hero-copy">
+                        <span class="account-eyebrow">Central do cliente</span>
+                        <h2>Olá, @Model.PrimeiroNome</h2>
+                        <p>
+                            Aqui você acompanha seus pedidos, consulta sua carteira e vê o que está pendente
+                            sem depender de dados mockados.
+                        </p>
+
+                        <div class="account-hero-meta">
+                            <div>
+                                <span>E-mail</span>
+                                <strong>@Model.Email</strong>
+                            </div>
+                            <div>
+                                <span>Total comprado</span>
+                                <strong>@Model.ValorTotalCompras.ToString("C")</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="account-hero-actions">
+                        <a asp-controller="Pedido" asp-action="MeusPedidos" class="btn-primary">
+                            Ver meus pedidos
+                        </a>
+                        <a asp-controller="Pedido" asp-action="Carrinho" class="btn-secondary">
+                            Ir para o carrinho
+                        </a>
+                    </div>
+                </section>
+
+                <section class="account-stats-grid">
+                    <article class="account-stat-card highlight">
+                        <span class="account-stat-label">Pedidos realizados</span>
+                        <strong>@Model.TotalPedidos</strong>
+                        <p>@(Model.TotalPedidos == 0 ? "Nenhuma compra concluída ainda." : "Histórico real do cliente.")</p>
+                    </article>
+
+                    <article class="account-stat-card">
+                        <span class="account-stat-label">Itens no carrinho</span>
+                        <strong>@Model.ItensNoCarrinho</strong>
+                        <p>@(Model.ItensNoCarrinho == 0 ? "Seu carrinho está vazio no momento." : "Itens aguardando fechamento.")</p>
+                    </article>
+
+                    <article class="account-stat-card">
+                        <span class="account-stat-label">Endereços salvos</span>
+                        <strong>@Model.QuantidadeEnderecos</strong>
+                        <p>Gerencie entrega e endereço padrão.</p>
+                    </article>
+
+                    <article class="account-stat-card">
+                        <span class="account-stat-label">Cartões cadastrados</span>
+                        <strong>@Model.QuantidadeCartoes</strong>
+                        <p>Prontos para checkout com 1 ou 2 meios.</p>
+                    </article>
+
+                    <article class="account-stat-card">
+                        <span class="account-stat-label">Cupons disponíveis</span>
+                        <strong>@Model.QuantidadeCuponsDisponiveis</strong>
+                        <p>@(Model.QuantidadeCuponsDisponiveis > 0 ? "Você já tem desconto liberado para usar." : "Nenhum cupom ativo agora.")</p>
+                    </article>
+
+                    <article class="account-stat-card">
+                        <span class="account-stat-label">Trocas em aberto</span>
+                        <strong>@Model.QuantidadeTrocasAbertas</strong>
+                        <p>@(Model.QuantidadeTrocasAbertas > 0 ? "Há solicitações aguardando andamento." : "Nenhuma troca pendente.")</p>
+                    </article>
+                </section>
+
+                <section class="account-panels-grid">
+                    <article class="account-panel">
+                        <div class="account-panel-header">
+                            <div>
+                                <span class="account-panel-eyebrow">Resumo mais recente</span>
+                                <h3>Último pedido</h3>
+                            </div>
+                            @if (ultimoPedido != null) {
+                                <span class="account-status-chip">@ultimoPedido.Status</span>
+                            }
+                        </div>
+
+                        @if (ultimoPedido == null) {
+                            <div class="account-empty-state">
+                                <strong>Você ainda não tem pedidos.</strong>
+                                <p>Quando a primeira compra for concluída, o resumo mais recente aparece aqui.</p>
+                            </div>
+                        } else {
+                            <div class="account-order-focus">
+                                <strong>@ultimoPedido.LivroPrincipal</strong>
+                                <p>
+                                    Pedido #@ultimoPedido.Id em @ultimoPedido.Data.ToString("dd/MM/yyyy")
+                                </p>
+
+                                <div class="account-order-metrics">
+                                    <div>
+                                        <span>Total</span>
+                                        <strong>@ultimoPedido.Total.ToString("C")</strong>
+                                    </div>
+                                    <div>
+                                        <span>Itens</span>
+                                        <strong>@ultimoPedido.QuantidadeItens</strong>
+                                    </div>
+                                </div>
+
+                                <a asp-controller="Pedido"
+                                   asp-action="DetalhesPedido"
+                                   asp-route-id="@ultimoPedido.Id"
+                                   class="btn-outline">
+                                    Ver detalhes do pedido
+                                </a>
+                            </div>
+                        }
+                    </article>
+
+                    <article class="account-panel">
+                        <div class="account-panel-header">
+                            <div>
+                                <span class="account-panel-eyebrow">Carteira do cliente</span>
+                                <h3>Cupom em destaque</h3>
+                            </div>
+                        </div>
+
+                        @if (cupom == null) {
+                            <div class="account-empty-state">
+                                <strong>Nenhum cupom ativo por enquanto.</strong>
+                                <p>Cupons promocionais e de troca liberados aparecem aqui para facilitar a consulta.</p>
+                            </div>
+                        } else {
+                            <div class="account-coupon-card">
+                                <span class="account-coupon-type">@cupom.Tipo</span>
+                                <strong>@cupom.Codigo</strong>
+                                <p>Desconto disponível de @cupom.Valor.ToString("C").</p>
+                                <a asp-controller="Pedido" asp-action="Carrinho" class="btn-outline">
+                                    Usar no checkout
+                                </a>
+                            </div>
+                        }
+                    </article>
+
+                    <article class="account-panel">
+                        <div class="account-panel-header">
+                            <div>
+                                <span class="account-panel-eyebrow">Atalhos úteis</span>
+                                <h3>Próximos passos</h3>
+                            </div>
+                        </div>
+
+                        <div class="account-actions-list">
+                            <a asp-controller="Cliente" asp-action="Enderecos" class="account-action-link">
+                                Revisar meus endereços
+                            </a>
+                            <a asp-controller="Cliente" asp-action="Cartoes" class="account-action-link">
+                                Organizar cartões salvos
+                            </a>
+                            <a asp-controller="Pedido" asp-action="MeusPedidos" class="account-action-link">
+                                Consultar pedidos e trocas
+                            </a>
+                        </div>
+                    </article>
+                </section>
             </div>
         </div>
-
     </div>
 </section>
-

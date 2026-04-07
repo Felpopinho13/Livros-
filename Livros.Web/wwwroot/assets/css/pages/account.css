@@ -79,6 +79,268 @@
     margin: 40px auto;
 }
 
+.account-dashboard {
+    display: grid;
+    gap: 28px;
+}
+
+.account-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 28px;
+    padding: 32px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, #fff8ec 0%, #ffffff 55%, #f7fbff 100%);
+    border: 1px solid #f3dcc0;
+}
+
+.account-hero-copy h2 {
+    margin: 8px 0 12px;
+    font-size: 38px;
+    line-height: 1.1;
+}
+
+.account-hero-copy p {
+    max-width: 640px;
+    color: #5b6472;
+    font-size: 16px;
+}
+
+.account-eyebrow,
+.account-panel-eyebrow,
+.account-stat-label {
+    display: inline-block;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8a94a6;
+    font-weight: 700;
+}
+
+.account-hero-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.account-hero-meta div,
+.account-order-metrics div {
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #eef2f7;
+}
+
+.account-hero-meta span,
+.account-order-metrics span {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #7b8595;
+}
+
+.account-hero-meta strong,
+.account-order-metrics strong {
+    font-size: 18px;
+    color: #172033;
+}
+
+.account-hero-actions {
+    min-width: 240px;
+    display: grid;
+    gap: 12px;
+    align-content: start;
+}
+
+.account-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.account-stat-card {
+    padding: 22px;
+    border-radius: 20px;
+    border: 1px solid #e8edf5;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.account-stat-card.highlight {
+    background: linear-gradient(135deg, #232f3e 0%, #304256 100%);
+    border-color: transparent;
+}
+
+.account-stat-card strong {
+    display: block;
+    margin: 10px 0 8px;
+    font-size: 34px;
+    line-height: 1;
+    color: #172033;
+}
+
+.account-stat-card p {
+    margin: 0;
+    color: #647084;
+    line-height: 1.5;
+}
+
+.account-stat-card.highlight .account-stat-label,
+.account-stat-card.highlight strong,
+.account-stat-card.highlight p {
+    color: #ffffff;
+}
+
+.account-panels-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px;
+}
+
+.account-panel {
+    padding: 24px;
+    border-radius: 20px;
+    border: 1px solid #e8edf5;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.account-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.account-panel-header h3 {
+    margin: 6px 0 0;
+    font-size: 24px;
+}
+
+.account-status-chip,
+.account-coupon-type {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.account-status-chip {
+    background: #fff1cb;
+    color: #986200;
+}
+
+.account-order-focus strong,
+.account-coupon-card strong,
+.account-empty-state strong {
+    display: block;
+    font-size: 22px;
+    margin-bottom: 10px;
+    color: #172033;
+}
+
+.account-order-focus p,
+.account-coupon-card p,
+.account-empty-state p {
+    color: #5f6b7c;
+    line-height: 1.6;
+    margin-bottom: 18px;
+}
+
+.account-order-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.account-coupon-card {
+    padding: 22px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #fffaf0 0%, #fff 100%);
+    border: 1px solid #f5dfbd;
+}
+
+.account-coupon-type {
+    margin-bottom: 14px;
+    background: #fff0d8;
+    color: #b35c00;
+}
+
+.account-actions-list {
+    display: grid;
+    gap: 12px;
+}
+
+.account-action-link {
+    display: block;
+    padding: 16px 18px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e6edf5;
+    color: #172033;
+    text-decoration: none;
+    font-weight: 600;
+    transition: 0.2s ease;
+}
+
+.account-action-link:hover {
+    border-color: #ffa41c;
+    color: #b86200;
+    background: #fff8ec;
+}
+
+.account-empty-state {
+    padding: 22px;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px dashed #d7e0eb;
+}
+
+@media (max-width: 1100px) {
+    .account-layout,
+    .account-panels-grid,
+    .account-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .account-hero {
+        flex-direction: column;
+    }
+
+    .account-hero-meta {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .account-page {
+        padding: 32px 0;
+    }
+
+    .account-menu,
+    .account-content {
+        margin: 0;
+    }
+
+    .account-content {
+        padding: 24px;
+    }
+
+    .account-hero {
+        padding: 24px;
+    }
+
+    .account-hero-copy h2 {
+        font-size: 30px;
+    }
+}
+
 /* =========================
    ADDRESS GRID STYLE
 ========================= */
