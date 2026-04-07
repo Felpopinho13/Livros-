@@ -157,7 +157,7 @@ namespace Livros.Web.Controllers {
         }
 
         [HttpGet]
-        public IActionResult ValidarCupom(string? codigo, decimal subtotal) {
+        public IActionResult ValidarCupom(string? codigo, decimal subtotal, decimal frete = 0) {
             var clienteId = ObterClienteId();
             if (clienteId == null) {
                 return Json(new { valido = false, mensagem = "Faca login para aplicar um cupom." });
@@ -168,7 +168,7 @@ namespace Livros.Web.Controllers {
             }
 
             var cupomAplicado = ObterCupomValido(clienteId.Value, codigo);
-            var desconto = CalcularDesconto(cupomAplicado, codigo, subtotal);
+            var desconto = CalcularDesconto(cupomAplicado, codigo, subtotal, frete);
 
             if (desconto <= 0) {
                 return Json(new { valido = false, mensagem = "Cupom invalido ou indisponivel." });
@@ -226,8 +226,8 @@ namespace Livros.Web.Controllers {
             var estadoFrete = ObterEstadoFreteDoFormularioOuEndereco(clienteId.Value, form, enderecoId);
             var frete = CalcularFrete(quantidadeTotal, estadoFrete);
             var cupomAplicado = ObterCupomValido(clienteId.Value, form.Cupom);
-            var desconto = CalcularDesconto(cupomAplicado, form.Cupom, subtotal);
-            var total = subtotal + frete - desconto;
+            var desconto = CalcularDesconto(cupomAplicado, form.Cupom, subtotal, frete);
+            var total = Math.Max(subtotal + frete - desconto, 0);
 
             ValidarPagamentos(clienteId.Value, form, total, cupomAplicado);
 
@@ -264,7 +264,7 @@ namespace Livros.Web.Controllers {
             _context.SaveChanges();
 
             if (cupomAplicado != null) {
-                MarcarCupomComoUtilizado(cupomAplicado, pedido);
+                MarcarCupomComoUtilizado(cupomAplicado, pedido, desconto);
                 _context.SaveChanges();
             }
 
@@ -684,7 +684,7 @@ namespace Livros.Web.Controllers {
             var estadoFrete = ObterEstadoFreteDoFormularioOuEndereco(clienteId, form, form.EnderecoId > 0 ? form.EnderecoId : null);
             var frete = CalcularFrete(quantidadeTotal, estadoFrete);
             var cupomAplicado = ObterCupomValido(clienteId, form.Cupom);
-            var desconto = CalcularDesconto(cupomAplicado, form.Cupom, subtotal);
+            var desconto = CalcularDesconto(cupomAplicado, form.Cupom, subtotal, frete);
             var primeiroLivro = itensCheckout.FirstOrDefault()?.Livro;
 
             if (quantidadeTotal > 0) {
@@ -801,6 +801,13 @@ namespace Livros.Web.Controllers {
         }
 
         private void ValidarPagamentos(int clienteId, CheckoutFormData form, decimal total, CupomDesconto? cupomAplicado = null) {
+            var usaCupom = cupomAplicado != null || string.Equals(form.Cupom?.Trim(), "DESCONTO10", StringComparison.OrdinalIgnoreCase);
+            var totalArredondado = decimal.Round(total, 2);
+
+            if (totalArredondado <= 0 && usaCupom) {
+                return;
+            }
+
             if (string.IsNullOrWhiteSpace(form.Metodo1)) {
                 ModelState.AddModelError(string.Empty, "Selecione pelo menos uma forma de pagamento.");
                 return;
@@ -809,7 +816,6 @@ namespace Livros.Web.Controllers {
             var valor1 = form.Valor1 ?? 0;
             var valor2 = string.IsNullOrWhiteSpace(form.Metodo2) ? 0 : form.Valor2 ?? 0;
             var soma = decimal.Round(valor1 + valor2, 2);
-            var totalArredondado = decimal.Round(total, 2);
 
             if (valor1 <= 0) {
                 ModelState.AddModelError(string.Empty, "Informe um valor valido para o pagamento 1.");
@@ -819,11 +825,9 @@ namespace Livros.Web.Controllers {
                 ModelState.AddModelError(string.Empty, "Informe um valor valido para o pagamento 2.");
             }
 
-            if (Math.Abs(soma - totalArredondado) > 0.01m) {
+            if (soma != totalArredondado) {
                 ModelState.AddModelError(string.Empty, "A soma dos pagamentos deve ser igual ao total do pedido.");
             }
-
-            var usaCupom = cupomAplicado != null || string.Equals(form.Cupom?.Trim(), "DESCONTO10", StringComparison.OrdinalIgnoreCase);
 
             ValidarPagamentoCartao(clienteId, form.Metodo1 ?? string.Empty, valor1, form.CartaoId1, form.NomeCartao1, form.NumeroCartao1, form.Validade1, form.CVV1, usaCupom, 1);
 
@@ -895,10 +899,26 @@ namespace Livros.Web.Controllers {
                 Status = "Pendente"
             });
         }
-        private void MarcarCupomComoUtilizado(CupomDesconto cupomAplicado, Pedido pedido) {
+        private void MarcarCupomComoUtilizado(CupomDesconto cupomAplicado, Pedido pedido, decimal descontoAplicado) {
+            var valorOriginal = cupomAplicado.Valor;
+            var valorUtilizado = Math.Min(valorOriginal, descontoAplicado);
+            var saldoRestante = Math.Max(valorOriginal - valorUtilizado, 0);
+
+            cupomAplicado.Valor = valorUtilizado;
             cupomAplicado.IsAtivo = false;
             cupomAplicado.DataUtilizacao = DateTime.Now;
             cupomAplicado.PedidoId = pedido.Id;
+
+            if (string.Equals(cupomAplicado.Tipo, "TROCA", StringComparison.OrdinalIgnoreCase) && saldoRestante > 0) {
+                _context.CuponsDesconto.Add(new CupomDesconto {
+                    Codigo = $"TROCA-{DateTime.Now:yyyyMMddHHmmss}",
+                    Valor = decimal.Round(saldoRestante, 2),
+                    Tipo = "TROCA",
+                    IsAtivo = true,
+                    ClienteId = cupomAplicado.ClienteId,
+                    DataCriacao = DateTime.Now
+                });
+            }
         }
 
         private string ObterEstadoFreteDoFormularioOuEndereco(int clienteId, CheckoutFormData form, int? enderecoId) {
@@ -968,9 +988,13 @@ namespace Livros.Web.Controllers {
                     (!c.ClienteId.HasValue || c.ClienteId.Value == clienteId));
         }
 
-        private decimal CalcularDesconto(CupomDesconto? cupomAplicado, string? cupom, decimal subtotal) {
+        private decimal CalcularDesconto(CupomDesconto? cupomAplicado, string? cupom, decimal subtotal, decimal frete = 0) {
             if (cupomAplicado != null) {
-                return Math.Min(subtotal, cupomAplicado.Valor);
+                var baseDesconto = string.Equals(cupomAplicado.Tipo, "TROCA", StringComparison.OrdinalIgnoreCase)
+                    ? subtotal + frete
+                    : subtotal;
+
+                return Math.Min(baseDesconto, cupomAplicado.Valor);
             }
 
             if (string.IsNullOrWhiteSpace(cupom)) {

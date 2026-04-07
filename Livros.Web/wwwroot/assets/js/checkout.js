@@ -67,13 +67,14 @@ if (checkoutLayout) {
     }
 
     function obterTotalAtual() {
-        return calcularSubtotal() + freteAtual - descontoAplicado;
+        return Math.max(calcularSubtotal() + freteAtual - descontoAplicado, 0);
     }
 
     function atualizarResumo() {
         const subtotal = calcularSubtotal();
-        const desconto = Math.min(subtotal, descontoAplicado);
-        const total = subtotal + freteAtual - desconto;
+        const baseDesconto = subtotal + freteAtual;
+        const desconto = Math.min(baseDesconto, descontoAplicado);
+        const total = Math.max(baseDesconto - desconto, 0);
 
         document.getElementById('subtotalValor').innerText = `R$ ${formatCurrency(subtotal)}`;
         document.getElementById('freteValor').innerText = `R$ ${formatCurrency(freteAtual)}`;
@@ -218,7 +219,7 @@ if (checkoutLayout) {
         }
 
         const subtotal = calcularSubtotal();
-        const url = `/Pedido/ValidarCupom?codigo=${encodeURIComponent(codigo)}&subtotal=${encodeURIComponent(subtotal.toFixed(2))}`;
+        const url = `/Pedido/ValidarCupom?codigo=${encodeURIComponent(codigo)}&subtotal=${encodeURIComponent(subtotal.toFixed(2))}&frete=${encodeURIComponent(freteAtual.toFixed(2))}`;
 
         try {
             const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });

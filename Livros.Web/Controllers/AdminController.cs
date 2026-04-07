@@ -282,12 +282,22 @@ public class AdminController : Controller {
                     Valor = c.Valor,
                     Tipo = c.Tipo,
                     Status = !c.IsAtivo ? "Inativo" : c.DataUtilizacao.HasValue ? "Utilizado" : "Ativo",
+                    Publico = c.ClienteId.HasValue ? "Cliente específico" : "Código manual",
                     DataCriacao = c.DataCriacao,
                     DataUtilizacao = c.DataUtilizacao,
                     ClienteNome = c.Cliente != null ? c.Cliente.Nome : null,
                     PedidoId = c.PedidoId,
                     PodeDesativar = c.IsAtivo && !c.DataUtilizacao.HasValue && c.Tipo == "PROMOCIONAL"
-                }).ToList()
+                }).ToList(),
+            ClientesAtivos = _context.Clientes
+                .Where(c => c.IsAtivo)
+                .OrderBy(c => c.Nome)
+                .Select(c => new AdminCupomClienteOptionViewModel {
+                    Id = c.Id,
+                    Nome = c.Nome,
+                    Email = c.Email
+                })
+                .ToList()
         };
 
         return View(vm);
@@ -317,7 +327,9 @@ public class AdminController : Controller {
         troca.DataAnalise = DateTime.Now;
 
         if (string.Equals(decisao, "aprovar", StringComparison.OrdinalIgnoreCase)) {
-            var valorCupomNormalizado = CalcularValorCupomTroca(troca.PedidoItem, troca.Pedido);
+            var valorSugerido = CalcularValorCupomTroca(troca.PedidoItem, troca.Pedido);
+            var valorInformado = ObterDecimalFormulario("valorCupom", valorCupom ?? 0);
+            var valorCupomNormalizado = valorInformado > 0 ? valorInformado : valorSugerido;
 
             var cupom = new CupomDesconto {
                 Codigo = GerarCodigoCupom("TROCA"),
@@ -347,15 +359,75 @@ public class AdminController : Controller {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult GerarCupomDesconto(decimal? valor) {
+    public IActionResult GerarCupomDesconto(decimal? valor, string? destinatario, int? clienteId) {
         var valorNormalizado = ObterDecimalFormulario("valor", valor ?? 0);
         if (valorNormalizado <= 0) {
             TempData["Erro"] = "Informe um valor válido para gerar o cupom promocional.";
             return RedirectToAction("Trocas");
         }
 
+        var codigoBase = GerarCodigoCupom("PROMO");
+        var gerarParaTodos = string.Equals(destinatario, "todos", StringComparison.OrdinalIgnoreCase);
+
+        if (gerarParaTodos) {
+            var clientesAtivos = _context.Clientes
+                .Where(c => c.IsAtivo)
+                .Select(c => new { c.Id })
+                .ToList();
+
+            if (!clientesAtivos.Any()) {
+                TempData["Erro"] = "Nao ha clientes ativos para receber este cupom.";
+                return RedirectToAction("Trocas");
+            }
+
+            foreach (var cliente in clientesAtivos) {
+                _context.CuponsDesconto.Add(new CupomDesconto {
+                    Codigo = codigoBase,
+                    Valor = valorNormalizado,
+                    Tipo = "PROMOCIONAL",
+                    IsAtivo = true,
+                    ClienteId = cliente.Id,
+                    DataCriacao = DateTime.Now
+                });
+            }
+
+            _context.SaveChanges();
+            TempData["Sucesso"] = $"Cupom promocional {codigoBase} gerado para {clientesAtivos.Count} cliente(s).";
+            return RedirectToAction("Trocas");
+        }
+
+        if (string.Equals(destinatario, "cliente", StringComparison.OrdinalIgnoreCase)) {
+            if (!clienteId.HasValue || clienteId.Value <= 0) {
+                TempData["Erro"] = "Selecione um cliente valido para vincular o cupom.";
+                return RedirectToAction("Trocas");
+            }
+
+            var cliente = _context.Clientes
+                .FirstOrDefault(c => c.Id == clienteId.Value && c.IsAtivo);
+
+            if (cliente == null) {
+                TempData["Erro"] = "Nao foi possivel localizar o cliente selecionado.";
+                return RedirectToAction("Trocas");
+            }
+
+            var cupomCliente = new CupomDesconto {
+                Codigo = codigoBase,
+                Valor = valorNormalizado,
+                Tipo = "PROMOCIONAL",
+                IsAtivo = true,
+                ClienteId = cliente.Id,
+                DataCriacao = DateTime.Now
+            };
+
+            _context.CuponsDesconto.Add(cupomCliente);
+            _context.SaveChanges();
+
+            TempData["Sucesso"] = $"Cupom promocional {cupomCliente.Codigo} gerado para {cliente.Nome}.";
+            return RedirectToAction("Trocas");
+        }
+
         var cupom = new CupomDesconto {
-            Codigo = GerarCodigoCupom("PROMO"),
+            Codigo = codigoBase,
             Valor = valorNormalizado,
             Tipo = "PROMOCIONAL",
             IsAtivo = true,

@@ -144,8 +144,8 @@ public class ClienteController : Controller {
                         ? "Disponível"
                         : "Inativo",
                 Descricao = c.Tipo == "TROCA"
-                    ? "Cupom liberado a partir de uma solicitação de troca aprovada."
-                    : "Cupom promocional disponibilizado para uso no checkout."
+                    ? "Cupom de troca liberado a partir de uma solicitacao aprovada. Pode ser usado uma unica vez no checkout."
+                    : "Cupom promocional para abater o valor dos produtos. Pode ser usado uma unica vez no checkout."
             }).ToList()
         };
 

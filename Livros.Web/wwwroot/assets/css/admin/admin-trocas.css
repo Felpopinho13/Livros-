@@ -108,7 +108,9 @@
 
 .exchange-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
+    align-items: center;
+    min-height: 44px;
 }
 
 .exchange-action-btn {
@@ -343,7 +345,14 @@
 }
 
 .exchange-coupon-table {
-    min-width: 1220px;
+    min-width: 1320px;
+}
+
+.exchange-coupon-table th:last-child,
+.exchange-coupon-table td:last-child {
+    min-width: 150px;
+    width: 150px;
+    text-align: center;
 }
 
 .exchange-coupon-table th:last-child,
@@ -356,4 +365,20 @@
 
 .exchange-coupon-table td:last-child {
     box-shadow: -10px 0 18px rgba(255, 255, 255, 0.95);
+}
+
+.exchange-coupon-table .exchange-inline-form {
+    display: flex;
+    justify-content: center;
+}
+
+.exchange-coupon-table .exchange-muted-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+}
+
+.exchange-coupon-client-group {
+    margin-top: 4px;
 }

@@ -127,6 +127,7 @@
                 <tr>
                     <th>Codigo</th>
                     <th>Tipo</th>
+                    <th>Publico</th>
                     <th>Valor</th>
                     <th>Status</th>
                     <th>Cliente</th>
@@ -139,7 +140,7 @@
             <tbody>
                 @if (!Model.Cupons.Any()) {
                     <tr>
-                        <td colspan="9" class="exchange-empty-state">Nenhum cupom encontrado.</td>
+                        <td colspan="10" class="exchange-empty-state">Nenhum cupom encontrado.</td>
                     </tr>
                 }
                 else {
@@ -149,6 +150,7 @@
                         <tr>
                             <td><strong>@cupom.Codigo</strong></td>
                             <td><span class="exchange-coupon-type @tipoClass">@cupom.Tipo</span></td>
+                            <td>@cupom.Publico</td>
                             <td>R$ @cupom.Valor.ToString("N2")</td>
                             <td><span class="exchange-status @statusClass">@cupom.Status</span></td>
                             <td>@(string.IsNullOrWhiteSpace(cupom.ClienteNome) ? "-" : cupom.ClienteNome)</td>
@@ -263,6 +265,32 @@
                     <label for="valorCupomPromocional">Valor do desconto</label>
                     <input type="text" id="valorCupomPromocional" name="valor" class="admin-input" inputmode="decimal" placeholder="0,00" required />
                 </div>
+
+                <div class="admin-form-group">
+                    <label for="destinatarioCupomPromocional">Disponibilizar para</label>
+                    <select id="destinatarioCupomPromocional" name="destinatario" class="admin-select">
+                        <option value="manual">Somente por codigo</option>
+                        <option value="cliente">Cliente especifico</option>
+                        <option value="todos">Todos os clientes</option>
+                    </select>
+                    <small class="exchange-help">Cupom promocional vale uma vez e abate somente o valor do produto. Ao escolher todos, o sistema cria uma copia do cupom para cada cliente ativo.</small>
+                </div>
+
+                <div class="admin-form-group exchange-coupon-client-group" id="cupomClienteGroup" style="display:none;">
+                    <label for="clienteCupomPromocionalBusca">Cliente específico</label>
+                    <input type="text"
+                           id="clienteCupomPromocionalBusca"
+                           class="admin-input"
+                           list="clientesCupomPromocional"
+                           placeholder="Pesquise pelo nome do cliente" />
+                    <input type="hidden" id="clienteCupomPromocionalId" name="clienteId" />
+                    <datalist id="clientesCupomPromocional">
+                        @foreach (var cliente in Model.ClientesAtivos) {
+                            <option value="@($"{cliente.Nome} - {cliente.Email}")" data-id="@cliente.Id"></option>
+                        }
+                    </datalist>
+                    <small class="exchange-help">Selecione um cliente pelo nome para que o cupom apareça em Meus cupons dessa conta.</small>
+                </div>
             </div>
 
             <div class="admin-modal-footer">
@@ -307,7 +335,44 @@
 
     function abrirModalCupom() {
         document.getElementById('valorCupomPromocional').value = '';
+        document.getElementById('destinatarioCupomPromocional').value = 'manual';
+        document.getElementById('clienteCupomPromocionalBusca').value = '';
+        document.getElementById('clienteCupomPromocionalId').value = '';
+        atualizarDestinoCupom();
         document.getElementById('cupomModal').style.display = 'flex';
+    }
+
+    function atualizarDestinoCupom() {
+        const destino = document.getElementById('destinatarioCupomPromocional')?.value;
+        const grupoCliente = document.getElementById('cupomClienteGroup');
+        const clienteInput = document.getElementById('clienteCupomPromocionalBusca');
+        const clienteIdInput = document.getElementById('clienteCupomPromocionalId');
+
+        if (!grupoCliente || !clienteInput || !clienteIdInput) {
+            return;
+        }
+
+        const mostrarCliente = destino === 'cliente';
+        grupoCliente.style.display = mostrarCliente ? 'block' : 'none';
+
+        if (!mostrarCliente) {
+            clienteInput.value = '';
+            clienteIdInput.value = '';
+        }
+    }
+
+    function sincronizarClienteCupom() {
+        const clienteInput = document.getElementById('clienteCupomPromocionalBusca');
+        const clienteIdInput = document.getElementById('clienteCupomPromocionalId');
+        const lista = document.getElementById('clientesCupomPromocional');
+
+        if (!clienteInput || !clienteIdInput || !lista) {
+            return;
+        }
+
+        const valor = clienteInput.value;
+        const opcao = Array.from(lista.options).find(option => option.value === valor);
+        clienteIdInput.value = opcao ? opcao.dataset.id : '';
     }
 
     function fecharModal(modalId) {
@@ -328,5 +393,8 @@
             fecharModal('cupomModal');
         }
     });
+
+    document.getElementById('destinatarioCupomPromocional')?.addEventListener('change', atualizarDestinoCupom);
+    document.getElementById('clienteCupomPromocionalBusca')?.addEventListener('input', sincronizarClienteCupom);
 </script>
 }
