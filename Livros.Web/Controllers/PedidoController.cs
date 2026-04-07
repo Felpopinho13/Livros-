@@ -606,25 +606,65 @@ namespace Livros.Web.Controllers {
 
         private List<CarrinhoSessionItem> ObterCarrinhoDaSessao() {
             var carrinhoJson = HttpContext.Session.GetString(CarrinhoSessionKey);
-            if (string.IsNullOrWhiteSpace(carrinhoJson)) {
+            if (!string.IsNullOrWhiteSpace(carrinhoJson)) {
+                return JsonSerializer.Deserialize<List<CarrinhoSessionItem>>(carrinhoJson) ?? new List<CarrinhoSessionItem>();
+            }
+
+            var clienteId = ObterClienteId();
+            if (!clienteId.HasValue) {
                 return new List<CarrinhoSessionItem>();
             }
 
-            return JsonSerializer.Deserialize<List<CarrinhoSessionItem>>(carrinhoJson) ?? new List<CarrinhoSessionItem>();
+            var carrinhoPersistido = _context.Clientes
+                .Where(c => c.Id == clienteId.Value)
+                .Select(c => c.CarrinhoPersistidoJson)
+                .FirstOrDefault();
+
+            if (string.IsNullOrWhiteSpace(carrinhoPersistido)) {
+                return new List<CarrinhoSessionItem>();
+            }
+
+            var itens = JsonSerializer.Deserialize<List<CarrinhoSessionItem>>(carrinhoPersistido) ?? new List<CarrinhoSessionItem>();
+            if (itens.Any()) {
+                HttpContext.Session.SetString(CarrinhoSessionKey, JsonSerializer.Serialize(itens));
+            }
+
+            return itens;
         }
 
         private void SalvarCarrinhoNaSessao(List<CarrinhoSessionItem> itens) {
             if (itens == null || !itens.Any()) {
                 HttpContext.Session.Remove(CarrinhoSessionKey);
+                PersistirCarrinhoDoCliente(new List<CarrinhoSessionItem>());
                 return;
             }
 
             var carrinhoJson = JsonSerializer.Serialize(itens);
             HttpContext.Session.SetString(CarrinhoSessionKey, carrinhoJson);
+            PersistirCarrinhoDoCliente(itens);
         }
 
         private void LimparCarrinho() {
             HttpContext.Session.Remove(CarrinhoSessionKey);
+            PersistirCarrinhoDoCliente(new List<CarrinhoSessionItem>());
+        }
+
+        private void PersistirCarrinhoDoCliente(List<CarrinhoSessionItem> itens) {
+            var clienteId = ObterClienteId();
+            if (!clienteId.HasValue) {
+                return;
+            }
+
+            var cliente = _context.Clientes.FirstOrDefault(c => c.Id == clienteId.Value);
+            if (cliente == null) {
+                return;
+            }
+
+            cliente.CarrinhoPersistidoJson = itens.Any()
+                ? JsonSerializer.Serialize(itens)
+                : null;
+
+            _context.SaveChanges();
         }
         private CheckoutViewModel MontarCheckoutViewModel(int clienteId, CheckoutFormData form) {
             var itensCheckout = ObterItensCheckout(form);

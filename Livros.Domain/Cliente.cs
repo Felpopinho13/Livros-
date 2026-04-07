@@ -18,6 +18,8 @@
 
         public List<Cartao>? Cartoes { get; set; }
 
+        public string? CarrinhoPersistidoJson { get; set; }
+
         public bool IsAtivo { get; set; } = true;
     }
 }

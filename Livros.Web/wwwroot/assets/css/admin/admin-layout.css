@@ -54,6 +54,14 @@
     color: #ff9900;
     text-decoration: none;
     font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-back-icon {
+    font-size: 18px;
+    line-height: 1;
 }
 
 /* MAIN */

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -24,12 +24,13 @@
                 <a asp-controller="Admin" asp-action="Estoque">Estoque</a>
                 <a href="#">Pedidos</a>
                 <a asp-controller="Admin" asp-action="Trocas">Trocas</a>
-                <a href="#">An�lise de Vendas</a>
+                <a href="#">Análise de Vendas</a>
             </nav>
 
             <div class="admin-back-store">
                 <a asp-controller="Home" asp-action="Index">
-                    ? Voltar para Loja
+                    <span class="admin-back-icon" aria-hidden="true">&larr;</span>
+                    <span>Voltar para Loja</span>
                 </a>
             </div>
         </aside>
@@ -53,3 +54,4 @@
     @RenderSection("Scripts", required: false)
 </body>
 </html>
+

@@ -242,6 +242,9 @@ namespace Livros.Infrastructure.Migrations
                     b.Property<string>("CPF")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("CarrinhoPersistidoJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("DataNascimento")
                         .HasColumnType("datetime2");
 

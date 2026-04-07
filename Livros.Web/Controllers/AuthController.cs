@@ -3,8 +3,10 @@ using Livros.Infrastructure.Services;
 using Livros.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
+using System.Text.Json;
 
 public class AuthController : Controller {
+    private const string CarrinhoSessionKey = "Carrinho";
     private readonly ClienteService _service;
     private readonly AppDbContext _context;
 
@@ -132,9 +134,23 @@ public class AuthController : Controller {
             return View();
         }
 
+        var carrinhoSessaoAtual = ObterCarrinhoDaSessaoAtual();
+        var carrinhoPersistido = DeserializarCarrinho(cliente.CarrinhoPersistidoJson);
+        var carrinhoMesclado = MesclarCarrinhos(carrinhoPersistido, carrinhoSessaoAtual);
+
         HttpContext.Session.SetString("Usuario", cliente.Email);
         HttpContext.Session.SetString("IsAdmin", cliente.IsAdmin.ToString());
         HttpContext.Session.SetString("ClienteId", cliente.Id.ToString()); // 🔥 IMPORTANTE
+
+        if (carrinhoMesclado.Any()) {
+            var carrinhoJson = JsonSerializer.Serialize(carrinhoMesclado);
+            HttpContext.Session.SetString(CarrinhoSessionKey, carrinhoJson);
+            cliente.CarrinhoPersistidoJson = carrinhoJson;
+            _context.SaveChanges();
+        }
+        else {
+            HttpContext.Session.Remove(CarrinhoSessionKey);
+        }
 
         // 🔥 REDIRECIONAMENTO INTELIGENTE
         if (!string.IsNullOrEmpty(returnUrl)) {
@@ -147,5 +163,37 @@ public class AuthController : Controller {
     public IActionResult Logout() {
         HttpContext.Session.Clear();
         return RedirectToAction("Index", "Home");
+    }
+
+    private List<CarrinhoSessionItem> ObterCarrinhoDaSessaoAtual() {
+        var carrinhoJson = HttpContext.Session.GetString(CarrinhoSessionKey);
+        return DeserializarCarrinho(carrinhoJson);
+    }
+
+    private List<CarrinhoSessionItem> DeserializarCarrinho(string? carrinhoJson) {
+        if (string.IsNullOrWhiteSpace(carrinhoJson)) {
+            return new List<CarrinhoSessionItem>();
+        }
+
+        return JsonSerializer.Deserialize<List<CarrinhoSessionItem>>(carrinhoJson) ?? new List<CarrinhoSessionItem>();
+    }
+
+    private List<CarrinhoSessionItem> MesclarCarrinhos(List<CarrinhoSessionItem> carrinhoPersistido, List<CarrinhoSessionItem> carrinhoSessao) {
+        var itens = carrinhoPersistido
+            .Concat(carrinhoSessao)
+            .GroupBy(i => i.LivroId)
+            .Select(g => new CarrinhoSessionItem {
+                LivroId = g.Key,
+                Quantidade = g.Sum(x => x.Quantidade)
+            })
+            .Where(i => i.Quantidade > 0)
+            .ToList();
+
+        return itens;
+    }
+
+    private sealed class CarrinhoSessionItem {
+        public int LivroId { get; set; }
+        public int Quantidade { get; set; }
     }
 }
