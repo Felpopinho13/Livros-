@@ -189,8 +189,17 @@ public class AdminController : Controller {
             ModelState.Remove("ImagemUrl");
         }
 
+        ModelState.Remove("Estoque");
+
         if (!ModelState.IsValid) {
-            TempData["Erro"] = "Dados inválidos!";
+            var erros = ModelState
+                .Where(x => x.Value != null && x.Value.Errors.Count > 0)
+                .Select(x => $"{ObterNomeCampoLivro(x.Key)}: {string.Join(" ", x.Value!.Errors.Select(e => e.ErrorMessage).Where(m => !string.IsNullOrWhiteSpace(m)))}".Trim())
+                .ToList();
+
+            TempData["Erro"] = erros.Any()
+                ? $"Dados inválidos em: {string.Join(" | ", erros)}"
+                : "Dados inválidos!";
             return RedirectToAction("Livros");
         }
 
@@ -440,6 +449,27 @@ public class AdminController : Controller {
         }
 
         return valorPadrao;
+    }
+
+    private string ObterNomeCampoLivro(string campo) {
+        return campo switch {
+            nameof(Livro.Titulo) => "Título",
+            nameof(Livro.Autor) => "Autor",
+            nameof(Livro.Ano) => "Ano",
+            nameof(Livro.Editora) => "Editora",
+            nameof(Livro.Edicao) => "Edição",
+            nameof(Livro.ISBN) => "ISBN",
+            nameof(Livro.CodigoBarras) => "Código de barras",
+            nameof(Livro.NumeroPaginas) => "Páginas",
+            nameof(Livro.Sinopse) => "Sinopse",
+            nameof(Livro.Altura) => "Altura",
+            nameof(Livro.Largura) => "Largura",
+            nameof(Livro.Peso) => "Peso",
+            nameof(Livro.Profundidade) => "Profundidade",
+            nameof(Livro.Preco) => "Preço",
+            nameof(Livro.ImagemUrl) => "Imagem",
+            _ => string.IsNullOrWhiteSpace(campo) ? "Campo desconhecido" : campo
+        };
     }
 }
 

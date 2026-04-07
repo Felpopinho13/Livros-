@@ -1,4 +1,4 @@
-@model List<Livros.Domain.Livro>
+Ôªø@model List<Livros.Domain.Livro>
 
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
@@ -7,11 +7,6 @@
 @if (TempData["Erro"] != null) {
     <div class="alert-error">
         @TempData["Erro"]
-    </div>
-}
-@foreach (var erro in ViewData.ModelState.Values.SelectMany(v => v.Errors)) {
-    <div style="color:red;">
-        @erro.ErrorMessage
     </div>
 }
 
@@ -29,7 +24,7 @@
         <thead>
             <tr>
                 <th>ID</th>
-                <th>TÌtulo</th>
+                <th>T√≠tulo</th>
                 <th>Autor</th>
                 <th>ISBN</th>
                 <th>Status</th>
@@ -70,134 +65,150 @@
 
 <!-- MODAL NOVO LIVRO -->
 <div class="admin-modal-overlay" id="novoLivroModal" style="display:none;">
-    <div class="admin-modal large">
+    <div class="admin-modal large admin-book-modal">
 
-        <div class="admin-modal-header">
-            <h3>Novo Livro</h3>
-            <button class="modal-close" onclick="fecharModalNovoLivro()">?</button>
+        <div class="admin-modal-header admin-book-modal-header">
+            <div>
+                <span class="admin-modal-kicker">Cat√°logo</span>
+                <h3>Novo Livro</h3>
+            </div>
+            <button class="modal-close" type="button" aria-label="Fechar modal" onclick="fecharModalNovoLivro()">√ó</button>
         </div>
 
         <form asp-action="CriarLivro" method="post" enctype="multipart/form-data">
-            <div class="admin-modal-body">
+            <div class="admin-modal-body admin-book-modal-body">
 
-                <h4>InformaÁıes B·sicas</h4>
-
-                <div class="admin-grid-2">
-
-                    <div class="admin-form-group">
-                        <label>TÌtulo</label>
-                        <input name="Titulo" class="admin-input" required>
+                <section class="admin-book-section">
+                    <div class="admin-book-section-header">
+                        <h4>Informa√ß√µes B√°sicas</h4>
+                        <p>Os dados principais que identificam o livro no cat√°logo.</p>
                     </div>
 
-                    <div class="admin-form-group">
-                        <label>Autor</label>
-                        <input name="Autor" class="admin-input" required>
+                    <div class="admin-grid-2">
+
+                        <div class="admin-form-group">
+                            <label>T√≠tulo</label>
+                            <input name="Titulo" class="admin-input" required>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Autor</label>
+                            <input name="Autor" class="admin-input" required>
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Ano</label>
+                            <input type="number"
+                                   name="Ano"
+                                   class="admin-input"
+                                   min="1000"
+                                   max="2100">
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Editora</label>
+                            <input name="Editora" class="admin-input">
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Edi√ß√£o</label>
+                            <input name="Edicao" class="admin-input">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="admin-book-section">
+                    <div class="admin-book-section-header">
+                        <h4>Identifica√ß√£o</h4>
+                        <p>C√≥digos usados para consulta, venda e controle do exemplar.</p>
                     </div>
 
-                    <div class="admin-form-group">
-                        <label>Ano</label>
-                        <input type="number"
-                               name="Ano"
-                               min="1000"
-                               max="2100">
+                    <div class="admin-grid-2">
+                        <div class="admin-form-group">
+                            <label>ISBN</label>
+                            <input name="ISBN"
+                                   class="admin-input"
+                                   maxlength="13"
+                                   pattern="\d{13}"
+                                   title="ISBN deve ter 13 n√∫meros">
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>C√≥digo de Barras</label>
+                            <input name="CodigoBarras"
+                                   class="admin-input"
+                                   maxlength="13"
+                                   pattern="\d{13}"
+                                   title="C√≥digo de barras deve ter 13 n√∫meros">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="admin-book-section">
+                    <div class="admin-book-section-header">
+                        <h4>Dimens√µes</h4>
+                        <p>Medidas f√≠sicas do livro para log√≠stica e apresenta√ß√£o.</p>
                     </div>
 
-                    <div class="admin-form-group">
-                        <label>Editora</label>
-                        <input name="Editora" class="admin-input">
+                    <div class="admin-grid-4">
+                        <div class="admin-form-group">
+                            <label>Altura</label>
+                            <input type="text" inputmode="decimal" name="Altura" class="admin-input" placeholder="Ex.: 22,5">
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Largura</label>
+                            <input type="text" inputmode="decimal" name="Largura" class="admin-input" placeholder="Ex.: 15,4">
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Peso</label>
+                            <input type="text" inputmode="decimal" name="Peso" class="admin-input" placeholder="Ex.: 0,34">
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Profundidade</label>
+                            <input type="text" inputmode="decimal" name="Profundidade" class="admin-input" placeholder="Ex.: 2,0">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="admin-book-section">
+                    <div class="admin-book-section-header">
+                        <h4>Detalhes</h4>
+                        <p>Informa√ß√µes comerciais e de conte√∫do que aparecem na loja.</p>
                     </div>
 
-                    <div class="admin-form-group">
-                        <label>EdiÁ„o</label>
-                        <input name="Edicao" class="admin-input">
+                    <div class="admin-grid-2">
+                        <div class="admin-form-group">
+                            <label>P√°ginas</label>
+                            <input type="number"
+                                   name="NumeroPaginas"
+                                   class="admin-input"
+                                   min="1"
+                                   max="10000">
+                        </div>
+
+                        <div class="admin-form-group">
+                            <label>Pre√ßo</label>
+                            <input type="text"
+                                   inputmode="decimal"
+                                   name="Preco"
+                                   class="admin-input"
+                                   placeholder="Ex.: 29,90">
+                        </div>
+
+                        <div class="admin-form-group admin-form-group-full">
+                            <label>Imagem da capa</label>
+                            <input type="file" name="ImagemArquivo" class="admin-input">
+                        </div>
                     </div>
 
-                </div>
-
-                <h4>IdentificaÁ„o</h4>
-
-                <div class="admin-grid-2">
-
-                    <div class="admin-form-group">
-                        <label>ISBN</label>
-                        <input name="ISBN"
-                               class="admin-input"
-                               maxlength="13"
-                               pattern="\d{13}"
-                               title="ISBN deve ter 13 n˙meros">
+                    <div class="admin-form-group admin-book-textarea">
+                        <label>Sinopse</label>
+                        <textarea name="Sinopse" class="admin-input" placeholder="Descreva o livro de forma objetiva para a vitrine e a p√°gina de detalhes."></textarea>
                     </div>
-
-                    <div class="admin-form-group">
-                        <label>CÛdigo de Barras</label>
-                        <input name="CodigoBarras"
-                               class="admin-input"
-                               maxlength="13"
-                               pattern="\d{13}"
-                               title="CÛdigo de barras deve ter 13 n˙meros">
-                    </div>
-
-                </div>
-
-                <h4>Dimensıes</h4>
-
-                <div class="admin-grid-4">
-
-                    <div class="admin-form-group">
-                        <label>Altura</label>
-                        <input type="text" inputmode="decimal" name="Altura" class="admin-input" placeholder="Ex.: 22,5">
-                    </div>
-
-                    <div class="admin-form-group">
-                        <label>Largura</label>
-                        <input type="text" inputmode="decimal" name="Largura" class="admin-input" placeholder="Ex.: 15,4">
-                    </div>
-
-                    <div class="admin-form-group">
-                        <label>Peso</label>
-                        <input type="text" inputmode="decimal" name="Peso" class="admin-input" placeholder="Ex.: 0,34">
-                    </div>
-
-                    <div class="admin-form-group">
-                        <label>Profundidade</label>
-                        <input type="text" inputmode="decimal" name="Profundidade" class="admin-input" placeholder="Ex.: 2,0">
-                    </div>
-
-                </div>
-
-                <h4>Detalhes</h4>
-
-                <div class="admin-grid-2">
-
-                    <div class="admin-form-group">
-                        <label>P·ginas</label>
-                        <input type="number"
-                               name="NumeroPaginas"
-                               class="admin-input"
-                               min="1"
-                               max="10000">
-                    </div>
-
-                    <div class="admin-form-group">
-                        <label>PreÁo</label>
-                        <input type="number"
-                               step="0.01"
-                               name="Preco"
-                               class="admin-input"
-                               min="0.01"
-                               max="10000">
-                    </div>
-
-                    <div class="admin-form-group">
-                        <label>Imagem (URL)</label>
-                        <input type="file" name="ImagemArquivo" class="admin-input">
-                    </div>
-
-                </div>
-
-                <div class="admin-form-group">
-                    <label>Sinopse</label>
-                    <textarea name="Sinopse" class="admin-input"></textarea>
-                </div>
+                </section>
 
             </div>
 
@@ -225,3 +236,4 @@
         document.getElementById("novoLivroModal").style.display = "none";
     }
 </script>
+

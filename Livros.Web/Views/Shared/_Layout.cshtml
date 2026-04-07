@@ -1,4 +1,4 @@
-@using System.Text.Json
+﻿@using System.Text.Json
 @using Livros.Web.Models.ViewModels
 @{
     var usuario = Context.Session.GetString("Usuario");
@@ -20,7 +20,7 @@
 
     <link rel="stylesheet" href="~/assets/css/main.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/assets/icons/boxicons/css/boxicons.min.css">
 </head>
 
 <body>
@@ -36,10 +36,10 @@
             </form>
 
             <nav class="nav-icons">
-                <a asp-controller="Home" asp-action="Index" aria-label="Home"><i class="bx bxs-home"></i></a>
+                <a asp-controller="Home" asp-action="Index" aria-label="Home"><i class="bx bx-home"></i></a>
                 <a asp-controller="Pedido" asp-action="Carrinho" aria-label="Carrinho"><i class="bx bx-cart"></i> <span id="cart-count">@carrinhoCount</span></a>
                 <a href="#" aria-label="Favoritos"><i class="bx bx-heart"></i></a>
-                <a asp-controller="Cliente" asp-action="AreaCliente" aria-label="�rea do cliente"><i class="bx bx-user"></i></a>
+                <a asp-controller="Cliente" asp-action="AreaCliente" aria-label="Área do cliente"><i class="bx bx-user"></i></a>
 
                 @if (isAdmin == "True") {
                     <a asp-controller="Admin" asp-action="Dashboard" aria-label="Admin"><i class="bx bx-cog"></i></a>
@@ -66,3 +66,5 @@
     @RenderSection("Scripts", required: false)
 </body>
 </html>
+
+

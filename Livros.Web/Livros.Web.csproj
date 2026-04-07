@@ -25,4 +25,9 @@
     <ProjectReference Include="..\Livros.Infrastructure\Livros.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\assets\fonts\inter\" />
+    <Folder Include="wwwroot\assets\icons\boxicons\fonts\" />
+  </ItemGroup>
+
 </Project>

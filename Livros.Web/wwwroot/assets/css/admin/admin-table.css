@@ -19,6 +19,23 @@
     margin: 10px;
 }
 
+.admin-filters-card {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.1fr) minmax(180px, 1fr) minmax(180px, 1fr) auto;
+    gap: 18px;
+    padding: 24px 26px;
+    margin: 0;
+    background: linear-gradient(180deg, #fbfcff 0%, #ffffff 100%);
+    border-bottom: 1px solid #edf2f7;
+    align-items: center;
+}
+
+.admin-filters-card .admin-input,
+.admin-filters-card .admin-select,
+.admin-filters-card .btn-primary {
+    margin: 0;
+}
+
 .admin-input,
 .admin-select {
     padding: 8px 12px;
@@ -180,6 +197,12 @@
     background: #232f3e;
     color: white;
     border-color: #232f3e;
+}
+
+@media (max-width: 980px) {
+    .admin-filters-card {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* STATUS PEDIDOS */

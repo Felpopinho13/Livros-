@@ -23,6 +23,13 @@
     animation: modalFade 0.2s ease;
 }
 
+.admin-book-modal {
+    border-radius: 22px;
+    border: 1px solid rgba(35, 47, 62, 0.08);
+    box-shadow: 0 28px 65px rgba(15, 23, 42, 0.24);
+    overflow: hidden;
+}
+
 .admin-modal-header {
     padding: 15px 20px;
     border-bottom: 1px solid #eee;
@@ -32,8 +39,35 @@
     align-items: center;
 }
 
+.admin-book-modal-header {
+    padding: 24px 28px 20px;
+    background: linear-gradient(135deg, #232f3e 0%, #304256 100%);
+    border-bottom: none;
+    color: #fff;
+}
+
+.admin-book-modal-header h3 {
+    margin: 4px 0 0;
+    font-size: 32px;
+    line-height: 1.05;
+}
+
+.admin-modal-kicker {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.74);
+}
+
 .admin-modal-body {
     padding: 20px;
+}
+
+.admin-book-modal-body {
+    padding: 26px 28px 30px;
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 26%);
 }
 
 .admin-modal-footer {
@@ -45,11 +79,30 @@
     gap: 10px;
 }
 
+.admin-book-modal .admin-modal-footer {
+    padding: 18px 28px 24px;
+    background: #fff;
+}
+
 .modal-close {
     background: none;
-    border: none;
-    font-size: 18px;
+    border: 1px solid rgba(255,255,255,0.2);
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    font-size: 30px;
+    line-height: 1;
+    color: #fff;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s ease;
+}
+
+.modal-close:hover {
+    background: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.32);
 }
 
 .admin-form-group {
@@ -61,6 +114,32 @@
 .admin-form-group label {
     font-size: 13px;
     margin-bottom: 5px;
+}
+
+.admin-book-section {
+    padding: 22px;
+    border-radius: 20px;
+    background: #fff;
+    border: 1px solid #e7edf5;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
+    margin-bottom: 20px;
+}
+
+.admin-book-section-header {
+    margin-bottom: 18px;
+}
+
+.admin-book-section-header h4 {
+    margin: 0 0 6px;
+    font-size: 25px;
+    color: #172033;
+}
+
+.admin-book-section-header p {
+    margin: 0;
+    color: #687588;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 /* Modal grande */
@@ -77,6 +156,24 @@
     overflow-y: auto;
     max-height: 70vh;
     padding-right: 10px;
+}
+
+@media (max-width: 768px) {
+    .admin-book-modal-header {
+        padding: 18px 20px;
+    }
+
+    .admin-book-modal-header h3 {
+        font-size: 26px;
+    }
+
+    .admin-book-modal-body {
+        padding: 18px;
+    }
+
+    .admin-book-modal .admin-modal-footer {
+        padding: 18px 20px 20px;
+    }
 }
 
 @keyframes modalFade {
