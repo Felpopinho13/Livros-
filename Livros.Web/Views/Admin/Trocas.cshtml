@@ -3,6 +3,37 @@
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Trocas";
+
+    List<int> MontarPaginas(int paginaAtual, int totalPaginas) {
+        var paginas = new List<int>();
+        if (totalPaginas <= 5) {
+            paginas.AddRange(Enumerable.Range(1, totalPaginas));
+            return paginas;
+        }
+
+        paginas.Add(1);
+        var inicio = Math.Max(2, paginaAtual - 1);
+        var fim = Math.Min(totalPaginas - 1, paginaAtual + 1);
+
+        if (paginaAtual <= 3) {
+            inicio = 2;
+            fim = 4;
+        }
+        else if (paginaAtual >= totalPaginas - 2) {
+            inicio = totalPaginas - 3;
+            fim = totalPaginas - 1;
+        }
+
+        for (var i = inicio; i <= fim; i++) {
+            paginas.Add(i);
+        }
+
+        paginas.Add(totalPaginas);
+        return paginas;
+    }
+
+    var paginasTrocas = MontarPaginas(Model.PaginaTrocasAtual, Model.TotalPaginasTrocas);
+    var paginasCupons = MontarPaginas(Model.PaginaCuponsAtual, Model.TotalPaginasCupons);
 }
 
 @section Styles {
@@ -12,6 +43,27 @@
 <div class="admin-page-header exchange-page-header">
     <h2>Trocas e Devolucoes</h2>
 </div>
+
+@if (Model.TotalPaginasTrocas > 1) {
+    <div class="admin-pagination exchange-pagination">
+        @if (Model.PaginaTrocasAtual > 1) {
+            <a asp-controller="Admin" asp-action="Trocas" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-paginaTrocas="@(Model.PaginaTrocasAtual - 1)" asp-route-paginaCupons="@Model.PaginaCuponsAtual" class="page-btn">Anterior</a>
+        }
+
+        @for (var indice = 0; indice < paginasTrocas.Count; indice++) {
+            var pagina = paginasTrocas[indice];
+            if (indice > 0 && pagina - paginasTrocas[indice - 1] > 1) {
+                <span class="page-ellipsis">...</span>
+            }
+
+            <a asp-controller="Admin" asp-action="Trocas" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-paginaTrocas="@pagina" asp-route-paginaCupons="@Model.PaginaCuponsAtual" class="page-number @(pagina == Model.PaginaTrocasAtual ? "active" : string.Empty)">@pagina</a>
+        }
+
+        @if (Model.PaginaTrocasAtual < Model.TotalPaginasTrocas) {
+            <a asp-controller="Admin" asp-action="Trocas" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-paginaTrocas="@(Model.PaginaTrocasAtual + 1)" asp-route-paginaCupons="@Model.PaginaCuponsAtual" class="page-btn">Próxima</a>
+        }
+    </div>
+}
 
 @if (TempData["Sucesso"] != null) {
     <div class="checkout-alert checkout-alert-success">@TempData["Sucesso"]</div>
@@ -176,6 +228,27 @@
         </table>
     </div>
 </div>
+
+@if (Model.TotalPaginasCupons > 1) {
+    <div class="admin-pagination exchange-pagination">
+        @if (Model.PaginaCuponsAtual > 1) {
+            <a asp-controller="Admin" asp-action="Trocas" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-paginaTrocas="@Model.PaginaTrocasAtual" asp-route-paginaCupons="@(Model.PaginaCuponsAtual - 1)" class="page-btn">Anterior</a>
+        }
+
+        @for (var indice = 0; indice < paginasCupons.Count; indice++) {
+            var pagina = paginasCupons[indice];
+            if (indice > 0 && pagina - paginasCupons[indice - 1] > 1) {
+                <span class="page-ellipsis">...</span>
+            }
+
+            <a asp-controller="Admin" asp-action="Trocas" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-paginaTrocas="@Model.PaginaTrocasAtual" asp-route-paginaCupons="@pagina" class="page-number @(pagina == Model.PaginaCuponsAtual ? "active" : string.Empty)">@pagina</a>
+        }
+
+        @if (Model.PaginaCuponsAtual < Model.TotalPaginasCupons) {
+            <a asp-controller="Admin" asp-action="Trocas" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-paginaTrocas="@Model.PaginaTrocasAtual" asp-route-paginaCupons="@(Model.PaginaCuponsAtual + 1)" class="page-btn">Próxima</a>
+        }
+    </div>
+}
 
 <div class="admin-modal-overlay" id="trocaModal" style="display:none;">
     <div class="admin-modal exchange-modal">

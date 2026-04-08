@@ -299,11 +299,6 @@
     margin-top: 24px;
 }
 
-.exchange-coupon-table th,
-.exchange-coupon-table td {
-    white-space: nowrap;
-}
-
 .exchange-inline-form {
     margin: 0;
 }
@@ -345,7 +340,9 @@
 }
 
 .exchange-coupon-table {
-    min-width: 1320px;
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
 }
 
 .exchange-coupon-table th:last-child,
@@ -353,18 +350,8 @@
     min-width: 150px;
     width: 150px;
     text-align: center;
-}
-
-.exchange-coupon-table th:last-child,
-.exchange-coupon-table td:last-child {
-    position: sticky;
-    right: 0;
-    background: #ffffff;
-    z-index: 1;
-}
-
-.exchange-coupon-table td:last-child {
-    box-shadow: -10px 0 18px rgba(255, 255, 255, 0.95);
+    background: transparent;
+    vertical-align: middle;
 }
 
 .exchange-coupon-table .exchange-inline-form {
@@ -377,6 +364,43 @@
     align-items: center;
     justify-content: center;
     min-height: 42px;
+}
+
+.exchange-coupon-table th,
+.exchange-coupon-table td {
+    white-space: normal;
+    word-break: break-word;
+}
+
+.exchange-coupon-table th:nth-child(1),
+.exchange-coupon-table td:nth-child(1),
+.exchange-coupon-table th:nth-child(4),
+.exchange-coupon-table td:nth-child(4),
+.exchange-coupon-table th:nth-child(7),
+.exchange-coupon-table td:nth-child(7),
+.exchange-coupon-table th:nth-child(8),
+.exchange-coupon-table td:nth-child(8),
+.exchange-coupon-table th:nth-child(9),
+.exchange-coupon-table td:nth-child(9),
+.exchange-coupon-table th:nth-child(10),
+.exchange-coupon-table td:nth-child(10) {
+    white-space: nowrap;
+    word-break: normal;
+}
+
+.exchange-pagination {
+    justify-content: center;
+    gap: 10px;
+    padding-top: 18px;
+}
+
+.page-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    color: #64748b;
+    font-weight: 700;
 }
 
 .exchange-coupon-client-group {

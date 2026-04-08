@@ -1,0 +1,261 @@
+@model AdminPedidosViewModel
+
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Pedidos";
+
+    var paginas = new List<int>();
+    if (Model.TotalPaginas <= 5) {
+        paginas = Enumerable.Range(1, Model.TotalPaginas).ToList();
+    }
+    else {
+        paginas.Add(1);
+        var inicio = Math.Max(2, Model.PaginaAtual - 1);
+        var fim = Math.Min(Model.TotalPaginas - 1, Model.PaginaAtual + 1);
+
+        if (Model.PaginaAtual <= 3) {
+            inicio = 2;
+            fim = 4;
+        }
+        else if (Model.PaginaAtual >= Model.TotalPaginas - 2) {
+            inicio = Model.TotalPaginas - 3;
+            fim = Model.TotalPaginas - 1;
+        }
+
+        for (var i = inicio; i <= fim; i++) {
+            paginas.Add(i);
+        }
+
+        paginas.Add(Model.TotalPaginas);
+    }
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/assets/css/admin/admin-table.css" />
+    <link rel="stylesheet" href="~/assets/css/admin/admin-modal.css" />
+    <link rel="stylesheet" href="~/assets/css/admin/admin-orders.css" />
+}
+
+<div class="admin-page-header admin-orders-header">
+    <h2>Pedidos</h2>
+</div>
+
+@if (TempData["Sucesso"] != null) {
+    <div class="checkout-alert checkout-alert-success">@TempData["Sucesso"]</div>
+}
+
+@if (TempData["Erro"] != null) {
+    <div class="checkout-alert checkout-alert-error">@TempData["Erro"]</div>
+}
+
+<div class="admin-orders-panel">
+    <form asp-controller="Admin" asp-action="Pedidos" method="get" class="admin-filters-card admin-orders-filters">
+        <input type="text" name="busca" value="@Model.Busca" class="admin-input" placeholder="Buscar por pedido, cliente ou livro..." />
+
+        <select name="status" class="admin-select">
+            <option value="">Todos status</option>
+            <option value="EM PROCESSAMENTO" selected="@(Model.StatusFiltro == "EM PROCESSAMENTO")">Em processamento</option>
+            <option value="PAGAMENTO APROVADO" selected="@(Model.StatusFiltro == "PAGAMENTO APROVADO")">Pagamento aprovado</option>
+            <option value="PAGAMENTO RECUSADO" selected="@(Model.StatusFiltro == "PAGAMENTO RECUSADO")">Pagamento recusado</option>
+            <option value="EM SEPARACAO" selected="@(Model.StatusFiltro == "EM SEPARACAO")">Em separação</option>
+            <option value="ENVIADO" selected="@(Model.StatusFiltro == "ENVIADO")">Enviado</option>
+            <option value="ENTREGUE" selected="@(Model.StatusFiltro == "ENTREGUE")">Entregue</option>
+            <option value="CANCELADO" selected="@(Model.StatusFiltro == "CANCELADO")">Cancelado</option>
+        </select>
+
+        <button type="submit" class="btn-primary">Filtrar</button>
+    </form>
+
+    <div class="admin-table-wrapper admin-orders-table-wrapper">
+        <table class="admin-table admin-orders-table">
+            <thead>
+                <tr>
+                    <th>Pedido</th>
+                    <th>Cliente</th>
+                    <th>Itens</th>
+                    <th>Destino</th>
+                    <th>Total</th>
+                    <th>Pagamento</th>
+                    <th>Estoque</th>
+                    <th>Status</th>
+                    <th>Data</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Pedidos.Any()) {
+                    <tr>
+                        <td colspan="10" class="admin-orders-empty">Nenhum pedido encontrado.</td>
+                    </tr>
+                }
+                else {
+                    @foreach (var pedido in Model.Pedidos) {
+                        var statusClass = pedido.Status.ToLowerInvariant().Replace(" ", "-");
+                        var pagamentoClass = pedido.StatusPagamento.ToLowerInvariant().Replace(" ", "-");
+                        var proximosStatus = string.Join("|", pedido.ProximosStatus);
+                        <tr>
+                            <td>
+                                <strong>#@pedido.PedidoId</strong>
+                            </td>
+                            <td>
+                                <strong>@pedido.ClienteNome</strong>
+                                <small>@pedido.ClienteEmail</small>
+                            </td>
+                            <td>
+                                <strong>@pedido.ResumoItens</strong>
+                                <small>@pedido.QuantidadeLivros livro(s)</small>
+                                @if (pedido.TemTroca) {
+                                    <span class="admin-order-trade-flag">Troca vinculada (@pedido.QuantidadeTrocas)</span>
+                                }
+                            </td>
+                            <td>@pedido.Destino</td>
+                            <td class="order-total">R$ @pedido.Total.ToString("N2")</td>
+                            <td>
+                                <span class="admin-order-payment @pagamentoClass">@pedido.StatusPagamento</span>
+                            </td>
+                            <td>
+                                <span class="admin-order-stock @(pedido.EstoqueBaixado ? "done" : "pending")">
+                                    @(pedido.EstoqueBaixado ? "Baixado" : "Pendente")
+                                </span>
+                            </td>
+                            <td>
+                                <span class="admin-order-status @statusClass">@pedido.Status</span>
+                            </td>
+                            <td>@pedido.Data.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="admin-actions admin-orders-actions">
+                                <button type="button"
+                                        class="btn-secondary admin-order-action-btn"
+                                        onclick="abrirModalPedido('@pedido.PedidoId', '@pedido.ClienteNome.Replace("'", "\\'")', '@pedido.Status.Replace("'", "\\'")', '@pedido.ResumoItens.Replace("'", "\\'")', '@pedido.Total.ToString(System.Globalization.CultureInfo.InvariantCulture)', '@proximosStatus')">
+                                    @(pedido.ProximosStatus.Any() ? "Atualizar" : "Ver")
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.TotalPaginas > 1) {
+        <div class="admin-pagination admin-orders-pagination">
+            @if (Model.PaginaAtual > 1) {
+                <a asp-controller="Admin" asp-action="Pedidos" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-pagina="@(Model.PaginaAtual - 1)" class="page-btn">Anterior</a>
+            }
+
+            @for (var indice = 0; indice < paginas.Count; indice++) {
+                var pagina = paginas[indice];
+                if (indice > 0 && pagina - paginas[indice - 1] > 1) {
+                    <span class="page-ellipsis">...</span>
+                }
+
+                <a asp-controller="Admin" asp-action="Pedidos" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-pagina="@pagina" class="page-number @(pagina == Model.PaginaAtual ? "active" : string.Empty)">@pagina</a>
+            }
+
+            @if (Model.PaginaAtual < Model.TotalPaginas) {
+                <a asp-controller="Admin" asp-action="Pedidos" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-pagina="@(Model.PaginaAtual + 1)" class="page-btn">Próxima</a>
+            }
+        </div>
+    }
+</div>
+
+<div class="admin-modal-overlay" id="pedidoModal" style="display:none;">
+    <div class="admin-modal admin-order-modal">
+        <div class="admin-modal-header">
+            <h3>Atualizar pedido</h3>
+            <button type="button" class="modal-close" onclick="fecharModalPedido()">&times;</button>
+        </div>
+
+        <form asp-controller="Admin" asp-action="AtualizarStatusPedido" method="post" id="pedidoStatusForm">
+            @Html.AntiForgeryToken()
+            <div class="admin-modal-body">
+                <input type="hidden" id="pedidoId" name="pedidoId" />
+
+                <div class="admin-order-modal-grid">
+                    <div>
+                        <label>Pedido</label>
+                        <div class="admin-order-modal-value" id="pedidoNumero"></div>
+                    </div>
+                    <div>
+                        <label>Cliente</label>
+                        <div class="admin-order-modal-value" id="pedidoCliente"></div>
+                    </div>
+                    <div class="admin-order-modal-full">
+                        <label>Itens</label>
+                        <div class="admin-order-modal-value" id="pedidoItens"></div>
+                    </div>
+                    <div>
+                        <label>Total</label>
+                        <div class="admin-order-modal-value" id="pedidoTotal"></div>
+                    </div>
+                    <div>
+                        <label>Status atual</label>
+                        <div class="admin-order-modal-value" id="pedidoStatusAtual"></div>
+                    </div>
+                </div>
+
+                <div class="admin-form-group">
+                    <label for="novoStatusPedido">Próximo status</label>
+                    <select id="novoStatusPedido" name="novoStatus" class="admin-select"></select>
+                    <small class="admin-order-help">Ao aprovar o pagamento, o estoque é baixado. Se o pedido for cancelado ou recusado depois disso, o estoque retorna.</small>
+                </div>
+            </div>
+
+            <div class="admin-modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModalPedido()">Fechar</button>
+                <button type="submit" class="btn-primary" id="pedidoModalSubmit">Salvar status</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function abrirModalPedido(id, cliente, statusAtual, itens, total, proximosStatus) {
+            document.getElementById('pedidoId').value = id;
+            document.getElementById('pedidoNumero').textContent = `#${id}`;
+            document.getElementById('pedidoCliente').textContent = cliente;
+            document.getElementById('pedidoItens').textContent = itens;
+            document.getElementById('pedidoTotal').textContent = `R$ ${Number(total).toFixed(2).replace('.', ',')}`;
+            document.getElementById('pedidoStatusAtual').textContent = statusAtual;
+
+            const select = document.getElementById('novoStatusPedido');
+            const submit = document.getElementById('pedidoModalSubmit');
+            select.innerHTML = '';
+
+            const opcoes = (proximosStatus || '')
+                .split('|')
+                .map(item => item.trim())
+                .filter(Boolean);
+
+            if (!opcoes.length) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Nenhuma transição disponível';
+                select.appendChild(option);
+                select.disabled = true;
+                submit.style.display = 'none';
+            } else {
+                opcoes.forEach(status => {
+                    const option = document.createElement('option');
+                    option.value = status;
+                    option.textContent = status;
+                    select.appendChild(option);
+                });
+                select.disabled = false;
+                submit.style.display = '';
+            }
+
+            document.getElementById('pedidoModal').style.display = 'flex';
+        }
+
+        function fecharModalPedido() {
+            document.getElementById('pedidoModal').style.display = 'none';
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                fecharModalPedido();
+            }
+        });
+    </script>
+}

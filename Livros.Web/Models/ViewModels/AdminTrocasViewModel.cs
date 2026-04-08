@@ -38,6 +38,10 @@ public class AdminCupomClienteOptionViewModel {
 public class AdminTrocasViewModel {
     public string? Busca { get; set; }
     public string? StatusFiltro { get; set; }
+    public int PaginaTrocasAtual { get; set; }
+    public int TotalPaginasTrocas { get; set; }
+    public int PaginaCuponsAtual { get; set; }
+    public int TotalPaginasCupons { get; set; }
     public List<AdminTrocaItemViewModel> Trocas { get; set; } = new();
     public List<CupomDesconto> CuponsRecentes { get; set; } = new();
     public List<AdminCupomItemViewModel> Cupons { get; set; } = new();

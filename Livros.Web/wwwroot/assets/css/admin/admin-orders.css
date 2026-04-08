@@ -1,0 +1,175 @@
+.admin-orders-header {
+    margin-bottom: 24px;
+}
+
+.admin-orders-panel {
+    display: grid;
+    gap: 24px;
+}
+
+.admin-orders-filters {
+    grid-template-columns: minmax(260px, 1.4fr) minmax(220px, 1fr) auto;
+    border-radius: 16px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+.admin-orders-table-wrapper {
+    border-radius: 16px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+.admin-orders-table th,
+.admin-orders-table td {
+    vertical-align: middle;
+}
+
+.admin-orders-table td strong,
+.admin-orders-table td small {
+    display: block;
+}
+
+.admin-orders-table td small {
+    margin-top: 4px;
+    color: #6b7280;
+}
+
+.admin-order-trade-flag {
+    display: inline-flex;
+    margin-top: 8px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #ede9fe;
+    color: #6d28d9;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.admin-orders-actions {
+    justify-content: center;
+}
+
+.admin-order-action-btn {
+    min-width: 112px;
+    min-height: 42px;
+    border-radius: 10px;
+    font-weight: 700;
+}
+
+.admin-orders-empty {
+    padding: 34px 18px;
+    text-align: center;
+    color: #6b7280;
+}
+
+.admin-order-status,
+.admin-order-payment,
+.admin-order-stock {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 126px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.admin-order-status.em-processamento,
+.admin-order-payment.pendente,
+.admin-order-stock.pending {
+    background: #fff7d6;
+    color: #9a6700;
+}
+
+.admin-order-status.pagamento-aprovado,
+.admin-order-status.em-separacao,
+.admin-order-payment.aprovado,
+.admin-order-stock.done {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.admin-order-status.enviado {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.admin-order-status.entregue {
+    background: #ede9fe;
+    color: #7c3aed;
+}
+
+.admin-order-status.pagamento-recusado,
+.admin-order-payment.recusado,
+.admin-order-status.cancelado,
+.admin-order-payment.cancelado {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.admin-order-modal {
+    width: 720px;
+    max-width: 95%;
+    border-radius: 18px;
+}
+
+.admin-order-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.admin-order-modal-full {
+    grid-column: 1 / -1;
+}
+
+.admin-order-modal-grid label,
+.admin-order-modal .admin-form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+.admin-order-modal-value {
+    min-height: 46px;
+    padding: 12px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #111827;
+}
+
+.admin-order-help {
+    display: block;
+    margin-top: 6px;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.admin-orders-pagination {
+    justify-content: center;
+    gap: 10px;
+    border-top: 1px solid #eef2f7;
+}
+
+.page-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    color: #64748b;
+    font-weight: 700;
+}
+
+@media (max-width: 900px) {
+    .admin-orders-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-order-modal-grid {
+        grid-template-columns: 1fr;
+    }
+}

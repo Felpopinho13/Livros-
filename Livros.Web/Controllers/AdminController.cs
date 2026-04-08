@@ -226,7 +226,122 @@ public class AdminController : Controller {
     }
 
     [HttpGet]
-    public IActionResult Trocas(string? busca, string? status) {
+    public IActionResult Pedidos(string? busca, string? status, int pagina = 1) {
+        const int pageSize = 10;
+        var query = _context.Pedidos
+            .Include(p => p.Cliente)
+            .Include(p => p.Endereco)
+                .ThenInclude(e => e.Cidade)
+                    .ThenInclude(c => c.Estado)
+            .Include(p => p.Itens)
+                .ThenInclude(i => i.Livro)
+            .Include(p => p.Pagamentos)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(busca)) {
+            var buscaNormalizada = busca.Trim();
+            query = query.Where(p =>
+                p.Id.ToString().Contains(buscaNormalizada) ||
+                p.Cliente.Nome.Contains(buscaNormalizada) ||
+                p.Cliente.Email.Contains(buscaNormalizada) ||
+                p.Itens.Any(i => i.Livro.Titulo.Contains(buscaNormalizada)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status)) {
+            query = query.Where(p => p.Status == status);
+        }
+
+        var totalPedidos = query.Count();
+        var pedidos = query
+            .OrderByDescending(p => p.Data)
+            .Skip((pagina - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        var pedidoIds = pedidos.Select(p => p.Id).ToList();
+        var trocasPorPedido = _context.Trocas
+            .Where(t => pedidoIds.Contains(t.PedidoId))
+            .GroupBy(t => t.PedidoId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var vm = new AdminPedidosViewModel {
+            Busca = busca,
+            StatusFiltro = status,
+            PaginaAtual = pagina,
+            TotalPaginas = Math.Max(1, (int)Math.Ceiling(totalPedidos / (double)pageSize)),
+            Pedidos = pedidos.Select(p => new AdminPedidoItemViewModel {
+                PedidoId = p.Id,
+                Data = p.Data,
+                ClienteNome = p.Cliente?.Nome ?? string.Empty,
+                ClienteEmail = p.Cliente?.Email ?? string.Empty,
+                Total = p.Total,
+                Status = p.Status,
+                StatusPagamento = ObterStatusPagamentoPedido(p),
+                ResumoItens = MontarResumoItensPedido(p),
+                QuantidadeItens = p.Itens.Count,
+                QuantidadeLivros = p.Itens.Sum(i => i.Quantidade),
+                Destino = MontarDestinoPedido(p),
+                EstoqueBaixado = StatusExigeBaixaEstoque(p.Status),
+                TemTroca = trocasPorPedido.ContainsKey(p.Id),
+                QuantidadeTrocas = trocasPorPedido.TryGetValue(p.Id, out var quantidadeTrocas) ? quantidadeTrocas : 0,
+                ProximosStatus = ObterProximosStatusPedido(p.Status).ToList()
+            }).ToList()
+        };
+
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AtualizarStatusPedido(int pedidoId, string novoStatus) {
+        var pedido = _context.Pedidos
+            .Include(p => p.Itens)
+                .ThenInclude(i => i.Livro)
+            .Include(p => p.Pagamentos)
+            .FirstOrDefault(p => p.Id == pedidoId);
+
+        if (pedido == null) {
+            TempData["Erro"] = "Pedido nao encontrado.";
+            return RedirectToAction("Pedidos");
+        }
+
+        if (string.IsNullOrWhiteSpace(novoStatus)) {
+            TempData["Erro"] = "Selecione um novo status para o pedido.";
+            return RedirectToAction("Pedidos");
+        }
+
+        var statusAtual = pedido.Status ?? string.Empty;
+        var proximosStatus = ObterProximosStatusPedido(statusAtual).ToList();
+        if (!proximosStatus.Contains(novoStatus)) {
+            TempData["Erro"] = "A transicao de status informada nao e valida para este pedido.";
+            return RedirectToAction("Pedidos");
+        }
+
+        var estoqueEstaBaixado = StatusExigeBaixaEstoque(statusAtual);
+        var estoqueDeveFicarBaixado = StatusExigeBaixaEstoque(novoStatus);
+
+        if (!estoqueEstaBaixado && estoqueDeveFicarBaixado) {
+            var erroBaixa = TentarBaixarEstoquePedido(pedido);
+            if (!string.IsNullOrWhiteSpace(erroBaixa)) {
+                TempData["Erro"] = erroBaixa;
+                return RedirectToAction("Pedidos");
+            }
+        }
+        else if (estoqueEstaBaixado && !estoqueDeveFicarBaixado) {
+            ReporEstoquePedido(pedido);
+        }
+
+        pedido.Status = novoStatus;
+        AtualizarStatusPagamentosPedido(pedido, novoStatus);
+        _context.SaveChanges();
+
+        TempData["Sucesso"] = $"Pedido #{pedido.Id} atualizado para {novoStatus}.";
+        return RedirectToAction("Pedidos");
+    }
+
+    [HttpGet]
+    public IActionResult Trocas(string? busca, string? status, int paginaTrocas = 1, int paginaCupons = 1) {
+        const int pageSize = 10;
         var query = _context.Trocas
             .Include(t => t.Cliente)
             .Include(t => t.Pedido)
@@ -248,13 +363,29 @@ public class AdminController : Controller {
             query = query.Where(t => t.Status == status);
         }
 
+        var totalTrocas = query.Count();
         var trocas = query
             .OrderByDescending(t => t.DataSolicitacao)
+            .Skip((paginaTrocas - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        var cuponsQuery = _context.CuponsDesconto
+            .Include(c => c.Cliente)
+            .OrderByDescending(c => c.DataCriacao);
+        var totalCupons = cuponsQuery.Count();
+        var cuponsPagina = cuponsQuery
+            .Skip((paginaCupons - 1) * pageSize)
+            .Take(pageSize)
             .ToList();
 
         var vm = new AdminTrocasViewModel {
             Busca = busca,
             StatusFiltro = status,
+            PaginaTrocasAtual = paginaTrocas,
+            TotalPaginasTrocas = Math.Max(1, (int)Math.Ceiling(totalTrocas / (double)pageSize)),
+            PaginaCuponsAtual = paginaCupons,
+            TotalPaginasCupons = Math.Max(1, (int)Math.Ceiling(totalCupons / (double)pageSize)),
             Trocas = trocas.Select(t => new AdminTrocaItemViewModel {
                 Id = t.Id,
                 Codigo = t.Codigo,
@@ -273,9 +404,7 @@ public class AdminController : Controller {
                 .OrderByDescending(c => c.DataCriacao)
                 .Take(8)
                 .ToList(),
-            Cupons = _context.CuponsDesconto
-                .Include(c => c.Cliente)
-                .OrderByDescending(c => c.DataCriacao)
+            Cupons = cuponsPagina
                 .Select(c => new AdminCupomItemViewModel {
                     Id = c.Id,
                     Codigo = c.Codigo,
@@ -470,6 +599,129 @@ public class AdminController : Controller {
     }
     private string GerarCodigoCupom(string prefixo) {
         return $"{prefixo}-{DateTime.Now:yyyyMMddHHmmss}";
+    }
+
+    private string ObterStatusPagamentoPedido(Pedido pedido) {
+        if (pedido.Pagamentos == null || !pedido.Pagamentos.Any()) {
+            return "Sem pagamento";
+        }
+
+        if (pedido.Pagamentos.All(p => string.Equals(p.Status, "Cancelado", StringComparison.OrdinalIgnoreCase))) {
+            return "Cancelado";
+        }
+
+        if (pedido.Pagamentos.All(p => string.Equals(p.Status, "Recusado", StringComparison.OrdinalIgnoreCase))) {
+            return "Recusado";
+        }
+
+        if (pedido.Pagamentos.All(p => string.Equals(p.Status, "Aprovado", StringComparison.OrdinalIgnoreCase))) {
+            return "Aprovado";
+        }
+
+        return "Pendente";
+    }
+
+    private string MontarResumoItensPedido(Pedido pedido) {
+        var itemPrincipal = pedido.Itens.FirstOrDefault();
+        if (itemPrincipal == null) {
+            return "Pedido sem itens";
+        }
+
+        if (pedido.Itens.Count == 1) {
+            return itemPrincipal.Livro?.Titulo ?? "Livro";
+        }
+
+        return $"{itemPrincipal.Livro?.Titulo ?? "Livro"} + {pedido.Itens.Count - 1} item(ns)";
+    }
+
+    private string MontarDestinoPedido(Pedido pedido) {
+        var cidade = pedido.Endereco?.Cidade?.Nome ?? string.Empty;
+        var estado = pedido.Endereco?.Cidade?.Estado?.Sigla ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(cidade) && string.IsNullOrWhiteSpace(estado)) {
+            return "Endereco nao informado";
+        }
+
+        return string.IsNullOrWhiteSpace(estado) ? cidade : $"{cidade}/{estado}";
+    }
+
+    private static bool StatusExigeBaixaEstoque(string? status) {
+        if (string.IsNullOrWhiteSpace(status)) {
+            return false;
+        }
+
+        return status.Equals("PAGAMENTO APROVADO", StringComparison.OrdinalIgnoreCase)
+            || status.Equals("EM SEPARACAO", StringComparison.OrdinalIgnoreCase)
+            || status.Equals("ENVIADO", StringComparison.OrdinalIgnoreCase)
+            || status.Equals("ENTREGUE", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private IEnumerable<string> ObterProximosStatusPedido(string? statusAtual) {
+        var status = (statusAtual ?? string.Empty).Trim().ToUpperInvariant();
+
+        return status switch {
+            "EM PROCESSAMENTO" => new[] { "PAGAMENTO APROVADO", "PAGAMENTO RECUSADO", "CANCELADO" },
+            "PAGAMENTO APROVADO" => new[] { "EM SEPARACAO", "CANCELADO" },
+            "EM SEPARACAO" => new[] { "ENVIADO", "CANCELADO" },
+            "ENVIADO" => new[] { "ENTREGUE" },
+            _ => Array.Empty<string>()
+        };
+    }
+
+    private string? TentarBaixarEstoquePedido(Pedido pedido) {
+        foreach (var item in pedido.Itens) {
+            var estoque = _context.Estoques.FirstOrDefault(e => e.LivroId == item.LivroId);
+            if (estoque == null) {
+                return $"Nao foi encontrado estoque para o livro \"{item.Livro?.Titulo ?? item.LivroId.ToString()}\".";
+            }
+
+            if (estoque.Quantidade < item.Quantidade) {
+                return $"Estoque insuficiente para o livro \"{item.Livro?.Titulo ?? item.LivroId.ToString()}\". Disponivel: {estoque.Quantidade}.";
+            }
+        }
+
+        foreach (var item in pedido.Itens) {
+            var estoque = _context.Estoques.First(e => e.LivroId == item.LivroId);
+            estoque.Quantidade -= item.Quantidade;
+        }
+
+        return null;
+    }
+
+    private void ReporEstoquePedido(Pedido pedido) {
+        foreach (var item in pedido.Itens) {
+            var estoque = _context.Estoques.FirstOrDefault(e => e.LivroId == item.LivroId);
+            if (estoque == null) {
+                estoque = new Estoque {
+                    LivroId = item.LivroId,
+                    Quantidade = 0
+                };
+                _context.Estoques.Add(estoque);
+            }
+
+            estoque.Quantidade += item.Quantidade;
+        }
+    }
+
+    private void AtualizarStatusPagamentosPedido(Pedido pedido, string novoStatus) {
+        if (pedido.Pagamentos == null || !pedido.Pagamentos.Any()) {
+            return;
+        }
+
+        var statusPagamento = novoStatus.Trim().ToUpperInvariant() switch {
+            "EM PROCESSAMENTO" => "Pendente",
+            "PAGAMENTO APROVADO" => "Aprovado",
+            "EM SEPARACAO" => "Aprovado",
+            "ENVIADO" => "Aprovado",
+            "ENTREGUE" => "Aprovado",
+            "PAGAMENTO RECUSADO" => "Recusado",
+            "CANCELADO" => "Cancelado",
+            _ => "Pendente"
+        };
+
+        foreach (var pagamento in pedido.Pagamentos) {
+            pagamento.Status = statusPagamento;
+        }
     }
 
     private decimal CalcularValorCupomTroca(PedidoItem? pedidoItem, Pedido? pedido) {
