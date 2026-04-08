@@ -10,6 +10,7 @@
     <ul>
         <li><a asp-controller="Pedido" asp-action="MeusPedidos" class="@ActiveIf("MeusPedidos", "DetalhesPedido", "PedidoConfirmado")">Meus pedidos</a></li>
         <li><a asp-controller="Cliente" asp-action="Editar" class="@ActiveIf("Editar")">Meus dados</a></li>
+        <li><a asp-controller="Cliente" asp-action="AlterarSenha" class="@ActiveIf("AlterarSenha")">Alterar senha</a></li>
         <li><a asp-controller="Cliente" asp-action="Enderecos" class="@ActiveIf("Enderecos", "EditarEndereco")">Endereços</a></li>
         <li><a asp-controller="Cliente" asp-action="Cartoes" class="@ActiveIf("Cartoes")">Cartões</a></li>
         <li><a asp-controller="Pedido" asp-action="Carrinho">Meu carrinho</a></li>

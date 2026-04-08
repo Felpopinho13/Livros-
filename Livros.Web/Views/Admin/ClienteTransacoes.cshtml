@@ -1,0 +1,199 @@
+@model Livros.Web.Models.ViewModels.AdminClienteTransacoesViewModel
+
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Transações do Cliente";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/assets/css/admin/admin-orders.css" />
+}
+
+<div class="admin-page-header admin-transactions-header">
+    <div>
+        <span class="admin-transactions-kicker">Histórico consolidado</span>
+        <h2>Transações do Cliente</h2>
+        <p>@Model.ClienteNome • @Model.ClienteEmail</p>
+    </div>
+
+    <a asp-action="Clientes" class="btn-outline btn-sm">Voltar para clientes</a>
+</div>
+
+<div class="admin-transactions-panel">
+    <div class="admin-table-wrapper admin-transactions-summary-wrapper">
+        <div class="admin-orders-summary admin-transactions-summary">
+            <div class="admin-orders-summary-card">
+                <span>Pedidos</span>
+                <strong>@Model.TotalPedidos</strong>
+            </div>
+            <div class="admin-orders-summary-card">
+                <span>Valor total</span>
+                <strong>@Model.ValorTotalCompras.ToString("C")</strong>
+            </div>
+            <div class="admin-orders-summary-card">
+                <span>Pagamentos</span>
+                <strong>@Model.TotalPagamentos</strong>
+            </div>
+            <div class="admin-orders-summary-card">
+                <span>Trocas / Cupons</span>
+                <strong>@Model.TotalTrocas / @Model.TotalCupons</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-table-wrapper admin-transactions-section">
+        <div class="admin-transactions-section-header">
+            <div>
+                <span class="admin-transactions-kicker">Linha do tempo</span>
+                <h3>Pedidos</h3>
+            </div>
+            <span class="admin-transactions-count">@Model.Pedidos.Count registro(s)</span>
+        </div>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Pedido</th>
+                    <th>Data</th>
+                    <th>Itens</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Pedidos.Any()) {
+                    <tr>
+                        <td colspan="5" style="text-align:center;">Nenhum pedido encontrado para este cliente.</td>
+                    </tr>
+                }
+                else {
+                    @foreach (var pedido in Model.Pedidos) {
+                        <tr>
+                            <td>#@pedido.PedidoId</td>
+                            <td>@pedido.Data.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@pedido.ResumoItens</td>
+                            <td>@pedido.Status</td>
+                            <td>@pedido.Total.ToString("C")</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="admin-table-wrapper admin-transactions-section">
+        <div class="admin-transactions-section-header">
+            <div>
+                <span class="admin-transactions-kicker">Financeiro</span>
+                <h3>Pagamentos</h3>
+            </div>
+            <span class="admin-transactions-count">@Model.Pagamentos.Count registro(s)</span>
+        </div>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Pedido</th>
+                    <th>Método</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Pagamentos.Any()) {
+                    <tr>
+                        <td colspan="4" style="text-align:center;">Nenhum pagamento registrado.</td>
+                    </tr>
+                }
+                else {
+                    @foreach (var pagamento in Model.Pagamentos) {
+                        <tr>
+                            <td>#@pagamento.PedidoId</td>
+                            <td>@pagamento.Metodo</td>
+                            <td>@pagamento.Valor.ToString("C")</td>
+                            <td>@pagamento.Status</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="admin-table-wrapper admin-transactions-section">
+        <div class="admin-transactions-section-header">
+            <div>
+                <span class="admin-transactions-kicker">Pós-venda</span>
+                <h3>Trocas</h3>
+            </div>
+            <span class="admin-transactions-count">@Model.Trocas.Count registro(s)</span>
+        </div>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Pedido</th>
+                    <th>Livro</th>
+                    <th>Status</th>
+                    <th>Data</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Trocas.Any()) {
+                    <tr>
+                        <td colspan="5" style="text-align:center;">Nenhuma troca registrada.</td>
+                    </tr>
+                }
+                else {
+                    @foreach (var troca in Model.Trocas) {
+                        <tr>
+                            <td>@troca.Codigo</td>
+                            <td>#@troca.PedidoId</td>
+                            <td>@troca.LivroTitulo</td>
+                            <td>@troca.Status</td>
+                            <td>@troca.Data.ToString("dd/MM/yyyy HH:mm")</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="admin-table-wrapper admin-transactions-section">
+        <div class="admin-transactions-section-header">
+            <div>
+                <span class="admin-transactions-kicker">Benefícios</span>
+                <h3>Cupons</h3>
+            </div>
+            <span class="admin-transactions-count">@Model.Cupons.Count registro(s)</span>
+        </div>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Tipo</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                    <th>Criação</th>
+                    <th>Pedido</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Cupons.Any()) {
+                    <tr>
+                        <td colspan="6" style="text-align:center;">Nenhum cupom relacionado a este cliente.</td>
+                    </tr>
+                }
+                else {
+                    @foreach (var cupom in Model.Cupons) {
+                        <tr>
+                            <td>@cupom.Codigo</td>
+                            <td>@cupom.Tipo</td>
+                            <td>@cupom.Valor.ToString("C")</td>
+                            <td>@cupom.Status</td>
+                            <td>@cupom.DataCriacao.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@(cupom.PedidoId.HasValue ? $"#{cupom.PedidoId}" : "-")</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

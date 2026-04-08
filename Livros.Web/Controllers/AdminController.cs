@@ -58,6 +58,83 @@ public class AdminController : Controller {
         return View(clientes);
     }
 
+    [HttpGet]
+    public IActionResult ClienteTransacoes(int id) {
+        var cliente = _context.Clientes
+            .FirstOrDefault(c => c.Id == id);
+
+        if (cliente == null) {
+            TempData["Erro"] = "Cliente nao encontrado.";
+            return RedirectToAction("Clientes");
+        }
+
+        var pedidos = _context.Pedidos
+            .Where(p => p.ClienteId == id)
+            .Include(p => p.Itens)
+                .ThenInclude(i => i.Livro)
+            .Include(p => p.Pagamentos)
+            .OrderByDescending(p => p.Data)
+            .ToList();
+
+        var pagamentos = pedidos
+            .SelectMany(p => p.Pagamentos.Select(pg => new AdminClientePagamentoTransacaoViewModel {
+                PedidoId = p.Id,
+                Metodo = pg.Metodo,
+                Valor = pg.Valor,
+                Status = pg.Status
+            }))
+            .OrderByDescending(pg => pg.PedidoId)
+            .ToList();
+
+        var trocas = _context.Trocas
+            .Where(t => t.ClienteId == id)
+            .Include(t => t.PedidoItem)
+                .ThenInclude(i => i.Livro)
+            .OrderByDescending(t => t.DataSolicitacao)
+            .ToList();
+
+        var cupons = _context.CuponsDesconto
+            .Where(c => c.ClienteId == id)
+            .OrderByDescending(c => c.DataCriacao)
+            .ToList();
+
+        var vm = new AdminClienteTransacoesViewModel {
+            ClienteId = cliente.Id,
+            ClienteNome = cliente.Nome,
+            ClienteEmail = cliente.Email,
+            TotalPedidos = pedidos.Count,
+            ValorTotalCompras = pedidos.Sum(p => p.Total),
+            TotalPagamentos = pagamentos.Count,
+            TotalTrocas = trocas.Count,
+            TotalCupons = cupons.Count,
+            Pedidos = pedidos.Select(p => new AdminClientePedidoTransacaoViewModel {
+                PedidoId = p.Id,
+                Data = p.Data,
+                Status = p.Status,
+                Total = p.Total,
+                ResumoItens = MontarResumoItensPedido(p)
+            }).ToList(),
+            Pagamentos = pagamentos,
+            Trocas = trocas.Select(t => new AdminClienteTrocaTransacaoViewModel {
+                Codigo = t.Codigo,
+                PedidoId = t.PedidoId,
+                LivroTitulo = t.PedidoItem?.Livro?.Titulo ?? "Livro",
+                Status = t.Status,
+                Data = t.DataSolicitacao
+            }).ToList(),
+            Cupons = cupons.Select(c => new AdminClienteCupomTransacaoViewModel {
+                Codigo = c.Codigo,
+                Tipo = c.Tipo,
+                Valor = c.Valor,
+                Status = c.DataUtilizacao.HasValue ? "Utilizado" : c.IsAtivo ? "Ativo" : "Inativo",
+                DataCriacao = c.DataCriacao,
+                PedidoId = c.PedidoId
+            }).ToList()
+        };
+
+        return View(vm);
+    }
+
     [HttpPost]
     public IActionResult CriarClienteAdmin(Cliente cliente) {
         if (cliente == null)

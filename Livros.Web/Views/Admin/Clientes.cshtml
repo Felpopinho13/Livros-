@@ -74,6 +74,12 @@
                         </td>
 
                         <td class="admin-actions">
+                            <a asp-action="ClienteTransacoes"
+                               asp-route-id="@c.Id"
+                               class="btn-outline btn-sm">
+                                Transações
+                            </a>
+
                             <button type="button"
                                     class="btn-outline btn-sm"
                                     onclick="abrirModalVer(

@@ -58,35 +58,9 @@
                             Salvar Alterações
                         </button>
 
-                        <button type="button" class="btn-outline btn-profile" id="openSenhaModal">
-                            Alterar Senha
-                        </button>
                     </form>
                 </div>
             </section>
         </div>
     </div>
 </section>
-
-<div class="modal-overlay" id="senhaModal">
-    <div class="modal">
-        <h3>Alterar Senha</h3>
-
-        <form asp-action="AlterarSenha" method="post" onsubmit="return validarSenha()">
-            <input type="password" name="novaSenha" id="novaSenha" placeholder="Nova senha" required>
-            <input type="password" name="confirmarSenha" id="confirmarSenha" placeholder="Confirmar senha" required>
-
-            <div class="modal-actions">
-                <button type="button" id="closeSenhaModal" class="btn-secondary">
-                    Cancelar
-                </button>
-
-                <button type="submit" class="btn-primary">
-                    Salvar
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script src="~/assets/js/cliente.js"></script>

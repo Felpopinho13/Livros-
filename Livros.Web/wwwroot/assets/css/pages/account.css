@@ -1007,6 +1007,13 @@
     gap: 15px;
 }
 
+.password-help {
+    margin: 4px 0 0;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
 /* =========================
    EDIT CREDIT CARD
 ========================= */

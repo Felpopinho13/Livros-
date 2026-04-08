@@ -1,0 +1,66 @@
+@model Livros.Domain.Cliente
+
+@{
+    ViewData["Title"] = "Alterar Senha";
+}
+
+<section class="account-page">
+    <div class="container account-layout">
+        @await Html.PartialAsync("_AccountSidebar")
+
+        <div class="account-content">
+            <section class="edit-profile-page account-section-page">
+                <div class="edit-profile-container">
+                    <h2>Alterar Senha</h2>
+
+                    @if (TempData["Erro"] != null) {
+                        <div class="alert-error">
+                            @TempData["Erro"]
+                        </div>
+                    }
+
+                    @if (TempData["Sucesso"] != null) {
+                        <div class="alert-success">
+                            @TempData["Sucesso"]
+                        </div>
+                    }
+
+                    <div class="breadcrumb">
+                        <a asp-controller="Cliente" asp-action="AreaCliente">Central Minha Conta</a>
+                        / <strong>Alterar senha</strong>
+                    </div>
+
+                    <form asp-action="AlterarSenha" method="post" class="edit-profile-form">
+                        <div class="form-group">
+                            <label>Senha atual</label>
+                            <input type="password" name="senhaAtual" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Nova senha</label>
+                            <input type="password" name="novaSenha" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Confirmar nova senha</label>
+                            <input type="password" name="confirmarSenha" required>
+                        </div>
+
+                        <p class="password-help">
+                            Use pelo menos 8 caracteres com letra maiúscula, minúscula e símbolo.
+                        </p>
+
+                        <div class="form-actions">
+                            <a asp-action="Editar" class="btn-secondary btn-profile">
+                                Voltar
+                            </a>
+                            <button type="submit" class="btn-primary btn-profile">
+                                Salvar nova senha
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </div>
+    </div>
+</section>

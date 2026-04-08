@@ -163,6 +163,21 @@ public class ClienteController : Controller {
         return View(cliente);
     }
 
+    [HttpGet]
+    public IActionResult AlterarSenha() {
+        var email = HttpContext.Session.GetString("Usuario");
+
+        if (email == null)
+            return RedirectToAction("Login", "Auth");
+
+        var cliente = _service.BuscarPorEmail(email);
+
+        if (cliente == null)
+            return RedirectToAction("Login", "Auth");
+
+        return View(cliente);
+    }
+
     [HttpPost]
     public IActionResult Editar(Cliente cliente) {
 
@@ -485,17 +500,17 @@ public class ClienteController : Controller {
     }
 
     [HttpPost]
-    public IActionResult AlterarSenha(string novaSenha, string confirmarSenha) {
+    public IActionResult AlterarSenha(string senhaAtual, string novaSenha, string confirmarSenha) {
         if (novaSenha != confirmarSenha) {
             TempData["Erro"] = "As senhas não coincidem.";
-            return RedirectToAction("Editar");
+            return RedirectToAction("AlterarSenha");
         }
 
         var regex = new System.Text.RegularExpressions.Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$");
 
         if (!regex.IsMatch(novaSenha)) {
             TempData["Erro"] = "Senha fraca. Use maiúsculas, minúsculas, símbolo e mínimo 8 caracteres.";
-            return RedirectToAction("Editar");
+            return RedirectToAction("AlterarSenha");
         }
 
         var idStr = HttpContext.Session.GetString("ClienteId");
@@ -510,13 +525,18 @@ public class ClienteController : Controller {
         if (cliente == null)
             return RedirectToAction("Login", "Auth");
 
+        if (!BCrypt.Net.BCrypt.Verify(senhaAtual, cliente.Senha)) {
+            TempData["Erro"] = "A senha atual informada está incorreta.";
+            return RedirectToAction("AlterarSenha");
+        }
+
         cliente.Senha = BCrypt.Net.BCrypt.HashPassword(novaSenha);
 
         _context.SaveChanges();
 
         TempData["Sucesso"] = "Senha alterada com sucesso!";
 
-        return RedirectToAction("Editar");
+        return RedirectToAction("AlterarSenha");
     }
 
     private sealed class CarrinhoResumoSessionItem {
