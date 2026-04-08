@@ -20,8 +20,11 @@ namespace Livros.Domain {
         public string Status { get; set; } = "Solicitado";
         public DateTime DataSolicitacao { get; set; } = DateTime.Now;
         public DateTime? DataAnalise { get; set; }
+        public DateTime? DataRecebimento { get; set; }
+        public bool? RetornarAoEstoque { get; set; }
 
         public int? CupomDescontoId { get; set; }
         public CupomDesconto? CupomDesconto { get; set; }
     }
 }
+

@@ -49,6 +49,7 @@ public class ClienteController : Controller {
 
         var trocasAbertas = _context.Trocas.Count(t =>
             t.ClienteId == cliente.Id &&
+            t.Status != "Recebida" &&
             t.Status != "Aprovado" &&
             t.Status != "Recusado");
 
@@ -544,3 +545,4 @@ public class ClienteController : Controller {
         public int Quantidade { get; set; }
     }
 }
+

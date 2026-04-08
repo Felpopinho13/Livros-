@@ -1,4 +1,4 @@
-@model AdminTrocasViewModel
+﻿@model AdminTrocasViewModel
 
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
@@ -60,7 +60,7 @@
         }
 
         @if (Model.PaginaTrocasAtual < Model.TotalPaginasTrocas) {
-            <a asp-controller="Admin" asp-action="Trocas" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-paginaTrocas="@(Model.PaginaTrocasAtual + 1)" asp-route-paginaCupons="@Model.PaginaCuponsAtual" class="page-btn">Próxima</a>
+            <a asp-controller="Admin" asp-action="Trocas" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-paginaTrocas="@(Model.PaginaTrocasAtual + 1)" asp-route-paginaCupons="@Model.PaginaCuponsAtual" class="page-btn">PrÃ³xima</a>
         }
     </div>
 }
@@ -80,7 +80,8 @@
         <select name="status" class="admin-select exchange-select">
             <option value="">Todos Status</option>
             <option value="Solicitado" selected="@(Model.StatusFiltro == "Solicitado")">Solicitado</option>
-            <option value="Aprovado" selected="@(Model.StatusFiltro == "Aprovado")">Aprovado</option>
+            <option value="Autorizada" selected="@(Model.StatusFiltro == "Autorizada")">Autorizada</option>
+            <option value="Recebida" selected="@(Model.StatusFiltro == "Recebida")">Recebida</option>
             <option value="Recusado" selected="@(Model.StatusFiltro == "Recusado")">Recusado</option>
         </select>
 
@@ -119,7 +120,20 @@
                     var observacaoClienteEscapada = (troca.ObservacaoCliente ?? string.Empty).Replace("\\", "\\\\").Replace("'", "\\'");
                     var observacaoAdminEscapada = (troca.ObservacaoAdmin ?? string.Empty).Replace("\\", "\\\\").Replace("'", "\\'");
                     var codigoCupomEscapado = (troca.CodigoCupom ?? string.Empty).Replace("\\", "\\\\").Replace("'", "\\'");
+                    var dataRecebimentoTexto = troca.DataRecebimento?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty;
+                    var dataRecebimentoEscapada = dataRecebimentoTexto.Replace("\\", "\\\\").Replace("'", "\\'");
                     var statusClass = troca.Status.ToLowerInvariant().Replace(" ", "-");
+                    var textoAcao = troca.PodeAnalisar
+                        ? "Analisar"
+                        : troca.PodeConfirmarRecebimento
+                            ? "Receber item"
+                            : "Ver";
+                    var classeAcao = troca.PodeAnalisar || troca.PodeConfirmarRecebimento
+                        ? "btn-primary"
+                        : "btn-secondary";
+                    var retornoAoEstoqueTexto = troca.RetornarAoEstoque.HasValue
+                        ? (troca.RetornarAoEstoque.Value ? "sim" : "nao")
+                        : string.Empty;
 
                     <tr>
                         <td>@troca.Codigo</td>
@@ -133,9 +147,9 @@
                         <td>@troca.DataSolicitacao.ToString("dd/MM/yyyy")</td>
                         <td class="admin-actions exchange-actions">
                             <button type="button"
-                                    class="@(troca.Status == "Solicitado" ? "btn-primary" : "btn-secondary") exchange-action-btn"
-                                    onclick="abrirModalTroca(@troca.Id, '@troca.Codigo', '#@troca.PedidoId', '@clienteEscapado', '@motivoEscapado', '@observacaoClienteEscapada', '@observacaoAdminEscapada', @troca.ValorSugeridoCupom.ToString(System.Globalization.CultureInfo.InvariantCulture), '@codigoCupomEscapado', '@troca.Status')">
-                                @(troca.Status == "Solicitado" ? "Analisar" : "Ver")
+                                    class="@classeAcao exchange-action-btn"
+                                    onclick="abrirModalTroca(@troca.Id, '@troca.Codigo', '#@troca.PedidoId', '@clienteEscapado', '@motivoEscapado', '@observacaoClienteEscapada', '@observacaoAdminEscapada', @troca.ValorSugeridoCupom.ToString(System.Globalization.CultureInfo.InvariantCulture), '@codigoCupomEscapado', '@troca.Status', '@dataRecebimentoEscapada', '@retornoAoEstoqueTexto', @((troca.ValorCupomGerado ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture)))">
+                                @textoAcao
                             </button>
                         </td>
                     </tr>
@@ -245,7 +259,7 @@
         }
 
         @if (Model.PaginaCuponsAtual < Model.TotalPaginasCupons) {
-            <a asp-controller="Admin" asp-action="Trocas" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-paginaTrocas="@Model.PaginaTrocasAtual" asp-route-paginaCupons="@(Model.PaginaCuponsAtual + 1)" class="page-btn">Próxima</a>
+            <a asp-controller="Admin" asp-action="Trocas" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-paginaTrocas="@Model.PaginaTrocasAtual" asp-route-paginaCupons="@(Model.PaginaCuponsAtual + 1)" class="page-btn">PrÃ³xima</a>
         }
     </div>
 }
@@ -264,7 +278,7 @@
 
                 <div class="exchange-modal-grid">
                     <div>
-                        <label>Nº Troca</label>
+                        <label>NÂº Troca</label>
                         <div class="exchange-modal-value" id="trocaCodigo"></div>
                     </div>
                     <div>
@@ -297,12 +311,32 @@
                         <option value="aprovar">Aprovar</option>
                         <option value="recusar">Recusar</option>
                     </select>
+                    <small class="exchange-help">Ao autorizar a troca, o sistema libera a próxima etapa de recebimento. O cupom ainda não é gerado aqui.</small>
                 </div>
 
-                <div class="admin-form-group exchange-analysis-fields">
+                <div class="admin-form-group exchange-receipt-fields" style="display:none;">
+                    <label for="retornarAoEstoqueTroca">Item retorna ao estoque?</label>
+                    <select id="retornarAoEstoqueTroca" name="retornarAoEstoque" class="admin-select">
+                        <option value="true">Sim, reintegrar ao estoque</option>
+                        <option value="false">Nao, descartar o item devolvido</option>
+                    </select>
+                </div>
+
+                <div class="admin-form-group exchange-receipt-fields" style="display:none;">
                     <label for="valorCupomTroca">Valor do cupom gerado</label>
                     <input type="text" id="valorCupomTroca" name="valorCupom" class="admin-input" inputmode="decimal" placeholder="0,00" />
-                    <small class="exchange-help">Se a troca for aprovada, este valor sera salvo como cupom para o cliente.</small>
+                    <small class="exchange-help">No recebimento, este valor sera salvo como cupom de troca para o cliente.</small>
+                </div>
+
+                <div class="exchange-modal-grid exchange-receipt-meta" id="trocaRecebimentoMeta" style="display:none;">
+                    <div>
+                        <label>Recebido em</label>
+                        <div class="exchange-modal-value" id="trocaDataRecebimento"></div>
+                    </div>
+                    <div>
+                        <label>Retorno ao estoque</label>
+                        <div class="exchange-modal-value" id="trocaRetornoAoEstoque"></div>
+                    </div>
                 </div>
 
                 <div class="admin-form-group">
@@ -319,6 +353,7 @@
             <div class="admin-modal-footer">
                 <button type="button" class="btn-secondary" onclick="fecharModal('trocaModal')">Fechar</button>
                 <button type="submit" class="btn-primary exchange-analysis-submit">Confirmar analise</button>
+                <button type="submit" class="btn-primary exchange-receipt-submit" style="display:none;">Confirmar recebimento</button>
             </div>
         </form>
     </div>
@@ -350,7 +385,7 @@
                 </div>
 
                 <div class="admin-form-group exchange-coupon-client-group" id="cupomClienteGroup" style="display:none;">
-                    <label for="clienteCupomPromocionalBusca">Cliente específico</label>
+                    <label for="clienteCupomPromocionalBusca">Cliente especÃ­fico</label>
                     <input type="text"
                            id="clienteCupomPromocionalBusca"
                            class="admin-input"
@@ -362,7 +397,7 @@
                             <option value="@($"{cliente.Nome} - {cliente.Email}")" data-id="@cliente.Id"></option>
                         }
                     </datalist>
-                    <small class="exchange-help">Selecione um cliente pelo nome para que o cupom apareça em Meus cupons dessa conta.</small>
+                    <small class="exchange-help">Selecione um cliente pelo nome para que o cupom apareÃ§a em Meus cupons dessa conta.</small>
                 </div>
             </div>
 
@@ -376,7 +411,7 @@
 
 @section Scripts {
 <script>
-    function abrirModalTroca(id, codigo, pedido, cliente, motivo, observacaoCliente, observacaoAdmin, valorCupom, codigoCupom, status) {
+    function abrirModalTroca(id, codigo, pedido, cliente, motivo, observacaoCliente, observacaoAdmin, valorCupom, codigoCupom, status, dataRecebimento, retornoAoEstoque, valorCupomGerado) {
         document.getElementById('trocaId').value = id;
         document.getElementById('trocaCodigo').textContent = codigo;
         document.getElementById('trocaPedido').textContent = pedido;
@@ -385,24 +420,51 @@
         document.getElementById('trocaMotivo').textContent = motivo || '-';
         document.getElementById('trocaObservacaoCliente').textContent = observacaoCliente || 'Sem observacao informada.';
         document.getElementById('observacaoAdminTroca').value = observacaoAdmin || '';
-        document.getElementById('valorCupomTroca').value = valorCupom > 0 ? valorCupom.toFixed(2).replace('.', ',') : '';
+        document.getElementById('valorCupomTroca').value = (valorCupomGerado > 0 ? valorCupomGerado : valorCupom) > 0
+            ? (valorCupomGerado > 0 ? valorCupomGerado : valorCupom).toFixed(2).replace('.', ',')
+            : '';
         document.getElementById('cupomGeradoCodigo').textContent = codigoCupom || '';
+        document.getElementById('trocaDataRecebimento').textContent = dataRecebimento || 'Ainda não confirmado';
+        document.getElementById('trocaRetornoAoEstoque').textContent = retornoAoEstoque === 'sim'
+            ? 'Sim'
+            : retornoAoEstoque === 'nao'
+                ? 'Nao'
+                : 'Pendente de definição';
+        document.getElementById('retornarAoEstoqueTroca').value = retornoAoEstoque === 'nao' ? 'false' : 'true';
 
         const camposAnalise = document.querySelectorAll('.exchange-analysis-fields');
-        const submitButton = document.querySelector('.exchange-analysis-submit');
+        const camposRecebimento = document.querySelectorAll('.exchange-receipt-fields');
+        const submitAnalise = document.querySelector('.exchange-analysis-submit');
+        const submitRecebimento = document.querySelector('.exchange-receipt-submit');
         const cupomGeradoBox = document.getElementById('cupomGeradoBox');
-        const somenteLeitura = status !== 'Solicitado';
+        const blocoRecebimento = document.getElementById('trocaRecebimentoMeta');
+        const form = document.getElementById('trocaForm');
+        const modoAnalise = status === 'Solicitado';
+        const modoRecebimento = status === 'Autorizada';
+        const somenteLeitura = !modoAnalise && !modoRecebimento;
 
         camposAnalise.forEach((campo) => {
-            campo.style.display = somenteLeitura ? 'none' : '';
+            campo.style.display = modoAnalise ? '' : 'none';
         });
 
-        submitButton.style.display = somenteLeitura ? 'none' : '';
-        document.getElementById('decisaoTroca').disabled = somenteLeitura;
-        document.getElementById('valorCupomTroca').disabled = somenteLeitura;
+        camposRecebimento.forEach((campo) => {
+            campo.style.display = modoRecebimento ? '' : 'none';
+        });
+
+        submitAnalise.style.display = modoAnalise ? '' : 'none';
+        submitRecebimento.style.display = modoRecebimento ? '' : 'none';
+        document.getElementById('decisaoTroca').disabled = !modoAnalise;
+        document.getElementById('valorCupomTroca').disabled = !modoRecebimento;
+        document.getElementById('retornarAoEstoqueTroca').disabled = !modoRecebimento;
         document.getElementById('observacaoAdminTroca').readOnly = somenteLeitura;
         cupomGeradoBox.style.display = codigoCupom ? 'flex' : 'none';
-        document.getElementById('trocaModalTitulo').textContent = somenteLeitura ? 'Detalhes da troca' : 'Analisar troca';
+        blocoRecebimento.style.display = (dataRecebimento || somenteLeitura) ? 'grid' : 'none';
+        form.action = modoRecebimento ? '@Url.Action("ConfirmarRecebimentoTroca", "Admin")' : '@Url.Action("AnalisarTroca", "Admin")';
+        document.getElementById('trocaModalTitulo').textContent = modoAnalise
+            ? 'Analisar troca'
+            : modoRecebimento
+                ? 'Confirmar recebimento'
+                : 'Detalhes da troca';
         document.getElementById('trocaModal').style.display = 'flex';
     }
 
@@ -471,3 +533,4 @@
     document.getElementById('clienteCupomPromocionalBusca')?.addEventListener('input', sincronizarClienteCupom);
 </script>
 }
+

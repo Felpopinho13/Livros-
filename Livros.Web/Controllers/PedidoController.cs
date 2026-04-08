@@ -1030,11 +1030,24 @@ namespace Livros.Web.Controllers {
         }
 
         private string FormatarStatusPedido(string? statusAtual, IEnumerable<Troca>? trocas = null) {
-            if (trocas != null && trocas.Any(t => string.Equals(t.Status, "Aprovado", StringComparison.OrdinalIgnoreCase))) {
+            if (trocas != null && trocas.Any(TrocaConcluidaParaCliente)) {
                 return "Troca efetuada";
             }
 
             return statusAtual ?? "Nao informado";
+        }
+
+        private static bool TrocaConcluidaParaCliente(Troca troca) {
+            if (troca == null) {
+                return false;
+            }
+
+            if (string.Equals(troca.Status, "Recebida", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            return string.Equals(troca.Status, "Aprovado", StringComparison.OrdinalIgnoreCase)
+                && troca.CupomDescontoId.HasValue;
         }
 
         private decimal ObterValorPagamento(string campo, decimal? valorPadrao) {
@@ -1093,3 +1106,4 @@ namespace Livros.Web.Controllers {
         }
     }
 }
+

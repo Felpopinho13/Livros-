@@ -1,4 +1,4 @@
-.checkout-alert {
+﻿.checkout-alert {
     margin-bottom: 18px;
     padding: 14px 18px;
     border-radius: 12px;
@@ -357,6 +357,16 @@ h1 {
     color: #16a34a;
 }
 
+.exchange-chip.status-autorizada {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.exchange-chip.status-recebida {
+    background: #dcfce7;
+    color: #15803d;
+}
+
 .exchange-chip.status-recusado {
     background: #fee2e2;
     color: #dc2626;
@@ -455,3 +465,4 @@ h1 {
 .exchange-customer-coupon small {
     color: #475569;
 }
+

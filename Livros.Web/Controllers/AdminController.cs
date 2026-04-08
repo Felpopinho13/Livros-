@@ -437,7 +437,19 @@ public class AdminController : Controller {
         }
 
         if (!string.IsNullOrWhiteSpace(status)) {
-            query = query.Where(t => t.Status == status);
+            if (string.Equals(status, "Autorizada", StringComparison.OrdinalIgnoreCase)) {
+                query = query.Where(t =>
+                    t.Status == "Autorizada" ||
+                    (t.Status == "Aprovado" && !t.CupomDescontoId.HasValue));
+            }
+            else if (string.Equals(status, "Recebida", StringComparison.OrdinalIgnoreCase)) {
+                query = query.Where(t =>
+                    t.Status == "Recebida" ||
+                    (t.Status == "Aprovado" && t.CupomDescontoId.HasValue));
+            }
+            else {
+                query = query.Where(t => t.Status == status);
+            }
         }
 
         var totalTrocas = query.Count();
@@ -472,10 +484,15 @@ public class AdminController : Controller {
                 Motivo = t.Motivo,
                 ObservacaoCliente = t.ObservacaoCliente,
                 ObservacaoAdmin = t.ObservacaoAdmin,
-                Status = t.Status,
+                Status = ObterStatusTrocaExibicao(t),
                 DataSolicitacao = t.DataSolicitacao,
+                DataRecebimento = t.DataRecebimento,
+                RetornarAoEstoque = t.RetornarAoEstoque,
                 ValorSugeridoCupom = CalcularValorCupomTroca(t.PedidoItem, t.Pedido),
-                CodigoCupom = t.CupomDesconto?.Codigo
+                ValorCupomGerado = t.CupomDesconto?.Valor,
+                CodigoCupom = t.CupomDesconto?.Codigo,
+                PodeAnalisar = TrocaEstaSolicitada(t),
+                PodeConfirmarRecebimento = TrocaEstaAutorizada(t)
             }).ToList(),
             CuponsRecentes = _context.CuponsDesconto
                 .OrderByDescending(c => c.DataCriacao)
@@ -511,7 +528,7 @@ public class AdminController : Controller {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult AnalisarTroca(int trocaId, string decisao, string? observacaoAdmin, decimal? valorCupom) {
+    public IActionResult AnalisarTroca(int trocaId, string decisao, string? observacaoAdmin) {
         var troca = _context.Trocas
             .Include(t => t.Pedido)
             .Include(t => t.PedidoItem)
@@ -524,7 +541,7 @@ public class AdminController : Controller {
             return RedirectToAction("Trocas");
         }
 
-        if (troca.Status != "Solicitado") {
+        if (!TrocaEstaSolicitada(troca)) {
             TempData["Erro"] = "Esta solicitação já foi analisada.";
             return RedirectToAction("Trocas");
         }
@@ -533,10 +550,58 @@ public class AdminController : Controller {
         troca.DataAnalise = DateTime.Now;
 
         if (string.Equals(decisao, "aprovar", StringComparison.OrdinalIgnoreCase)) {
-            var valorSugerido = CalcularValorCupomTroca(troca.PedidoItem, troca.Pedido);
-            var valorInformado = ObterDecimalFormulario("valorCupom", valorCupom ?? 0);
-            var valorCupomNormalizado = valorInformado > 0 ? valorInformado : valorSugerido;
+            troca.Status = "Autorizada";
 
+            _context.SaveChanges();
+            TempData["Sucesso"] = "Troca autorizada com sucesso. O cupom sera gerado somente apos o recebimento do item devolvido.";
+            return RedirectToAction("Trocas");
+        }
+
+        troca.Status = "Recusado";
+        _context.SaveChanges();
+        TempData["Sucesso"] = "Solicitação de troca recusada com sucesso.";
+        return RedirectToAction("Trocas");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ConfirmarRecebimentoTroca(int trocaId, bool retornarAoEstoque, string? observacaoAdmin, decimal? valorCupom) {
+        var troca = _context.Trocas
+            .Include(t => t.Pedido)
+            .Include(t => t.PedidoItem)
+                .ThenInclude(i => i.Livro)
+            .Include(t => t.CupomDesconto)
+            .FirstOrDefault(t => t.Id == trocaId);
+
+        if (troca == null) {
+            TempData["Erro"] = "Solicitação de troca não encontrada.";
+            return RedirectToAction("Trocas");
+        }
+
+        if (!TrocaEstaAutorizada(troca)) {
+            TempData["Erro"] = "Somente trocas autorizadas podem ter o recebimento confirmado.";
+            return RedirectToAction("Trocas");
+        }
+
+        var valorSugerido = CalcularValorCupomTroca(troca.PedidoItem, troca.Pedido);
+        var valorInformado = ObterDecimalFormulario("valorCupom", valorCupom ?? 0);
+        var valorCupomNormalizado = valorInformado > 0 ? valorInformado : valorSugerido;
+
+        if (valorCupomNormalizado <= 0) {
+            TempData["Erro"] = "Informe um valor válido para o cupom de troca.";
+            return RedirectToAction("Trocas");
+        }
+
+        troca.ObservacaoAdmin = observacaoAdmin?.Trim();
+        troca.DataRecebimento = DateTime.Now;
+        troca.RetornarAoEstoque = retornarAoEstoque;
+        troca.Status = "Recebida";
+
+        if (retornarAoEstoque) {
+            ReintegrarItemTrocaAoEstoque(troca.PedidoItem);
+        }
+
+        if (!troca.CupomDescontoId.HasValue) {
             var cupom = new CupomDesconto {
                 Codigo = GerarCodigoCupom("TROCA"),
                 Valor = valorCupomNormalizado,
@@ -549,17 +614,19 @@ public class AdminController : Controller {
             _context.CuponsDesconto.Add(cupom);
             _context.SaveChanges();
 
-            troca.Status = "Aprovado";
             troca.CupomDescontoId = cupom.Id;
-
             _context.SaveChanges();
-            TempData["Sucesso"] = $"Troca aprovada e cupom {cupom.Codigo} gerado com sucesso.";
+
+            TempData["Sucesso"] = retornarAoEstoque
+                ? $"Recebimento confirmado, item devolvido reintegrado ao estoque e cupom {cupom.Codigo} gerado."
+                : $"Recebimento confirmado e cupom {cupom.Codigo} gerado com sucesso.";
             return RedirectToAction("Trocas");
         }
 
-        troca.Status = "Recusado";
         _context.SaveChanges();
-        TempData["Sucesso"] = "Solicitação de troca recusada com sucesso.";
+        TempData["Sucesso"] = retornarAoEstoque
+            ? "Recebimento confirmado e item devolvido reintegrado ao estoque."
+            : "Recebimento confirmado com sucesso.";
         return RedirectToAction("Trocas");
     }
 
@@ -678,6 +745,32 @@ public class AdminController : Controller {
         return $"{prefixo}-{DateTime.Now:yyyyMMddHHmmss}";
     }
 
+    private static bool TrocaEstaSolicitada(Troca troca) {
+        return string.Equals(troca.Status, "Solicitado", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TrocaEstaAutorizada(Troca troca) {
+        return string.Equals(troca.Status, "Autorizada", StringComparison.OrdinalIgnoreCase)
+            || (string.Equals(troca.Status, "Aprovado", StringComparison.OrdinalIgnoreCase) && !troca.CupomDescontoId.HasValue);
+    }
+
+    private static bool TrocaEstaRecebida(Troca troca) {
+        return string.Equals(troca.Status, "Recebida", StringComparison.OrdinalIgnoreCase)
+            || (string.Equals(troca.Status, "Aprovado", StringComparison.OrdinalIgnoreCase) && troca.CupomDescontoId.HasValue);
+    }
+
+    private static string ObterStatusTrocaExibicao(Troca troca) {
+        if (TrocaEstaRecebida(troca)) {
+            return "Recebida";
+        }
+
+        if (TrocaEstaAutorizada(troca)) {
+            return "Autorizada";
+        }
+
+        return troca.Status;
+    }
+
     private string ObterStatusPagamentoPedido(Pedido pedido) {
         if (pedido.Pagamentos == null || !pedido.Pagamentos.Any()) {
             return "Sem pagamento";
@@ -780,6 +873,23 @@ public class AdminController : Controller {
         }
     }
 
+    private void ReintegrarItemTrocaAoEstoque(PedidoItem? pedidoItem) {
+        if (pedidoItem == null) {
+            return;
+        }
+
+        var estoque = _context.Estoques.FirstOrDefault(e => e.LivroId == pedidoItem.LivroId);
+        if (estoque == null) {
+            estoque = new Estoque {
+                LivroId = pedidoItem.LivroId,
+                Quantidade = 0
+            };
+            _context.Estoques.Add(estoque);
+        }
+
+        estoque.Quantidade += pedidoItem.Quantidade;
+    }
+
     private void AtualizarStatusPagamentosPedido(Pedido pedido, string novoStatus) {
         if (pedido.Pagamentos == null || !pedido.Pagamentos.Any()) {
             return;
@@ -873,5 +983,6 @@ public class AdminController : Controller {
         };
     }
 }
+
 
 

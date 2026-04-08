@@ -1,4 +1,4 @@
-@model DetalhesPedidoViewModel
+ï»¿@model DetalhesPedidoViewModel
 
 @{
     var itemPrincipal = Model.Itens.FirstOrDefault();
@@ -16,7 +16,7 @@
         <h2>Detalhes do pedido</h2>
 
         <div class="order-meta">
-            Pedido realizado em @Model.Data.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-BR")) | Nº do pedido #@Model.PedidoId
+            Pedido realizado em @Model.Data.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-BR")) | NÂº do pedido #@Model.PedidoId
         </div>
 
         @if (TempData["SucessoTroca"] != null) {
@@ -100,8 +100,8 @@
 
             <div class="order-exchange-box">
                 <div class="order-exchange-header">
-                    <h3>Trocas e devoluções</h3>
-                    <p>Solicite a análise de troca por item do pedido. Quando aprovada, você verá o cupom liberado aqui para usar no checkout.</p>
+                    <h3>Trocas e devoluÃ§Ãµes</h3>
+                    <p>Solicite a anÃ¡lise de troca por item do pedido. Depois que o item for autorizado e recebido, o cupom ficarÃ¡ liberado aqui para uso no checkout.</p>
                 </div>
 
                 <div class="order-exchange-list">
@@ -133,7 +133,7 @@
 
                             <div class="order-exchange-item-status">
                                 @if (item.PodeSolicitarTroca) {
-                                    <span class="exchange-chip available">Elegível para troca</span>
+                                    <span class="exchange-chip available">ElegÃ­vel para troca</span>
                                 }
                                 else {
                                     <span class="exchange-chip status-@((item.TrocaStatus ?? string.Empty).ToLowerInvariant().Replace(" ", "-"))">@item.TrocaStatus</span>
@@ -154,8 +154,14 @@
                                     </button>
                                 }
                                 else {
+                                    var textoBotaoTroca = item.TrocaStatus == "Autorizada"
+                                        ? "Troca autorizada"
+                                        : item.TrocaStatus == "Recebida"
+                                            ? "Troca concluÃ­da"
+                                            : "SolicitaÃ§Ã£o enviada";
+
                                     <button type="button" class="btn-amazon btn-secondary" disabled>
-                                        Solicitação enviada
+                                        @textoBotaoTroca
                                     </button>
                                 }
                             </div>
@@ -190,19 +196,19 @@
                         <option value="Produto danificado">Produto danificado</option>
                         <option value="Livro errado">Livro errado</option>
                         <option value="Arrependimento">Arrependimento</option>
-                        <option value="Defeito de impressão">Defeito de impressão</option>
+                        <option value="Defeito de impressÃ£o">Defeito de impressÃ£o</option>
                     </select>
                 </div>
 
                 <div class="admin-form-group">
-                    <label for="trocaObservacao">Observação</label>
+                    <label for="trocaObservacao">ObservaÃ§Ã£o</label>
                     <textarea id="trocaObservacao" name="observacaoCliente" class="admin-input" rows="4" placeholder="Se quiser, descreva o problema com mais detalhes."></textarea>
                 </div>
             </div>
 
             <div class="admin-modal-footer">
                 <button type="button" class="btn-secondary" onclick="fecharModalTroca()">Cancelar</button>
-                <button type="submit" class="btn-primary">Enviar solicitação</button>
+                <button type="submit" class="btn-primary">Enviar solicitaÃ§Ã£o</button>
             </div>
         </form>
     </div>
@@ -241,3 +247,4 @@
     });
 </script>
 }
+
