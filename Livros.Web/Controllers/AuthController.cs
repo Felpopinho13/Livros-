@@ -34,9 +34,12 @@ public class AuthController : Controller {
     DateTime? dataNascimento,
     string nomeEndereco,
     string cep,
+    string tipoLogradouro,
     string logradouro,
     string numero,
     string complemento,
+    string tipoResidencia,
+    string pais,
     string bairro,
     string cidade,
     string estado
@@ -103,14 +106,20 @@ public class AuthController : Controller {
         }
 
         var endereco = new Endereco {
-            NomeEndereco = nomeEndereco,
-            CEP = cep,
-            Logradouro = logradouro,
-            Numero = numero,
-            Complemento = complemento,
+            NomeEndereco = nomeEndereco.Trim(),
+            CEP = cep.Trim(),
+            TipoLogradouro = string.IsNullOrWhiteSpace(tipoLogradouro) ? "Rua" : tipoLogradouro.Trim(),
+            Logradouro = logradouro.Trim(),
+            Numero = numero.Trim(),
+            Complemento = string.IsNullOrWhiteSpace(complemento) ? null : complemento.Trim(),
+            TipoResidencia = string.IsNullOrWhiteSpace(tipoResidencia) ? "Casa" : tipoResidencia.Trim(),
+            Pais = string.IsNullOrWhiteSpace(pais) ? "Brasil" : pais.Trim(),
             CidadeId = cidadeEntity.Id,
             BairroId = bairroEntity.Id,
-            Cliente = cliente
+            Cliente = cliente,
+            IsEntrega = true,
+            IsCobranca = true,
+            IsPadrao = true
         };
 
         cliente.Enderecos = new List<Endereco> { endereco };

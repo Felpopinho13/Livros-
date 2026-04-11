@@ -88,6 +88,29 @@
 
                 <div class="form-row">
                     <div class="form-group">
+                        <label>Tipo de Logradouro</label>
+                        <select name="tipoLogradouro" required>
+                            <option value="Rua">Rua</option>
+                            <option value="Avenida">Avenida</option>
+                            <option value="Alameda">Alameda</option>
+                            <option value="Travessa">Travessa</option>
+                            <option value="Estrada">Estrada</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tipo de Residência</label>
+                        <select name="tipoResidencia" required>
+                            <option value="Casa">Casa</option>
+                            <option value="Apartamento">Apartamento</option>
+                            <option value="Comercial">Comercial</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
                         <label>Número</label>
                         <input type="text" name="numero" maxlength="10" required>
                     </div>
@@ -101,6 +124,11 @@
                 <div class="form-group">
                     <label>Bairro</label>
                     <input type="text" name="bairro" id="bairro" required>
+                </div>
+
+                <div class="form-group">
+                    <label>País</label>
+                    <input type="text" name="pais" value="Brasil" maxlength="60" required>
                 </div>
 
                 <div class="form-row">
