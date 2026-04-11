@@ -504,15 +504,31 @@ public class ClienteController : Controller {
 
         var cliente = _context.Clientes
             .Include(c => c.Cartoes)
+                .ThenInclude(c => c.BandeiraCartao)
             .FirstOrDefault(c => c.Email == email);
 
-        return View(cliente.Cartoes.ToList());
+        if (cliente == null)
+            return RedirectToAction("Login", "Auth");
+
+        var vm = new CartoesViewModel {
+            Cartoes = cliente.Cartoes?
+                .OrderByDescending(c => c.IsPadrao)
+                .ThenBy(c => c.NomeImpresso)
+                .ToList() ?? new List<Cartao>(),
+            Bandeiras = _context.BandeirasCartao
+                .Where(b => b.IsAtiva)
+                .OrderBy(b => b.Nome)
+                .ToList()
+        };
+
+        return View(vm);
     }
 
     [HttpPost]
     public IActionResult CadastrarCartao(
     string nome,
     string numero,
+    int bandeiraCartaoId,
     string validade,
     string cvv) {
         var idStr = HttpContext.Session.GetString("ClienteId");
@@ -524,16 +540,55 @@ public class ClienteController : Controller {
 
         var cliente = _context.Clientes.FirstOrDefault(c => c.Id == id);
 
+        if (cliente == null)
+            return RedirectToAction("Login", "Auth");
+
+        var bandeira = _context.BandeirasCartao
+            .FirstOrDefault(b => b.Id == bandeiraCartaoId && b.IsAtiva);
+
+        if (bandeira == null) {
+            TempData["Erro"] = "Selecione uma bandeira de cartao valida.";
+            return RedirectToAction("Cartoes");
+        }
+
+        if (string.IsNullOrWhiteSpace(nome) ||
+            string.IsNullOrWhiteSpace(numero) ||
+            string.IsNullOrWhiteSpace(validade) ||
+            string.IsNullOrWhiteSpace(cvv)) {
+            TempData["Erro"] = "Preencha todos os dados obrigatorios do cartao.";
+            return RedirectToAction("Cartoes");
+        }
+
+        var numeroNormalizado = NormalizarDigitos(numero);
+        if (numeroNormalizado.Length != 16) {
+            TempData["Erro"] = "O numero do cartao deve ter exatamente 16 digitos.";
+            return RedirectToAction("Cartoes");
+        }
+
+        var cvvNormalizado = NormalizarDigitos(cvv);
+        if (cvvNormalizado.Length != 3) {
+            TempData["Erro"] = "O CVV deve ter exatamente 3 digitos.";
+            return RedirectToAction("Cartoes");
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(validade.Trim(), "^(0[1-9]|1[0-2])\\/\\d{2}$")) {
+            TempData["Erro"] = "A validade deve estar no formato MM/AA.";
+            return RedirectToAction("Cartoes");
+        }
+
         var cartao = new Cartao {
-            NomeImpresso = nome,
-            Numero = numero,
-            Validade = validade,
-            CVV = cvv,
+            NomeImpresso = nome.Trim(),
+            Numero = numeroNormalizado,
+            Validade = validade.Trim(),
+            CVV = cvvNormalizado,
+            BandeiraCartaoId = bandeira.Id,
             ClienteId = cliente.Id
         };
 
         _context.Cartoes.Add(cartao);
         _context.SaveChanges();
+
+        TempData["Sucesso"] = "Cartao cadastrado com sucesso!";
 
         return RedirectToAction("Cartoes");
     }
@@ -698,6 +753,14 @@ public class ClienteController : Controller {
         endereco.Complemento = string.IsNullOrWhiteSpace(endereco.Complemento) ? null : endereco.Complemento.Trim();
         endereco.TipoResidencia = endereco.TipoResidencia?.Trim() ?? string.Empty;
         endereco.Pais = endereco.Pais?.Trim() ?? "Brasil";
+    }
+
+    private string NormalizarDigitos(string? valor) {
+        if (string.IsNullOrWhiteSpace(valor)) {
+            return string.Empty;
+        }
+
+        return new string(valor.Where(char.IsDigit).ToArray());
     }
 }
 

@@ -130,15 +130,26 @@
                                         var numeroFinal = cartao.Numero?.Length >= 4 ? cartao.Numero.Substring(cartao.Numero.Length - 4) : cartao.Numero;
 
                                         if (selecionado) {
-                                            <option value="@cartao.Id" selected>@cartao.NomeImpresso - **** @numeroFinal</option>
+                                            <option value="@cartao.Id" selected>@cartao.BandeiraCartao?.Nome - @cartao.NomeImpresso - **** @numeroFinal</option>
                                         }
                                         else {
-                                            <option value="@cartao.Id">@cartao.NomeImpresso - **** @numeroFinal</option>
+                                            <option value="@cartao.Id">@cartao.BandeiraCartao?.Nome - @cartao.NomeImpresso - **** @numeroFinal</option>
                                         }
                                     }
                                 </select>
 
                                 <div id="novoCartaoForm1" class="new-card-fields" style="@((form.CartaoId1.HasValue && form.CartaoId1.Value > 0) ? "display:none;" : "display:grid;")">
+                                    <select name="BandeiraCartaoId1">
+                                        <option value="">Selecione a bandeira</option>
+                                        @foreach (var bandeira in Model.Bandeiras) {
+                                            if (form.BandeiraCartaoId1 == bandeira.Id) {
+                                                <option value="@bandeira.Id" selected>@bandeira.Nome</option>
+                                            }
+                                            else {
+                                                <option value="@bandeira.Id">@bandeira.Nome</option>
+                                            }
+                                        }
+                                    </select>
                                     <input name="NomeCartao1" maxlength="100" placeholder="Nome impresso" value="@form.NomeCartao1">
                                     <input name="NumeroCartao1" maxlength="16" minlength="16" inputmode="numeric" pattern="\d{16}" placeholder="Número do cartão (16 dígitos)" value="@form.NumeroCartao1">
                                     <input name="CVV1" maxlength="3" minlength="3" inputmode="numeric" pattern="\d{3}" placeholder="CVV" value="@form.CVV1">
@@ -211,15 +222,26 @@
                                             var numeroFinal = cartao.Numero?.Length >= 4 ? cartao.Numero.Substring(cartao.Numero.Length - 4) : cartao.Numero;
 
                                             if (selecionado) {
-                                                <option value="@cartao.Id" selected>@cartao.NomeImpresso - **** @numeroFinal</option>
+                                                <option value="@cartao.Id" selected>@cartao.BandeiraCartao?.Nome - @cartao.NomeImpresso - **** @numeroFinal</option>
                                             }
                                             else {
-                                                <option value="@cartao.Id">@cartao.NomeImpresso - **** @numeroFinal</option>
+                                                <option value="@cartao.Id">@cartao.BandeiraCartao?.Nome - @cartao.NomeImpresso - **** @numeroFinal</option>
                                             }
                                         }
                                     </select>
 
                                     <div id="novoCartaoForm2" class="new-card-fields" style="@((form.CartaoId2.HasValue && form.CartaoId2.Value > 0) ? "display:none;" : "display:grid;")">
+                                        <select name="BandeiraCartaoId2">
+                                            <option value="">Selecione a bandeira</option>
+                                            @foreach (var bandeira in Model.Bandeiras) {
+                                                if (form.BandeiraCartaoId2 == bandeira.Id) {
+                                                    <option value="@bandeira.Id" selected>@bandeira.Nome</option>
+                                                }
+                                                else {
+                                                    <option value="@bandeira.Id">@bandeira.Nome</option>
+                                                }
+                                            }
+                                        </select>
                                         <input name="NomeCartao2" maxlength="100" placeholder="Nome impresso" value="@form.NomeCartao2">
                                         <input name="NumeroCartao2" maxlength="16" minlength="16" inputmode="numeric" pattern="\d{16}" placeholder="Número do cartão (16 dígitos)" value="@form.NumeroCartao2">
                                         <input name="CVV2" maxlength="3" minlength="3" inputmode="numeric" pattern="\d{3}" placeholder="CVV" value="@form.CVV2">

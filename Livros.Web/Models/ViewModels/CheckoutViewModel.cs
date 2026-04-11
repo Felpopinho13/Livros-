@@ -15,6 +15,7 @@ public class CheckoutViewModel {
     public List<CheckoutResumoItemViewModel> Itens { get; set; } = new();
     public List<Endereco> Enderecos { get; set; } = new();
     public List<Cartao> Cartoes { get; set; } = new();
+    public List<BandeiraCartao> Bandeiras { get; set; } = new();
     public int Quantidade { get; set; }
     public decimal Subtotal { get; set; }
     public decimal Frete { get; set; }
@@ -49,6 +50,7 @@ public class CheckoutFormData {
     public string? Metodo1 { get; set; }
     public decimal? Valor1 { get; set; }
     public int? CartaoId1 { get; set; }
+    public int? BandeiraCartaoId1 { get; set; }
     public bool SalvarNovoCartao1 { get; set; }
     public string? NomeCartao1 { get; set; }
     public string? NumeroCartao1 { get; set; }
@@ -58,6 +60,7 @@ public class CheckoutFormData {
     public string? Metodo2 { get; set; }
     public decimal? Valor2 { get; set; }
     public int? CartaoId2 { get; set; }
+    public int? BandeiraCartaoId2 { get; set; }
     public bool SalvarNovoCartao2 { get; set; }
     public string? NomeCartao2 { get; set; }
     public string? NumeroCartao2 { get; set; }

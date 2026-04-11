@@ -8,6 +8,25 @@ namespace Livros.Infrastructure.Data {
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
+            modelBuilder.Entity<BandeiraCartao>()
+                .HasIndex(b => b.Codigo)
+                .IsUnique();
+
+            modelBuilder.Entity<BandeiraCartao>()
+                .HasData(
+                    new BandeiraCartao { Id = 1, Nome = "Visa", Codigo = "VISA", IsAtiva = true },
+                    new BandeiraCartao { Id = 2, Nome = "Mastercard", Codigo = "MASTERCARD", IsAtiva = true },
+                    new BandeiraCartao { Id = 3, Nome = "Elo", Codigo = "ELO", IsAtiva = true },
+                    new BandeiraCartao { Id = 4, Nome = "Hipercard", Codigo = "HIPERCARD", IsAtiva = true },
+                    new BandeiraCartao { Id = 5, Nome = "American Express", Codigo = "AMEX", IsAtiva = true }
+                );
+
+            modelBuilder.Entity<Cartao>()
+                .HasOne(c => c.BandeiraCartao)
+                .WithMany(b => b.Cartoes)
+                .HasForeignKey(c => c.BandeiraCartaoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<Endereco>()
                 .HasOne(e => e.Cidade)
                 .WithMany()
@@ -86,6 +105,7 @@ namespace Livros.Infrastructure.Data {
         public DbSet<Estado> Estados { get; set; }
         public DbSet<Cidade> Cidades { get; set; }
         public DbSet<Bairro> Bairros { get; set; }
+        public DbSet<BandeiraCartao> BandeirasCartao { get; set; }
         public DbSet<Cartao> Cartoes { get; set; }
         public DbSet<Livro> Livros { get; set; }
         public DbSet<Categoria> Categorias { get; set; }

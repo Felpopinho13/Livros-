@@ -254,10 +254,10 @@ namespace Livros.Web.Controllers {
                 });
             }
 
-            AdicionarPagamentoAoPedido(clienteId.Value, form.Metodo1, form.Valor1, form.CartaoId1, form.SalvarNovoCartao1,
+            AdicionarPagamentoAoPedido(clienteId.Value, form.Metodo1, form.Valor1, form.CartaoId1, form.BandeiraCartaoId1, form.SalvarNovoCartao1,
                 form.NomeCartao1, form.NumeroCartao1, form.Validade1, form.CVV1, pedido);
 
-            AdicionarPagamentoAoPedido(clienteId.Value, form.Metodo2, form.Valor2, form.CartaoId2, form.SalvarNovoCartao2,
+            AdicionarPagamentoAoPedido(clienteId.Value, form.Metodo2, form.Valor2, form.CartaoId2, form.BandeiraCartaoId2, form.SalvarNovoCartao2,
                 form.NomeCartao2, form.NumeroCartao2, form.Validade2, form.CVV2, pedido);
 
             _context.Pedidos.Add(pedido);
@@ -680,8 +680,13 @@ namespace Livros.Web.Controllers {
                 .ThenBy(e => e.NomeEndereco)
                 .ToList();
             var cartoes = _context.Cartoes
+                .Include(c => c.BandeiraCartao)
                 .Where(c => c.ClienteId == clienteId)
                 .OrderByDescending(c => c.IsPadrao)
+                .ToList();
+            var bandeiras = _context.BandeirasCartao
+                .Where(b => b.IsAtiva)
+                .OrderBy(b => b.Nome)
                 .ToList();
 
             if (form.EnderecoId == 0 && enderecos.Any() && string.IsNullOrWhiteSpace(form.Logradouro)) {
@@ -720,6 +725,7 @@ namespace Livros.Web.Controllers {
                 }).ToList(),
                 Enderecos = enderecos,
                 Cartoes = cartoes,
+                Bandeiras = bandeiras,
                 Quantidade = quantidadeTotal,
                 Subtotal = subtotal,
                 Frete = frete,
@@ -848,14 +854,14 @@ namespace Livros.Web.Controllers {
                 ModelState.AddModelError(string.Empty, "A soma dos pagamentos deve ser igual ao total do pedido.");
             }
 
-            ValidarPagamentoCartao(clienteId, form.Metodo1 ?? string.Empty, valor1, form.CartaoId1, form.NomeCartao1, form.NumeroCartao1, form.Validade1, form.CVV1, usaCupom, 1);
+            ValidarPagamentoCartao(clienteId, form.Metodo1 ?? string.Empty, valor1, form.CartaoId1, form.BandeiraCartaoId1, form.NomeCartao1, form.NumeroCartao1, form.Validade1, form.CVV1, usaCupom, 1);
 
             if (!string.IsNullOrWhiteSpace(form.Metodo2)) {
-                ValidarPagamentoCartao(clienteId, form.Metodo2, valor2, form.CartaoId2, form.NomeCartao2, form.NumeroCartao2, form.Validade2, form.CVV2, usaCupom, 2);
+                ValidarPagamentoCartao(clienteId, form.Metodo2, valor2, form.CartaoId2, form.BandeiraCartaoId2, form.NomeCartao2, form.NumeroCartao2, form.Validade2, form.CVV2, usaCupom, 2);
             }
         }
 
-        private void ValidarPagamentoCartao(int clienteId, string metodo, decimal valor, int? cartaoId,
+        private void ValidarPagamentoCartao(int clienteId, string metodo, decimal valor, int? cartaoId, int? bandeiraCartaoId,
             string? nome, string? numero, string? validade, string? cvv, bool usaCupom, int indice) {
             if (!string.Equals(metodo, "cartao", StringComparison.OrdinalIgnoreCase)) {
                 return;
@@ -866,9 +872,13 @@ namespace Livros.Web.Controllers {
             }
 
             if (cartaoId.HasValue && cartaoId.Value > 0) {
-                var cartaoExistente = _context.Cartoes.FirstOrDefault(c => c.Id == cartaoId.Value && c.ClienteId == clienteId);
+                var cartaoExistente = _context.Cartoes
+                    .Include(c => c.BandeiraCartao)
+                    .FirstOrDefault(c => c.Id == cartaoId.Value && c.ClienteId == clienteId);
                 if (cartaoExistente == null) {
                     ModelState.AddModelError(string.Empty, $"Selecione um cartao valido no pagamento {indice}.");
+                } else if (cartaoExistente.BandeiraCartao == null || !cartaoExistente.BandeiraCartao.IsAtiva) {
+                    ModelState.AddModelError(string.Empty, $"O cartao selecionado no pagamento {indice} possui uma bandeira invalida.");
                 }
 
                 return;
@@ -877,6 +887,10 @@ namespace Livros.Web.Controllers {
             if (string.IsNullOrWhiteSpace(nome) || string.IsNullOrWhiteSpace(numero) || string.IsNullOrWhiteSpace(validade) || string.IsNullOrWhiteSpace(cvv)) {
                 ModelState.AddModelError(string.Empty, $"Preencha os dados completos do novo cartao no pagamento {indice}.");
                 return;
+            }
+
+            if (!bandeiraCartaoId.HasValue || !_context.BandeirasCartao.Any(b => b.Id == bandeiraCartaoId.Value && b.IsAtiva)) {
+                ModelState.AddModelError(string.Empty, $"Selecione uma bandeira valida no pagamento {indice}.");
             }
 
             var numeroNormalizado = NormalizarDigitos(numero);
@@ -894,7 +908,7 @@ namespace Livros.Web.Controllers {
             }
         }
 
-        private void AdicionarPagamentoAoPedido(int clienteId, string? metodo, decimal? valor, int? cartaoId, bool salvarNovoCartao,
+        private void AdicionarPagamentoAoPedido(int clienteId, string? metodo, decimal? valor, int? cartaoId, int? bandeiraCartaoId, bool salvarNovoCartao,
             string? nomeCartao, string? numeroCartao, string? validade, string? cvv, Pedido pedido) {
             if (string.IsNullOrWhiteSpace(metodo) || !valor.HasValue || valor.Value <= 0) {
                 return;
@@ -906,7 +920,8 @@ namespace Livros.Web.Controllers {
                     NomeImpresso = (nomeCartao ?? string.Empty).Trim(),
                     Numero = NormalizarDigitos(numeroCartao),
                     Validade = (validade ?? string.Empty).Trim(),
-                    CVV = NormalizarDigitos(cvv)
+                    CVV = NormalizarDigitos(cvv),
+                    BandeiraCartaoId = bandeiraCartaoId ?? 0
                 };
 
                 _context.Cartoes.Add(novoCartao);

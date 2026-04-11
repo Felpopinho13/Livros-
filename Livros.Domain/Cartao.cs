@@ -6,6 +6,8 @@
         public string Numero { get; set; }
         public string Validade { get; set; }
         public string CVV { get; set; }
+        public int BandeiraCartaoId { get; set; }
+        public BandeiraCartao BandeiraCartao { get; set; }
 
         public bool IsPadrao { get; set; } = false;
 

@@ -1,4 +1,4 @@
-@model List<Livros.Domain.Cartao>
+@model Livros.Web.Models.ViewModels.CartoesViewModel
 
 <section class="account-page">
     <div class="container account-layout">
@@ -11,44 +11,63 @@
                         <a asp-controller="Cliente" asp-action="AreaCliente">
                             Central Minha Conta
                         </a>
-                        / <strong>Cartões</strong>
+                        / <strong>Cartoes</strong>
                     </div>
 
-                    <div class="wallet-header">
-                        <h2>Cartões</h2>
+                    @if (TempData["Sucesso"] != null) {
+                        <div class="checkout-feedback success">@TempData["Sucesso"]</div>
+                    }
 
-                        <button class="btn-primary" id="openCardModal">
-                            + Adicionar Cartão de Crédito
+                    @if (TempData["Erro"] != null) {
+                        <div class="checkout-feedback error">@TempData["Erro"]</div>
+                    }
+
+                    <div class="wallet-header">
+                        <h2>Cartoes</h2>
+
+                        <button class="btn-primary" id="openCardModal" type="button">
+                            + Adicionar cartao de credito
                         </button>
                     </div>
 
                     <div class="wallet-grid">
-                        @foreach (var c in Model) {
+                        @if (!Model.Cartoes.Any()) {
+                            <div class="wallet-card wallet-card-empty">
+                                <strong>Nenhum cartao cadastrado</strong>
+                                <p>Cadastre um cartao com bandeira valida para usar no checkout.</p>
+                            </div>
+                        }
+
+                        @foreach (var c in Model.Cartoes) {
                             <div class="wallet-card @(c.IsPadrao ? "primary" : "")">
                                 <div class="wallet-card-top">
-                                    <strong>@c.NomeImpresso</strong>
+                                    <div>
+                                        <strong>@c.NomeImpresso</strong>
+                                        <p class="wallet-brand">@c.BandeiraCartao?.Nome</p>
+                                    </div>
 
                                     @if (c.IsPadrao) {
-                                        <span class="badge">Padrão</span>
+                                        <span class="badge">Padrao</span>
                                     }
                                 </div>
 
-                                <p>**** **** **** @c.Numero.Substring(c.Numero.Length - 4)</p>
-                                <p>Vence em @c.Validade</p>
+                                <p>**** **** **** @c.Numero.Substring(Math.Max(c.Numero.Length - 4, 0))</p>
+                                <p>Validade: @c.Validade</p>
 
                                 <div class="wallet-actions">
                                     <form asp-action="ExcluirCartao" method="post" style="display:inline;">
+                                        @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@c.Id" />
 
                                         <button type="submit" class="btn-danger btn-sm"
-                                                onclick="return confirm('Tem certeza que deseja remover este cartão?');">
+                                                onclick="return confirm('Tem certeza que deseja remover este cartao?');">
                                             Remover
                                         </button>
                                     </form>
 
                                     @if (!c.IsPadrao) {
                                         <a asp-action="TornarCartaoPadrao" asp-route-id="@c.Id" class="make-default">
-                                            Tornar padrão
+                                            Tornar padrao
                                         </a>
                                     }
                                 </div>
@@ -63,11 +82,20 @@
 
 <div class="modal-overlay" id="cardModal">
     <div class="modal">
-        <h3>Novo Cartão</h3>
+        <h3>Novo cartao</h3>
 
         <form asp-action="CadastrarCartao" method="post">
-            <input type="text" name="nome" placeholder="Nome impresso" required>
-            <input type="text" id="numeroCartao" name="numero" placeholder="Número do cartão" maxlength="16" required>
+            @Html.AntiForgeryToken()
+
+            <select name="bandeiraCartaoId" required>
+                <option value="">Selecione a bandeira</option>
+                @foreach (var bandeira in Model.Bandeiras) {
+                    <option value="@bandeira.Id">@bandeira.Nome</option>
+                }
+            </select>
+
+            <input type="text" name="nome" placeholder="Nome impresso" maxlength="100" required>
+            <input type="text" id="numeroCartao" name="numero" placeholder="Numero do cartao" maxlength="19" required>
 
             <div class="form-row">
                 <input type="text" id="validadeCartao" name="validade" placeholder="MM/AA" maxlength="5" required>
@@ -75,15 +103,13 @@
             </div>
 
             <div class="modal-actions">
-                <div class="modal-actions">
-                    <button type="button" id="closeCardModal" class="btn-secondary">
-                        Cancelar
-                    </button>
+                <button type="button" id="closeCardModal" class="btn-secondary">
+                    Cancelar
+                </button>
 
-                    <button type="submit" class="btn-primary">
-                        Salvar
-                    </button>
-                </div>
+                <button type="submit" class="btn-primary">
+                    Salvar
+                </button>
             </div>
         </form>
     </div>
