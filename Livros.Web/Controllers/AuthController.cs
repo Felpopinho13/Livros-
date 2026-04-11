@@ -1,6 +1,7 @@
 ﻿using Livros.Domain;
 using Livros.Infrastructure.Services;
 using Livros.Infrastructure.Data;
+using Livros.Web.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
@@ -51,10 +52,8 @@ public class AuthController : Controller {
             return RedirectToAction("Cadastro");
         }
 
-        var regex = new System.Text.RegularExpressions.Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$");
-
-        if (!regex.IsMatch(senha)) {
-            TempData["Erro"] = "Senha fraca! Use 8 caracteres com maiúscula, minúscula e símbolo.";
+        if (!PasswordPolicyHelper.IsStrongPassword(senha)) {
+            TempData["Erro"] = PasswordPolicyHelper.MensagemRequisito;
             return RedirectToAction("Cadastro");
         }
 

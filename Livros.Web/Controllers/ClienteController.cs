@@ -639,10 +639,8 @@ public class ClienteController : Controller {
             return RedirectToAction("AlterarSenha");
         }
 
-        var regex = new System.Text.RegularExpressions.Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$");
-
-        if (!regex.IsMatch(novaSenha)) {
-            TempData["Erro"] = "Senha fraca. Use maiúsculas, minúsculas, símbolo e mínimo 8 caracteres.";
+        if (!PasswordPolicyHelper.IsStrongPassword(novaSenha)) {
+            TempData["Erro"] = PasswordPolicyHelper.MensagemRequisito;
             return RedirectToAction("AlterarSenha");
         }
 

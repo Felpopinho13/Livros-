@@ -1,4 +1,4 @@
-@model Livros.Domain.Cliente
+﻿@model Livros.Domain.Cliente
 
 @{
     ViewData["Title"] = "Alterar Senha";
@@ -38,7 +38,7 @@
 
                         <div class="form-group">
                             <label>Nova senha</label>
-                            <input type="password" name="novaSenha" required>
+                            <input type="password" name="novaSenha" required minlength="8" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9\\s])(?=\\S+$).{8,}$" title="A senha deve ter pelo menos 8 caracteres, letras maiusculas, minusculas e caractere especial, sem espacos.">
                         </div>
 
                         <div class="form-group">
@@ -47,7 +47,7 @@
                         </div>
 
                         <p class="password-help">
-                            Use pelo menos 8 caracteres com letra maiúscula, minúscula e símbolo.
+                            Use pelo menos 8 caracteres com letra maiuscula, minuscula e caractere especial, sem espacos.
                         </p>
 
                         <div class="form-actions">
@@ -64,3 +64,4 @@
         </div>
     </div>
 </section>
+

@@ -59,11 +59,11 @@
 
                 <div class="form-group">
                     <label>Senha</label>
-                    <input type="password" name="senha" placeholder="Crie uma senha segura" required>
+                    <input type="password" name="senha" placeholder="Crie uma senha segura" required minlength="8" pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9\\s])(?=\\S+$).{8,}$" title="A senha deve ter pelo menos 8 caracteres, letras maiusculas, minusculas e caractere especial, sem espacos.">
 
                     <small class="password-hint">
-                        A senha deve conter no mínimo 8 caracteres, incluindo letra maiúscula,
-                        minúscula e um símbolo.
+                        A senha deve conter pelo menos 8 caracteres, incluindo letra maiuscula,
+                        minuscula e caractere especial, sem espacos.
                     </small>
                 </div>
 
