@@ -241,6 +241,39 @@
     font-weight: 700;
 }
 
+.account-ranking-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.account-ranking-badge.bronze {
+    background: #f6e4d9;
+    color: #8d4b2b;
+}
+
+.account-ranking-badge.prata {
+    background: #edf2f7;
+    color: #4b5563;
+}
+
+.account-ranking-badge.ouro {
+    background: #fff3cd;
+    color: #9a6700;
+}
+
+.account-ranking-badge.diamante {
+    background: #e0f2fe;
+    color: #0f4c81;
+}
+
 .account-status-chip {
     background: #fff1cb;
     color: #986200;

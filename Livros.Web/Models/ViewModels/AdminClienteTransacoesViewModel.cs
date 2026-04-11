@@ -11,6 +11,11 @@ namespace Livros.Web.Models.ViewModels {
         public int TotalPagamentos { get; set; }
         public int TotalTrocas { get; set; }
         public int TotalCupons { get; set; }
+        public string RankingNome { get; set; } = string.Empty;
+        public string RankingCssClass { get; set; } = string.Empty;
+        public decimal ValorElegivelRanking { get; set; }
+        public decimal? ProximoMarcoRanking { get; set; }
+        public string? ProximoRankingNome { get; set; }
         public List<AdminClientePedidoTransacaoViewModel> Pedidos { get; set; } = new();
         public List<AdminClientePagamentoTransacaoViewModel> Pagamentos { get; set; } = new();
         public List<AdminClienteTrocaTransacaoViewModel> Trocas { get; set; } = new();

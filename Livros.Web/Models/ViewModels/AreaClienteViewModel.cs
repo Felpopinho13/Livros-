@@ -12,6 +12,11 @@ namespace Livros.Web.Models.ViewModels {
         public int QuantidadeCuponsDisponiveis { get; set; }
         public int QuantidadeTrocasAbertas { get; set; }
         public int ItensNoCarrinho { get; set; }
+        public string RankingNome { get; set; } = string.Empty;
+        public string RankingCssClass { get; set; } = string.Empty;
+        public decimal ValorElegivelRanking { get; set; }
+        public decimal? ProximoMarcoRanking { get; set; }
+        public string? ProximoRankingNome { get; set; }
         public AreaClientePedidoResumoViewModel? UltimoPedido { get; set; }
         public AreaClienteCupomResumoViewModel? UltimoCupomDisponivel { get; set; }
     }

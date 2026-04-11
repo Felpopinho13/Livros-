@@ -3,6 +3,8 @@
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Estoque";
+    var filtroBuscaAtual = ViewBag.EstoqueBusca as string ?? string.Empty;
+    var filtroStatusAtual = ViewBag.EstoqueStatus as string ?? "todos";
 }
 
 <div class="admin-page-header stock-page-header">
@@ -11,12 +13,35 @@
 
 <div class="admin-filters stock-filters">
     <div class="stock-filter-group">
-        <input type="text" id="stockSearch" class="admin-input stock-search" placeholder="Buscar livro..." />
+        <input type="text" id="stockSearch" class="admin-input stock-search" placeholder="Buscar livro..." value="@filtroBuscaAtual" />
         <select id="stockStatusFilter" class="admin-select stock-select">
-            <option value="todos">Todos</option>
-            <option value="ok">Em Estoque</option>
-            <option value="low">Baixo</option>
-            <option value="empty">Sem Estoque</option>
+            @if (filtroStatusAtual == "todos") {
+                <option value="todos" selected>Todos</option>
+            }
+            else {
+                <option value="todos">Todos</option>
+            }
+
+            @if (filtroStatusAtual == "ok") {
+                <option value="ok" selected>Em Estoque</option>
+            }
+            else {
+                <option value="ok">Em Estoque</option>
+            }
+
+            @if (filtroStatusAtual == "low") {
+                <option value="low" selected>Baixo</option>
+            }
+            else {
+                <option value="low">Baixo</option>
+            }
+
+            @if (filtroStatusAtual == "empty") {
+                <option value="empty" selected>Sem Estoque</option>
+            }
+            else {
+                <option value="empty">Sem Estoque</option>
+            }
         </select>
     </div>
 </div>
@@ -28,9 +53,9 @@
                 <th>ID</th>
                 <th>Livro</th>
                 <th>Estoque Atual</th>
-                <th>Mínimo</th>
+                <th>Minimo</th>
                 <th>Status</th>
-                <th>Ações</th>
+                <th>Acoes</th>
             </tr>
         </thead>
 
@@ -84,8 +109,11 @@
         </div>
 
         <form asp-controller="Admin" asp-action="AdicionarEstoque" method="post">
+            @Html.AntiForgeryToken()
             <div class="admin-modal-body">
                 <input type="hidden" id="adicionarLivroId" name="livroId" />
+                <input type="hidden" id="adicionarBusca" name="busca" value="@filtroBuscaAtual" />
+                <input type="hidden" id="adicionarStatus" name="status" value="@filtroStatusAtual" />
 
                 <div class="stock-modal-book" id="adicionarLivroNome"></div>
 
@@ -111,8 +139,11 @@
         </div>
 
         <form asp-controller="Admin" asp-action="AjustarEstoque" method="post">
+            @Html.AntiForgeryToken()
             <div class="admin-modal-body">
                 <input type="hidden" id="ajustarLivroId" name="livroId" />
+                <input type="hidden" id="ajustarBusca" name="busca" value="@filtroBuscaAtual" />
+                <input type="hidden" id="ajustarStatus" name="status" value="@filtroStatusAtual" />
 
                 <div class="stock-modal-book" id="ajustarLivroNome"></div>
 
@@ -135,11 +166,27 @@
     const stockSearch = document.getElementById('stockSearch');
     const stockStatusFilter = document.getElementById('stockStatusFilter');
     const stockRows = Array.from(document.querySelectorAll('.stock-row'));
+    const adicionarBusca = document.getElementById('adicionarBusca');
+    const adicionarStatus = document.getElementById('adicionarStatus');
+    const ajustarBusca = document.getElementById('ajustarBusca');
+    const ajustarStatus = document.getElementById('ajustarStatus');
+
+    function sincronizarFiltrosComForms() {
+        const buscaAtual = stockSearch.value.trim();
+        const statusAtual = stockStatusFilter.value;
+
+        adicionarBusca.value = buscaAtual;
+        adicionarStatus.value = statusAtual;
+        ajustarBusca.value = buscaAtual;
+        ajustarStatus.value = statusAtual;
+    }
 
     function filtrarTabelaEstoque() {
         const termo = stockSearch.value.trim().toLowerCase();
         const status = stockStatusFilter.value;
         let visiveis = 0;
+
+        sincronizarFiltrosComForms();
 
         stockRows.forEach((row) => {
             const titulo = row.dataset.title || '';
@@ -207,5 +254,8 @@
 
     stockSearch.addEventListener('input', filtrarTabelaEstoque);
     stockStatusFilter.addEventListener('change', filtrarTabelaEstoque);
+
+    sincronizarFiltrosComForms();
+    filtrarTabelaEstoque();
 </script>
 }

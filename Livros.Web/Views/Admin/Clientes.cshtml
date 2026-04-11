@@ -3,6 +3,8 @@
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Clientes";
+    var rankingsPorCliente = ViewBag.RankingsPorCliente as Dictionary<int, Livros.Web.Helpers.ClienteRankingInfo>
+        ?? new Dictionary<int, Livros.Web.Helpers.ClienteRankingInfo>();
 }
 
 <div class="admin-page-header">
@@ -46,13 +48,14 @@
                 <th>Nome</th>
                 <th>Email</th>
                 <th>Status</th>
+                <th>Ranking</th>
                 <th>Ações</th>
             </tr>
         </thead>
         <tbody>
             @if (!Model.Any()) {
                 <tr>
-                    <td colspan="5" style="text-align:center; color:red; font-weight:600;">
+                    <td colspan="6" style="text-align:center; color:red; font-weight:600;">
                         Cliente não encontrado
                     </td>
                 </tr>
@@ -71,6 +74,15 @@
                             else {
                                 <span class="status danger">Inativo</span>
                             }
+                        </td>
+                        <td>
+                            @{
+                                var ranking = rankingsPorCliente.TryGetValue(c.Id, out var rankingInfo)
+                                    ? rankingInfo
+                                    : new Livros.Web.Helpers.ClienteRankingInfo();
+                            }
+                            <span class="admin-client-ranking-badge @ranking.CssClass">@ranking.Nome</span>
+                            <small class="admin-client-ranking-meta">@ranking.ValorElegivel.ToString("C") em compras validas</small>
                         </td>
 
                         <td class="admin-actions">

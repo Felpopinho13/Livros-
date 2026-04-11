@@ -2,7 +2,7 @@
 
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
-    ViewData["Title"] = "Transações do Cliente";
+    ViewData["Title"] = "Transacoes do Cliente";
 }
 
 @section Styles {
@@ -11,9 +11,13 @@
 
 <div class="admin-page-header admin-transactions-header">
     <div>
-        <span class="admin-transactions-kicker">Histórico consolidado</span>
-        <h2>Transações do Cliente</h2>
-        <p>@Model.ClienteNome • @Model.ClienteEmail</p>
+        <span class="admin-transactions-kicker">Historico consolidado</span>
+        <h2>Transacoes do Cliente</h2>
+        <p>@Model.ClienteNome - @Model.ClienteEmail</p>
+        <div class="admin-client-ranking-line">
+            <span class="admin-client-ranking-badge @Model.RankingCssClass">@Model.RankingNome</span>
+            <small>Compras validas para ranking: @Model.ValorElegivelRanking.ToString("C")</small>
+        </div>
     </div>
 
     <a asp-action="Clientes" class="btn-outline btn-sm">Voltar para clientes</a>
@@ -37,6 +41,17 @@
             <div class="admin-orders-summary-card">
                 <span>Trocas / Cupons</span>
                 <strong>@Model.TotalTrocas / @Model.TotalCupons</strong>
+            </div>
+            <div class="admin-orders-summary-card">
+                <span>Ranking</span>
+                <strong>@Model.RankingNome</strong>
+                <small>
+                    @if (Model.ProximoMarcoRanking.HasValue && !string.IsNullOrWhiteSpace(Model.ProximoRankingNome)) {
+                        @:Proximo nivel: @Model.ProximoRankingNome em @Model.ProximoMarcoRanking.Value.ToString("C")
+                    } else {
+                        @:Cliente ja esta no topo
+                    }
+                </small>
             </div>
         </div>
     </div>
@@ -64,8 +79,7 @@
                     <tr>
                         <td colspan="5" style="text-align:center;">Nenhum pedido encontrado para este cliente.</td>
                     </tr>
-                }
-                else {
+                } else {
                     @foreach (var pedido in Model.Pedidos) {
                         <tr>
                             <td>#@pedido.PedidoId</td>
@@ -92,7 +106,7 @@
             <thead>
                 <tr>
                     <th>Pedido</th>
-                    <th>Método</th>
+                    <th>Metodo</th>
                     <th>Valor</th>
                     <th>Status</th>
                 </tr>
@@ -102,8 +116,7 @@
                     <tr>
                         <td colspan="4" style="text-align:center;">Nenhum pagamento registrado.</td>
                     </tr>
-                }
-                else {
+                } else {
                     @foreach (var pagamento in Model.Pagamentos) {
                         <tr>
                             <td>#@pagamento.PedidoId</td>
@@ -120,7 +133,7 @@
     <div class="admin-table-wrapper admin-transactions-section">
         <div class="admin-transactions-section-header">
             <div>
-                <span class="admin-transactions-kicker">Pós-venda</span>
+                <span class="admin-transactions-kicker">Pos-venda</span>
                 <h3>Trocas</h3>
             </div>
             <span class="admin-transactions-count">@Model.Trocas.Count registro(s)</span>
@@ -128,7 +141,7 @@
         <table class="admin-table">
             <thead>
                 <tr>
-                    <th>Código</th>
+                    <th>Codigo</th>
                     <th>Pedido</th>
                     <th>Livro</th>
                     <th>Status</th>
@@ -140,8 +153,7 @@
                     <tr>
                         <td colspan="5" style="text-align:center;">Nenhuma troca registrada.</td>
                     </tr>
-                }
-                else {
+                } else {
                     @foreach (var troca in Model.Trocas) {
                         <tr>
                             <td>@troca.Codigo</td>
@@ -159,7 +171,7 @@
     <div class="admin-table-wrapper admin-transactions-section">
         <div class="admin-transactions-section-header">
             <div>
-                <span class="admin-transactions-kicker">Benefícios</span>
+                <span class="admin-transactions-kicker">Beneficios</span>
                 <h3>Cupons</h3>
             </div>
             <span class="admin-transactions-count">@Model.Cupons.Count registro(s)</span>
@@ -167,11 +179,11 @@
         <table class="admin-table">
             <thead>
                 <tr>
-                    <th>Código</th>
+                    <th>Codigo</th>
                     <th>Tipo</th>
                     <th>Valor</th>
                     <th>Status</th>
-                    <th>Criação</th>
+                    <th>Criacao</th>
                     <th>Pedido</th>
                 </tr>
             </thead>
@@ -180,8 +192,7 @@
                     <tr>
                         <td colspan="6" style="text-align:center;">Nenhum cupom relacionado a este cliente.</td>
                     </tr>
-                }
-                else {
+                } else {
                     @foreach (var cupom in Model.Cupons) {
                         <tr>
                             <td>@cupom.Codigo</td>

@@ -1,6 +1,7 @@
 ﻿using Livros.Domain;
 using Livros.Infrastructure.Services;
 using Livros.Infrastructure.Data;
+using Livros.Web.Helpers;
 using Livros.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -46,6 +47,7 @@ public class ClienteController : Controller {
             .ToList();
 
         var ultimoPedido = pedidos.FirstOrDefault();
+        var ranking = ClienteRankingHelper.ObterRanking(ClienteRankingHelper.CalcularValorElegivel(pedidos));
 
         var trocasAbertas = _context.Trocas.Count(t =>
             t.ClienteId == cliente.Id &&
@@ -85,6 +87,11 @@ public class ClienteController : Controller {
             QuantidadeCuponsDisponiveis = cuponsDisponiveis.Count,
             QuantidadeTrocasAbertas = trocasAbertas,
             ItensNoCarrinho = itensNoCarrinho,
+            RankingNome = ranking.Nome,
+            RankingCssClass = ranking.CssClass,
+            ValorElegivelRanking = ranking.ValorElegivel,
+            ProximoMarcoRanking = ranking.ProximoMarco,
+            ProximoRankingNome = ranking.ProximoNome,
             UltimoPedido = ultimoPedido == null ? null : new AreaClientePedidoResumoViewModel {
                 Id = ultimoPedido.Id,
                 Data = ultimoPedido.Data,

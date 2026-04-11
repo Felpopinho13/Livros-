@@ -1,6 +1,6 @@
 @model Livros.Web.Models.ViewModels.AreaClienteViewModel
 @{
-    ViewData["Title"] = "Área do Cliente";
+    ViewData["Title"] = "Area do Cliente";
     var ultimoPedido = Model.UltimoPedido;
     var cupom = Model.UltimoCupomDisponivel;
 }
@@ -14,10 +14,10 @@
                 <section class="account-hero">
                     <div class="account-hero-copy">
                         <span class="account-eyebrow">Central do cliente</span>
-                        <h2>Olá, @Model.PrimeiroNome</h2>
+                        <h2>Ola, @Model.PrimeiroNome</h2>
                         <p>
-                            Aqui você acompanha seus pedidos, consulta sua carteira e vê o que está pendente
-                            sem depender de dados mockados.
+                            Aqui voce acompanha seus pedidos, consulta sua carteira e ve o que esta pendente
+                            com dados reais do seu historico.
                         </p>
 
                         <div class="account-hero-meta">
@@ -28,6 +28,14 @@
                             <div>
                                 <span>Total comprado</span>
                                 <strong>@Model.ValorTotalCompras.ToString("C")</strong>
+                            </div>
+                            <div>
+                                <span>Ranking</span>
+                                <strong><span class="account-ranking-badge @Model.RankingCssClass">@Model.RankingNome</span></strong>
+                            </div>
+                            <div>
+                                <span>Compras validas para ranking</span>
+                                <strong>@Model.ValorElegivelRanking.ToString("C")</strong>
                             </div>
                         </div>
                     </div>
@@ -46,37 +54,43 @@
                     <article class="account-stat-card highlight">
                         <span class="account-stat-label">Pedidos realizados</span>
                         <strong>@Model.TotalPedidos</strong>
-                        <p>@(Model.TotalPedidos == 0 ? "Nenhuma compra concluída ainda." : "Histórico real do cliente.")</p>
+                        <p>@(Model.TotalPedidos == 0 ? "Nenhuma compra concluida ainda." : "Historico real do cliente.")</p>
                     </article>
 
                     <article class="account-stat-card">
                         <span class="account-stat-label">Itens no carrinho</span>
                         <strong>@Model.ItensNoCarrinho</strong>
-                        <p>@(Model.ItensNoCarrinho == 0 ? "Seu carrinho está vazio no momento." : "Itens aguardando fechamento.")</p>
+                        <p>@(Model.ItensNoCarrinho == 0 ? "Seu carrinho esta vazio no momento." : "Itens aguardando fechamento.")</p>
                     </article>
 
                     <article class="account-stat-card">
-                        <span class="account-stat-label">Endereços salvos</span>
+                        <span class="account-stat-label">Enderecos salvos</span>
                         <strong>@Model.QuantidadeEnderecos</strong>
-                        <p>Gerencie entrega e endereço padrão.</p>
+                        <p>Gerencie entrega, cobranca e endereco padrao.</p>
                     </article>
 
                     <article class="account-stat-card">
-                        <span class="account-stat-label">Cartões cadastrados</span>
+                        <span class="account-stat-label">Cartoes cadastrados</span>
                         <strong>@Model.QuantidadeCartoes</strong>
                         <p>Prontos para checkout com 1 ou 2 meios.</p>
                     </article>
 
                     <article class="account-stat-card">
-                        <span class="account-stat-label">Cupons disponíveis</span>
+                        <span class="account-stat-label">Cupons disponiveis</span>
                         <strong>@Model.QuantidadeCuponsDisponiveis</strong>
-                        <p>@(Model.QuantidadeCuponsDisponiveis > 0 ? "Você já tem desconto liberado para usar." : "Nenhum cupom ativo agora.")</p>
+                        <p>@(Model.QuantidadeCuponsDisponiveis > 0 ? "Voce ja tem desconto liberado para usar." : "Nenhum cupom ativo agora.")</p>
                     </article>
 
                     <article class="account-stat-card">
-                        <span class="account-stat-label">Trocas em aberto</span>
-                        <strong>@Model.QuantidadeTrocasAbertas</strong>
-                        <p>@(Model.QuantidadeTrocasAbertas > 0 ? "Há solicitações aguardando andamento." : "Nenhuma troca pendente.")</p>
+                        <span class="account-stat-label">Ranking atual</span>
+                        <strong>@Model.RankingNome</strong>
+                        <p>
+                            @if (Model.ProximoMarcoRanking.HasValue && !string.IsNullOrWhiteSpace(Model.ProximoRankingNome)) {
+                                @:Faltam @((Model.ProximoMarcoRanking.Value - Model.ValorElegivelRanking).ToString("C")) para chegar em @Model.ProximoRankingNome.
+                            } else {
+                                @:Voce ja esta no topo do ranking de clientes.
+                            }
+                        </p>
                     </article>
                 </section>
 
@@ -85,7 +99,7 @@
                         <div class="account-panel-header">
                             <div>
                                 <span class="account-panel-eyebrow">Resumo mais recente</span>
-                                <h3>Último pedido</h3>
+                                <h3>Ultimo pedido</h3>
                             </div>
                             @if (ultimoPedido != null) {
                                 <span class="account-status-chip">@ultimoPedido.Status</span>
@@ -94,8 +108,8 @@
 
                         @if (ultimoPedido == null) {
                             <div class="account-empty-state">
-                                <strong>Você ainda não tem pedidos.</strong>
-                                <p>Quando a primeira compra for concluída, o resumo mais recente aparece aqui.</p>
+                                <strong>Voce ainda nao tem pedidos.</strong>
+                                <p>Quando a primeira compra for concluida, o resumo mais recente aparece aqui.</p>
                             </div>
                         } else {
                             <div class="account-order-focus">
@@ -142,7 +156,7 @@
                             <div class="account-coupon-card">
                                 <span class="account-coupon-type">@cupom.Tipo</span>
                                 <strong>@cupom.Codigo</strong>
-                                <p>Desconto disponível de @cupom.Valor.ToString("C").</p>
+                                <p>Desconto disponivel de @cupom.Valor.ToString("C").</p>
                                 <a asp-controller="Cliente" asp-action="Cupons" class="btn-outline">
                                     Ver todos os cupons
                                 </a>
@@ -153,8 +167,8 @@
                     <article class="account-panel">
                         <div class="account-panel-header">
                             <div>
-                                <span class="account-panel-eyebrow">Atalhos úteis</span>
-                                <h3>Próximos passos</h3>
+                                <span class="account-panel-eyebrow">Atalhos uteis</span>
+                                <h3>Proximos passos</h3>
                             </div>
                         </div>
 
@@ -163,7 +177,7 @@
                                 Consultar meus cupons
                             </a>
                             <a asp-controller="Cliente" asp-action="Cartoes" class="account-action-link">
-                                Organizar cartões salvos
+                                Organizar cartoes salvos
                             </a>
                             <a asp-controller="Pedido" asp-action="MeusPedidos" class="account-action-link">
                                 Consultar pedidos

@@ -1,6 +1,7 @@
 ﻿using Livros.Domain;
 using Livros.Infrastructure.Data;
 using Livros.Infrastructure.Services;
+using Livros.Web.Helpers;
 using Livros.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -52,6 +53,27 @@ public class AdminController : Controller {
             .Take(pageSize)
             .ToList();
 
+        var clienteIds = clientes.Select(c => c.Id).ToList();
+        var statusElegiveisRanking = new[] {
+            "PAGAMENTO APROVADO",
+            "EM SEPARACAO",
+            "ENVIADO",
+            "ENTREGUE"
+        };
+        var totaisRankingPorCliente = _context.Pedidos
+            .Where(p => clienteIds.Contains(p.ClienteId) && statusElegiveisRanking.Contains(p.Status))
+            .GroupBy(p => p.ClienteId)
+            .Select(g => new {
+                ClienteId = g.Key,
+                Total = g.Sum(p => p.Total)
+            })
+            .ToDictionary(x => x.ClienteId, x => decimal.Round(x.Total, 2));
+
+        ViewBag.RankingsPorCliente = clientes.ToDictionary(
+            c => c.Id,
+            c => ClienteRankingHelper.ObterRanking(
+                totaisRankingPorCliente.TryGetValue(c.Id, out var total) ? total : 0m));
+
         ViewBag.PaginaAtual = pagina;
         ViewBag.TotalPaginas = (int)Math.Ceiling((double)totalClientes / pageSize);
 
@@ -97,6 +119,7 @@ public class AdminController : Controller {
             .Where(c => c.ClienteId == id)
             .OrderByDescending(c => c.DataCriacao)
             .ToList();
+        var ranking = ClienteRankingHelper.ObterRanking(ClienteRankingHelper.CalcularValorElegivel(pedidos));
 
         var vm = new AdminClienteTransacoesViewModel {
             ClienteId = cliente.Id,
@@ -107,6 +130,11 @@ public class AdminController : Controller {
             TotalPagamentos = pagamentos.Count,
             TotalTrocas = trocas.Count,
             TotalCupons = cupons.Count,
+            RankingNome = ranking.Nome,
+            RankingCssClass = ranking.CssClass,
+            ValorElegivelRanking = ranking.ValorElegivel,
+            ProximoMarcoRanking = ranking.ProximoMarco,
+            ProximoRankingNome = ranking.ProximoNome,
             Pedidos = pedidos.Select(p => new AdminClientePedidoTransacaoViewModel {
                 PedidoId = p.Id,
                 Data = p.Data,
@@ -285,21 +313,32 @@ public class AdminController : Controller {
         return RedirectToAction("Livros");
     }
 
-    public IActionResult Estoque() {
+    public IActionResult Estoque(string? busca, string? status) {
+        ViewBag.EstoqueBusca = busca ?? string.Empty;
+        ViewBag.EstoqueStatus = string.IsNullOrWhiteSpace(status) ? "todos" : status;
+
         var estoques = _estoqueService.Listar();
         return View(estoques);
     }
 
     [HttpPost]
-    public IActionResult AdicionarEstoque(int livroId, int quantidade) {
+    [ValidateAntiForgeryToken]
+    public IActionResult AdicionarEstoque(int livroId, int quantidade, string? busca, string? status) {
         _estoqueService.AdicionarEstoque(livroId, quantidade);
-        return RedirectToAction("Estoque");
+        return RedirectToAction("Estoque", new {
+            busca,
+            status
+        });
     }
 
     [HttpPost]
-    public IActionResult AjustarEstoque(int livroId, int quantidade) {
+    [ValidateAntiForgeryToken]
+    public IActionResult AjustarEstoque(int livroId, int quantidade, string? busca, string? status) {
         _estoqueService.AjustarEstoque(livroId, quantidade);
-        return RedirectToAction("Estoque");
+        return RedirectToAction("Estoque", new {
+            busca,
+            status
+        });
     }
 
     [HttpGet]
