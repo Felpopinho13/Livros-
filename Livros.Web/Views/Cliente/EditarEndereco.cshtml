@@ -17,33 +17,63 @@
                         <a asp-controller="Cliente" asp-action="AreaCliente">
                             Central Minha Conta
                         </a>
-                        / <a asp-controller="Cliente" asp-action="Enderecos">Meus Endereços</a>
-                        / <strong>Editar Endereço</strong>
+                        / <a asp-controller="Cliente" asp-action="Enderecos">Meus Enderecos</a>
+                        / <strong>Editar Endereco</strong>
                     </div>
 
-                    <h2>Editar Endereço</h2>
+                    <h2>Editar Endereco</h2>
+
+                    @if (!ViewData.ModelState.IsValid) {
+                        <div class="alert alert-error" style="margin-bottom: 16px;">
+                            @foreach (var erro in ViewData.ModelState.Values.SelectMany(v => v.Errors)) {
+                                <div>@erro.ErrorMessage</div>
+                            }
+                        </div>
+                    }
 
                     <form asp-action="EditarEndereco" method="post" class="address-form">
                         <input type="hidden" asp-for="Id" />
 
                         <div class="form-grid">
                             <div class="form-group">
-                                <label>Nome do endereço</label>
+                                <label>Nome do endereco</label>
                                 <input asp-for="NomeEndereco" />
                             </div>
 
                             <div class="form-group">
                                 <label>CEP</label>
-                                <input type="text" asp-for="CEP" maxlength="9" pattern="\d{5}-\d{3}">
+                                <input type="text" asp-for="CEP" maxlength="9" pattern="\d{5}-?\d{3}">
                             </div>
 
                             <div class="form-group">
-                                <label>Rua</label>
+                                <label>Tipo de residencia</label>
+                                <select asp-for="TipoResidencia" class="form-control">
+                                    <option value="Casa">Casa</option>
+                                    <option value="Apartamento">Apartamento</option>
+                                    <option value="Comercial">Comercial</option>
+                                    <option value="Outro">Outro</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Tipo de logradouro</label>
+                                <select asp-for="TipoLogradouro" class="form-control">
+                                    <option value="Rua">Rua</option>
+                                    <option value="Avenida">Avenida</option>
+                                    <option value="Alameda">Alameda</option>
+                                    <option value="Travessa">Travessa</option>
+                                    <option value="Praca">Praca</option>
+                                    <option value="Estrada">Estrada</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Logradouro</label>
                                 <input asp-for="Logradouro" />
                             </div>
 
                             <div class="form-group">
-                                <label>Número</label>
+                                <label>Numero</label>
                                 <input asp-for="Numero" />
                             </div>
 
@@ -95,6 +125,23 @@
                                     <option>TO</option>
                                 </select>
                             </div>
+
+                            <div class="form-group">
+                                <label>Pais</label>
+                                <input asp-for="Pais" />
+                            </div>
+                        </div>
+
+                        <div class="address-purpose-selectors edit-mode">
+                            <label class="checkout-checkbox">
+                                <input asp-for="IsEntrega" />
+                                <span>Usar como endereco de entrega</span>
+                            </label>
+
+                            <label class="checkout-checkbox">
+                                <input asp-for="IsCobranca" />
+                                <span>Usar como endereco de cobranca</span>
+                            </label>
                         </div>
 
                         <div class="form-actions">
@@ -103,7 +150,7 @@
                             </a>
 
                             <button type="submit" class="btn-primary">
-                                Salvar alterações
+                                Salvar alteracoes
                             </button>
                         </div>
                     </form>

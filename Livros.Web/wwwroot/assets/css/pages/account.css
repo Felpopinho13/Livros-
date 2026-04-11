@@ -509,6 +509,34 @@
     line-height: 1.45;
 }
 
+.address-purpose {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.address-purpose-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.address-purpose-badge.delivery {
+    background: #dff6dd;
+    color: #1d7a32;
+}
+
+.address-purpose-badge.billing {
+    background: #e5ecff;
+    color: #2646c5;
+}
+
 .select-address-btn {
     display: inline-block;
     margin-top: 10px;
@@ -562,6 +590,21 @@
 
 .make-default {
     color: #ffa41c;
+}
+
+.address-purpose-selectors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 8px;
+}
+
+.address-purpose-selectors.edit-mode {
+    margin: 8px 0 24px;
+}
+
+.address-purpose-selectors .checkout-checkbox {
+    margin: 0;
 }
 
 /* =========================

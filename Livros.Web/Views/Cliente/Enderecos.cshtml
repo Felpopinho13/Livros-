@@ -23,14 +23,14 @@
                         <a asp-controller="Cliente" asp-action="AreaCliente">
                             Central Minha Conta
                         </a>
-                        / <strong>Endereços</strong>
+                        / <strong>Enderecos</strong>
                     </div>
 
                     <div class="address-header">
-                        <h2>Endereços</h2>
+                        <h2>Enderecos</h2>
 
                         <button class="btn-primary" id="openModal">
-                            + Cadastrar Novo Endereço
+                            + Cadastrar Novo Endereco
                         </button>
                     </div>
 
@@ -40,13 +40,23 @@
                                 <div class="address-top">
                                     <h4>@e.NomeEndereco</h4>
                                     @if (e.IsPadrao) {
-                                        <span class="badge">Padrão</span>
+                                        <span class="badge">Padrao</span>
+                                    }
+                                </div>
+
+                                <div class="address-purpose">
+                                    @if (e.IsEntrega) {
+                                        <span class="address-purpose-badge delivery">Entrega</span>
+                                    }
+                                    @if (e.IsCobranca) {
+                                        <span class="address-purpose-badge billing">Cobranca</span>
                                     }
                                 </div>
 
                                 <div class="address-card-body">
-                                    <p>@e.Logradouro, @e.Numero</p>
+                                    <p>@e.TipoResidencia - @e.TipoLogradouro @e.Logradouro, @e.Numero</p>
                                     <p>@e.Bairro.Nome - @e.Cidade.Nome/@e.Cidade.Estado.Sigla</p>
+                                    <p>@e.Pais</p>
                                     <p>CEP: @e.CEP</p>
                                 </div>
 
@@ -55,7 +65,7 @@
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@e.Id" />
                                         <button type="submit" class="btn-danger btn-sm"
-                                                onclick="return confirm('Tem certeza que deseja excluir este endereço?');">
+                                                onclick="return confirm('Tem certeza que deseja excluir este endereco?');">
                                             Excluir
                                         </button>
                                     </form>
@@ -64,9 +74,9 @@
                                         Editar
                                     </a>
 
-                                    @if (!e.IsPadrao) {
+                                    @if (!e.IsPadrao && e.IsEntrega) {
                                         <a asp-action="TornarPadrao" asp-route-id="@e.Id" class="make-default">
-                                            Tornar padrão
+                                            Tornar padrao
                                         </a>
                                     }
                                 </div>
@@ -81,16 +91,34 @@
 
 <div class="modal-overlay" id="addressModal">
     <div class="modal">
-        <h3>Novo Endereço</h3>
+        <h3>Novo Endereco</h3>
 
         <form asp-action="CadastrarEndereco" method="post">
-            <input type="text" name="nomeEndereco" placeholder="Nome do endereço (Ex: Casa)" maxlength="50" required>
-            <input type="text" name="cep" placeholder="CEP" maxlength="8" pattern="\d{8}" required>
+            <input type="text" name="nomeEndereco" placeholder="Nome do endereco (Ex: Casa)" maxlength="50" required>
+            <input type="text" name="cep" placeholder="CEP" maxlength="9" pattern="\d{5}-?\d{3}" required>
+
+            <select name="tipoResidencia" required>
+                <option value="Casa">Casa</option>
+                <option value="Apartamento">Apartamento</option>
+                <option value="Comercial">Comercial</option>
+                <option value="Outro">Outro</option>
+            </select>
+
+            <select name="tipoLogradouro" required>
+                <option value="Rua">Rua</option>
+                <option value="Avenida">Avenida</option>
+                <option value="Alameda">Alameda</option>
+                <option value="Travessa">Travessa</option>
+                <option value="Praca">Praca</option>
+                <option value="Estrada">Estrada</option>
+            </select>
+
             <input type="text" name="logradouro" placeholder="Logradouro" maxlength="100" required>
-            <input type="text" name="numero" placeholder="Número" maxlength="10" required>
+            <input type="text" name="numero" placeholder="Numero" maxlength="10" required>
             <input type="text" name="complemento" placeholder="Complemento" maxlength="50">
             <input type="text" name="bairro" placeholder="Bairro" maxlength="50" required>
             <input type="text" name="cidade" placeholder="Cidade" maxlength="50" required>
+            <input type="text" name="pais" placeholder="Pais" maxlength="60" value="Brasil" required>
 
             <select name="estado" id="estado">
                 <option value="">Selecione</option>
@@ -122,6 +150,18 @@
                 <option>SE</option>
                 <option>TO</option>
             </select>
+
+            <div class="address-purpose-selectors">
+                <label class="checkout-checkbox">
+                    <input type="checkbox" name="isEntrega" value="true" checked>
+                    <span>Usar como endereco de entrega</span>
+                </label>
+
+                <label class="checkout-checkbox">
+                    <input type="checkbox" name="isCobranca" value="true" checked>
+                    <span>Usar como endereco de cobranca</span>
+                </label>
+            </div>
 
             <div class="modal-actions">
                 <button type="button" id="closeModal" class="btn-secondary">Cancelar</button>

@@ -674,7 +674,11 @@ namespace Livros.Web.Controllers {
         }
         private CheckoutViewModel MontarCheckoutViewModel(int clienteId, CheckoutFormData form) {
             var itensCheckout = ObterItensCheckout(form);
-            var enderecos = _enderecoService.ListarPorCliente(clienteId) ?? new List<Endereco>();
+            var enderecos = (_enderecoService.ListarPorCliente(clienteId) ?? new List<Endereco>())
+                .Where(e => e.IsEntrega)
+                .OrderByDescending(e => e.IsPadrao)
+                .ThenBy(e => e.NomeEndereco)
+                .ToList();
             var cartoes = _context.Cartoes
                 .Where(c => c.ClienteId == clienteId)
                 .OrderByDescending(c => c.IsPadrao)
@@ -684,6 +688,10 @@ namespace Livros.Web.Controllers {
                 var enderecoPadrao = enderecos.FirstOrDefault(e => e.IsPadrao) ?? enderecos.First();
                 form.EnderecoId = enderecoPadrao.Id;
             }
+
+            form.TipoLogradouro ??= "Rua";
+            form.TipoResidencia ??= "Casa";
+            form.Pais ??= "Brasil";
 
             var subtotal = itensCheckout.Sum(i => i.PrecoUnitario * i.Quantidade);
             var quantidadeTotal = itensCheckout.Sum(i => i.Quantidade);
@@ -726,7 +734,7 @@ namespace Livros.Web.Controllers {
         private int? ResolverEndereco(int clienteId, CheckoutFormData form) {
             if (form.EnderecoId > 0) {
                 var enderecoExistente = _context.Enderecos
-                    .FirstOrDefault(e => e.Id == form.EnderecoId && e.ClienteId == clienteId);
+                    .FirstOrDefault(e => e.Id == form.EnderecoId && e.ClienteId == clienteId && e.IsEntrega);
 
                 if (enderecoExistente == null) {
                     ModelState.AddModelError(string.Empty, "Selecione um endereco de entrega valido.");
@@ -792,13 +800,18 @@ namespace Livros.Web.Controllers {
             var endereco = new Endereco {
                 NomeEndereco = string.IsNullOrWhiteSpace(form.NomeEndereco) ? "Novo Endereco" : form.NomeEndereco.Trim(),
                 CEP = cepNormalizado,
+                TipoLogradouro = string.IsNullOrWhiteSpace(form.TipoLogradouro) ? "Rua" : form.TipoLogradouro.Trim(),
                 Logradouro = form.Logradouro.Trim(),
                 Numero = form.Numero.Trim(),
                 Complemento = form.Complemento?.Trim(),
+                TipoResidencia = string.IsNullOrWhiteSpace(form.TipoResidencia) ? "Casa" : form.TipoResidencia.Trim(),
+                Pais = string.IsNullOrWhiteSpace(form.Pais) ? "Brasil" : form.Pais.Trim(),
                 BairroId = bairroEntity.Id,
                 CidadeId = cidadeEntity.Id,
                 ClienteId = clienteId,
-                IsPadrao = false
+                IsPadrao = false,
+                IsEntrega = true,
+                IsCobranca = false
             };
 
             _context.Enderecos.Add(endereco);

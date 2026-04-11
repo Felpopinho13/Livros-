@@ -5,11 +5,16 @@ public class Endereco {
 
     public string NomeEndereco { get; set; }
     public string CEP { get; set; }
+    public string TipoLogradouro { get; set; } = "Rua";
     public string Logradouro { get; set; }
     public string Numero { get; set; }
     public string? Complemento { get; set; }
+    public string TipoResidencia { get; set; } = "Casa";
+    public string Pais { get; set; } = "Brasil";
 
     public bool IsPadrao { get; set; } = false;
+    public bool IsEntrega { get; set; } = true;
+    public bool IsCobranca { get; set; } = true;
 
     // RELACIONAMENTOS
     public int CidadeId { get; set; }

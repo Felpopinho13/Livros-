@@ -61,7 +61,7 @@
                         <div id="novoEnderecoForm" class="checkout-card-inner" style="@(form.EnderecoId == 0 ? "display:block;" : "display:none;")">
                             <div class="checkout-address-grid">
                                 <input name="NomeEndereco" maxlength="60" placeholder="Nome do endereço" value="@form.NomeEndereco">
-                                <input name="CEP" maxlength="8" minlength="8" inputmode="numeric" pattern="\d{8}" placeholder="CEP (8 dígitos)" value="@form.CEP">
+                                <input name="CEP" maxlength="9" minlength="8" inputmode="numeric" pattern="\\d{5}-?\\d{3}" placeholder="CEP (8 dígitos)" value="@form.CEP">
                                 <input name="Logradouro" maxlength="100" placeholder="Logradouro" value="@form.Logradouro">
                                 <input name="Numero" maxlength="10" placeholder="Número" value="@form.Numero">
                                 <input name="Complemento" maxlength="50" placeholder="Complemento" value="@form.Complemento">

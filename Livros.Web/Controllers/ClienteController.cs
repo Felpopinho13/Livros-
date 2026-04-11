@@ -236,9 +236,14 @@ public class ClienteController : Controller {
             Id = endereco.Id,
             NomeEndereco = endereco.NomeEndereco,
             CEP = endereco.CEP,
+            TipoLogradouro = endereco.TipoLogradouro,
             Logradouro = endereco.Logradouro,
             Numero = endereco.Numero,
             Complemento = endereco.Complemento,
+            TipoResidencia = endereco.TipoResidencia,
+            Pais = endereco.Pais,
+            IsEntrega = endereco.IsEntrega,
+            IsCobranca = endereco.IsCobranca,
             Bairro = endereco.Bairro.Nome,
             Cidade = endereco.Cidade.Nome,
             Estado = endereco.Cidade.Estado.Sigla
@@ -250,6 +255,7 @@ public class ClienteController : Controller {
     [HttpPost]
     public IActionResult EditarEndereco(EnderecoViewModel vm) {
         var endereco = _context.Enderecos
+            .Include(e => e.Cliente)
             .Include(e => e.Cidade)
             .Include(e => e.Bairro)
             .FirstOrDefault(e => e.Id == vm.Id);
@@ -257,13 +263,34 @@ public class ClienteController : Controller {
         if (endereco == null)
             return NotFound();
 
+        if (!ValidarFinalidadeEndereco(vm.IsEntrega, vm.IsCobranca)) {
+            ModelState.AddModelError(string.Empty, "Selecione pelo menos uma finalidade para o endereco: entrega, cobranca ou ambas.");
+            return View(vm);
+        }
+
+        var clienteId = endereco.ClienteId;
+        if (!ClienteMantemEnderecoObrigatorio(clienteId, endereco.Id, vm.IsEntrega, vm.IsCobranca, out var erroFinalidade)) {
+            ModelState.AddModelError(string.Empty, erroFinalidade!);
+            return View(vm);
+        }
+
         endereco.NomeEndereco = vm.NomeEndereco;
         endereco.CEP = vm.CEP;
+        endereco.TipoLogradouro = vm.TipoLogradouro;
         endereco.Logradouro = vm.Logradouro;
         endereco.Numero = vm.Numero;
         endereco.Complemento = vm.Complemento;
+        endereco.TipoResidencia = vm.TipoResidencia;
+        endereco.Pais = vm.Pais;
+        endereco.IsEntrega = vm.IsEntrega;
+        endereco.IsCobranca = vm.IsCobranca;
 
         var estado = _context.Estados.FirstOrDefault(e => e.Sigla == vm.Estado);
+        if (estado == null) {
+            estado = new Estado { Nome = vm.Estado.Trim().ToUpperInvariant(), Sigla = vm.Estado.Trim().ToUpperInvariant() };
+            _context.Estados.Add(estado);
+            _context.SaveChanges();
+        }
 
         var cidade = _context.Cidades
             .FirstOrDefault(c => c.Nome == vm.Cidade && c.EstadoId == estado.Id);
@@ -286,6 +313,8 @@ public class ClienteController : Controller {
         endereco.CidadeId = cidade.Id;
         endereco.BairroId = bairro.Id;
 
+        NormalizarEndereco(endereco);
+        AjustarEnderecoPadraoEntrega(clienteId, endereco.Id);
         _context.SaveChanges();
 
         TempData["Sucesso"] = "Endereço atualizado com sucesso!";
@@ -310,16 +339,27 @@ public class ClienteController : Controller {
         if (cliente == null)
             return RedirectToAction("Login", "Auth"); 
 
-        return View(cliente.Enderecos.ToList());
+        var enderecos = cliente.Enderecos
+            .OrderByDescending(e => e.IsPadrao)
+            .ThenByDescending(e => e.IsEntrega)
+            .ThenBy(e => e.NomeEndereco)
+            .ToList();
+
+        return View(enderecos);
     }
 
     [HttpPost]
     public IActionResult CadastrarEndereco(
     string nomeEndereco,
     string cep,
+    string tipoLogradouro,
     string logradouro,
     string numero,
     string complemento,
+    string tipoResidencia,
+    string pais,
+    bool isEntrega,
+    bool isCobranca,
     string bairro,
     string cidade,
     string estado) {
@@ -331,10 +371,23 @@ public class ClienteController : Controller {
         var id = int.Parse(idStr);
 
         var cliente = _context.Clientes.FirstOrDefault(c => c.Id == id);
+        if (cliente == null)
+            return RedirectToAction("Login", "Auth");
 
-        var estadoEntity = _context.Estados.FirstOrDefault(e => e.Sigla == estado);
+        if (!ValidarFinalidadeEndereco(isEntrega, isCobranca)) {
+            TempData["Erro"] = "Selecione pelo menos uma finalidade para o endereco: entrega, cobranca ou ambas.";
+            return RedirectToAction("Enderecos");
+        }
+
+        if (!ClienteMantemEnderecoObrigatorio(id, null, isEntrega, isCobranca, out var erroCadastro)) {
+            TempData["Erro"] = erroCadastro;
+            return RedirectToAction("Enderecos");
+        }
+
+        var estadoSigla = estado.Trim().ToUpperInvariant();
+        var estadoEntity = _context.Estados.FirstOrDefault(e => e.Sigla == estadoSigla);
         if (estadoEntity == null) {
-            estadoEntity = new Estado { Nome = estado, Sigla = estado };
+            estadoEntity = new Estado { Nome = estadoSigla, Sigla = estadoSigla };
             _context.Estados.Add(estadoEntity);
             _context.SaveChanges();
         }
@@ -358,14 +411,21 @@ public class ClienteController : Controller {
         var endereco = new Endereco {
             NomeEndereco = nomeEndereco,
             CEP = cep,
+            TipoLogradouro = tipoLogradouro,
             Logradouro = logradouro,
             Numero = numero,
             Complemento = complemento,
+            TipoResidencia = tipoResidencia,
+            Pais = pais,
+            IsEntrega = isEntrega,
+            IsCobranca = isCobranca,
+            IsPadrao = !_context.Enderecos.Any(e => e.ClienteId == cliente.Id && e.IsEntrega),
             CidadeId = cidadeEntity.Id,
             BairroId = bairroEntity.Id,
             ClienteId = cliente.Id
         };
 
+        NormalizarEndereco(endereco);
         _context.Enderecos.Add(endereco);
         _context.SaveChanges();
 
@@ -384,15 +444,17 @@ public class ClienteController : Controller {
         if (cliente == null)
             return RedirectToAction("Login", "Auth");
 
+        var endereco = cliente.Enderecos.FirstOrDefault(e => e.Id == id);
+        if (endereco == null || !endereco.IsEntrega) {
+            TempData["Erro"] = "Somente enderecos de entrega podem ser definidos como padrao.";
+            return RedirectToAction("Enderecos");
+        }
+
         foreach (var e in cliente.Enderecos) {
             e.IsPadrao = false;
         }
 
-        var endereco = cliente.Enderecos.FirstOrDefault(e => e.Id == id);
-
-        if (endereco != null) {
-            endereco.IsPadrao = true;
-        }
+        endereco.IsPadrao = true;
 
         _context.SaveChanges();
 
@@ -421,7 +483,15 @@ public class ClienteController : Controller {
             return RedirectToAction("Enderecos");
         }
 
+        if (!ClientePodeExcluirEndereco(endereco.ClienteId, endereco.Id, out var erroExclusao)) {
+            TempData["Erro"] = erroExclusao;
+            return RedirectToAction("Enderecos");
+        }
+
         _context.Enderecos.Remove(endereco);
+        _context.SaveChanges();
+
+        AjustarEnderecoPadraoEntrega(endereco.ClienteId);
         _context.SaveChanges();
 
         TempData["Sucesso"] = "Endereço excluído com sucesso!";
@@ -543,6 +613,91 @@ public class ClienteController : Controller {
     private sealed class CarrinhoResumoSessionItem {
         public int LivroId { get; set; }
         public int Quantidade { get; set; }
+    }
+
+    private bool ValidarFinalidadeEndereco(bool isEntrega, bool isCobranca) {
+        return isEntrega || isCobranca;
+    }
+
+    private bool ClienteMantemEnderecoObrigatorio(int clienteId, int? enderecoIgnoradoId, bool isEntrega, bool isCobranca, out string? erro) {
+        erro = null;
+
+        var outrosEnderecos = _context.Enderecos
+            .Where(e => e.ClienteId == clienteId && (!enderecoIgnoradoId.HasValue || e.Id != enderecoIgnoradoId.Value))
+            .ToList();
+
+        var teriaEntrega = isEntrega || outrosEnderecos.Any(e => e.IsEntrega);
+        var teriaCobranca = isCobranca || outrosEnderecos.Any(e => e.IsCobranca);
+
+        if (!teriaEntrega) {
+            erro = "O cliente precisa manter pelo menos um endereco de entrega.";
+            return false;
+        }
+
+        if (!teriaCobranca) {
+            erro = "O cliente precisa manter pelo menos um endereco de cobranca.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool ClientePodeExcluirEndereco(int clienteId, int enderecoId, out string? erro) {
+        erro = null;
+
+        var restantes = _context.Enderecos
+            .Where(e => e.ClienteId == clienteId && e.Id != enderecoId)
+            .ToList();
+
+        if (!restantes.Any(e => e.IsEntrega)) {
+            erro = "O cliente precisa manter pelo menos um endereco de entrega.";
+            return false;
+        }
+
+        if (!restantes.Any(e => e.IsCobranca)) {
+            erro = "O cliente precisa manter pelo menos um endereco de cobranca.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private void AjustarEnderecoPadraoEntrega(int clienteId, int? enderecoPreferencialId = null) {
+        var enderecos = _context.Enderecos
+            .Where(e => e.ClienteId == clienteId)
+            .OrderByDescending(e => e.Id == enderecoPreferencialId)
+            .ThenBy(e => e.Id)
+            .ToList();
+
+        var enderecosEntrega = enderecos.Where(e => e.IsEntrega).ToList();
+        if (!enderecosEntrega.Any()) {
+            return;
+        }
+
+        var padraoAtual = enderecosEntrega.FirstOrDefault(e => e.IsPadrao);
+        if (padraoAtual != null) {
+            foreach (var endereco in enderecos.Where(e => !e.IsEntrega)) {
+                endereco.IsPadrao = false;
+            }
+            return;
+        }
+
+        foreach (var endereco in enderecos) {
+            endereco.IsPadrao = false;
+        }
+
+        enderecosEntrega.First().IsPadrao = true;
+    }
+
+    private void NormalizarEndereco(Endereco endereco) {
+        endereco.NomeEndereco = endereco.NomeEndereco?.Trim() ?? string.Empty;
+        endereco.CEP = endereco.CEP?.Trim() ?? string.Empty;
+        endereco.TipoLogradouro = endereco.TipoLogradouro?.Trim() ?? string.Empty;
+        endereco.Logradouro = endereco.Logradouro?.Trim() ?? string.Empty;
+        endereco.Numero = endereco.Numero?.Trim() ?? string.Empty;
+        endereco.Complemento = string.IsNullOrWhiteSpace(endereco.Complemento) ? null : endereco.Complemento.Trim();
+        endereco.TipoResidencia = endereco.TipoResidencia?.Trim() ?? string.Empty;
+        endereco.Pais = endereco.Pais?.Trim() ?? "Brasil";
     }
 }
 
