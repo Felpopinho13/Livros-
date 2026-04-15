@@ -51,8 +51,10 @@ public class ClienteController : Controller {
 
         var trocasAbertas = _context.Trocas.Count(t =>
             t.ClienteId == cliente.Id &&
+            t.Status != "TROCADO" &&
             t.Status != "Recebida" &&
             t.Status != "Aprovado" &&
+            t.Status != "TROCA RECUSADA" &&
             t.Status != "Recusado");
 
         var cuponsDisponiveis = _context.CuponsDesconto

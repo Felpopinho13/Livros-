@@ -91,6 +91,7 @@
     font-weight: 700;
 }
 
+.exchange-status.em-troca,
 .exchange-status.solicitado {
     background: #fef3c7;
     color: #b45309;
@@ -101,16 +102,19 @@
     color: #16a34a;
 }
 
+.exchange-status.troca-autorizada,
 .exchange-status.autorizada {
     background: #dbeafe;
     color: #1d4ed8;
 }
 
+.exchange-status.trocado,
 .exchange-status.recebida {
     background: #dcfce7;
     color: #15803d;
 }
 
+.exchange-status.troca-recusada,
 .exchange-status.recusado {
     background: #fee2e2;
     color: #dc2626;

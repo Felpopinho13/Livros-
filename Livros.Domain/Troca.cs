@@ -17,7 +17,7 @@ namespace Livros.Domain {
         public string Motivo { get; set; } = string.Empty;
         public string? ObservacaoCliente { get; set; }
         public string? ObservacaoAdmin { get; set; }
-        public string Status { get; set; } = "Solicitado";
+        public string Status { get; set; } = "EM TROCA";
         public DateTime DataSolicitacao { get; set; } = DateTime.Now;
         public DateTime? DataAnalise { get; set; }
         public DateTime? DataRecebimento { get; set; }

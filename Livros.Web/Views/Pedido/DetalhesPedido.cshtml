@@ -152,11 +152,13 @@
                                     </button>
                                 }
                                 else {
-                                    var textoBotaoTroca = item.TrocaStatus == "Autorizada"
+                                    var textoBotaoTroca = item.TrocaStatus == "TROCA AUTORIZADA"
                                         ? "Troca autorizada"
-                                        : item.TrocaStatus == "Recebida"
+                                        : item.TrocaStatus == "TROCADO"
                                             ? "Troca concluída"
-                                            : "Solicitação enviada";
+                                            : item.TrocaStatus == "TROCA RECUSADA"
+                                                ? "Troca recusada"
+                                                : "Solicitação enviada";
 
                                     <button type="button" class="btn-amazon btn-secondary" disabled>
                                         @textoBotaoTroca

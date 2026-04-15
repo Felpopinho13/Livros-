@@ -149,7 +149,7 @@ public class AdminController : Controller {
                 Codigo = t.Codigo,
                 PedidoId = t.PedidoId,
                 LivroTitulo = t.PedidoItem?.Livro?.Titulo ?? "Livro",
-                Status = t.Status,
+                Status = ObterStatusTrocaExibicao(t),
                 Data = t.DataSolicitacao
             }).ToList(),
             Cupons = cupons.Select(c => new AdminClienteCupomTransacaoViewModel {
@@ -600,15 +600,23 @@ public class AdminController : Controller {
         }
 
         if (!string.IsNullOrWhiteSpace(status)) {
-            if (string.Equals(status, "Autorizada", StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(status, "TROCA AUTORIZADA", StringComparison.OrdinalIgnoreCase)) {
                 query = query.Where(t =>
+                    t.Status == "TROCA AUTORIZADA" ||
                     t.Status == "Autorizada" ||
                     (t.Status == "Aprovado" && !t.CupomDescontoId.HasValue));
             }
-            else if (string.Equals(status, "Recebida", StringComparison.OrdinalIgnoreCase)) {
+            else if (string.Equals(status, "TROCADO", StringComparison.OrdinalIgnoreCase)) {
                 query = query.Where(t =>
+                    t.Status == "TROCADO" ||
                     t.Status == "Recebida" ||
                     (t.Status == "Aprovado" && t.CupomDescontoId.HasValue));
+            }
+            else if (string.Equals(status, "EM TROCA", StringComparison.OrdinalIgnoreCase)) {
+                query = query.Where(t => t.Status == "EM TROCA" || t.Status == "Solicitado");
+            }
+            else if (string.Equals(status, "TROCA RECUSADA", StringComparison.OrdinalIgnoreCase)) {
+                query = query.Where(t => t.Status == "TROCA RECUSADA" || t.Status == "Recusado");
             }
             else {
                 query = query.Where(t => t.Status == status);
@@ -713,14 +721,14 @@ public class AdminController : Controller {
         troca.DataAnalise = DateTime.Now;
 
         if (string.Equals(decisao, "aprovar", StringComparison.OrdinalIgnoreCase)) {
-            troca.Status = "Autorizada";
+            troca.Status = "TROCA AUTORIZADA";
 
             _context.SaveChanges();
             TempData["Sucesso"] = "Troca autorizada com sucesso. O cupom sera gerado somente apos o recebimento do item devolvido.";
             return RedirectToAction("Trocas");
         }
 
-        troca.Status = "Recusado";
+        troca.Status = "TROCA RECUSADA";
         _context.SaveChanges();
         TempData["Sucesso"] = "Solicitação de troca recusada com sucesso.";
         return RedirectToAction("Trocas");
@@ -758,7 +766,7 @@ public class AdminController : Controller {
         troca.ObservacaoAdmin = observacaoAdmin?.Trim();
         troca.DataRecebimento = DateTime.Now;
         troca.RetornarAoEstoque = retornarAoEstoque;
-        troca.Status = "Recebida";
+        troca.Status = "TROCADO";
 
         if (retornarAoEstoque) {
             ReintegrarItemTrocaAoEstoque(troca.PedidoItem);
@@ -909,26 +917,39 @@ public class AdminController : Controller {
     }
 
     private static bool TrocaEstaSolicitada(Troca troca) {
-        return string.Equals(troca.Status, "Solicitado", StringComparison.OrdinalIgnoreCase);
+        return string.Equals(troca.Status, "EM TROCA", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(troca.Status, "Solicitado", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TrocaEstaAutorizada(Troca troca) {
-        return string.Equals(troca.Status, "Autorizada", StringComparison.OrdinalIgnoreCase)
+        return string.Equals(troca.Status, "TROCA AUTORIZADA", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(troca.Status, "Autorizada", StringComparison.OrdinalIgnoreCase)
             || (string.Equals(troca.Status, "Aprovado", StringComparison.OrdinalIgnoreCase) && !troca.CupomDescontoId.HasValue);
     }
 
     private static bool TrocaEstaRecebida(Troca troca) {
-        return string.Equals(troca.Status, "Recebida", StringComparison.OrdinalIgnoreCase)
+        return string.Equals(troca.Status, "TROCADO", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(troca.Status, "Recebida", StringComparison.OrdinalIgnoreCase)
             || (string.Equals(troca.Status, "Aprovado", StringComparison.OrdinalIgnoreCase) && troca.CupomDescontoId.HasValue);
     }
 
     private static string ObterStatusTrocaExibicao(Troca troca) {
         if (TrocaEstaRecebida(troca)) {
-            return "Recebida";
+            return "TROCADO";
         }
 
         if (TrocaEstaAutorizada(troca)) {
-            return "Autorizada";
+            return "TROCA AUTORIZADA";
+        }
+
+        if (string.Equals(troca.Status, "TROCA RECUSADA", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(troca.Status, "Recusado", StringComparison.OrdinalIgnoreCase)) {
+            return "TROCA RECUSADA";
+        }
+
+        if (string.Equals(troca.Status, "EM TROCA", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(troca.Status, "Solicitado", StringComparison.OrdinalIgnoreCase)) {
+            return "EM TROCA";
         }
 
         return troca.Status;

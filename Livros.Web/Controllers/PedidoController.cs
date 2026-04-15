@@ -466,7 +466,7 @@ namespace Livros.Web.Controllers {
                         Quantidade = item.Quantidade,
                         PrecoUnitario = item.PrecoUnitario,
                         TrocaId = troca?.Id,
-                        TrocaStatus = troca?.Status,
+                        TrocaStatus = NormalizarStatusTrocaExibicao(troca),
                         CodigoCupomTroca = troca?.CupomDesconto?.Codigo,
                         ValorCupomTroca = troca?.CupomDesconto?.Valor
                     };
@@ -519,7 +519,7 @@ namespace Livros.Web.Controllers {
                 ClienteId = clienteId.Value,
                 Motivo = motivo.Trim(),
                 ObservacaoCliente = observacaoCliente?.Trim(),
-                Status = "Solicitado",
+                Status = "EM TROCA",
                 DataSolicitacao = DateTime.Now
             };
 
@@ -1296,12 +1296,43 @@ namespace Livros.Web.Controllers {
                 return false;
             }
 
-            if (string.Equals(troca.Status, "Recebida", StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(troca.Status, "TROCADO", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(troca.Status, "Recebida", StringComparison.OrdinalIgnoreCase)) {
                 return true;
             }
 
             return string.Equals(troca.Status, "Aprovado", StringComparison.OrdinalIgnoreCase)
                 && troca.CupomDescontoId.HasValue;
+        }
+
+        private static string? NormalizarStatusTrocaExibicao(Troca? troca) {
+            if (troca == null) {
+                return null;
+            }
+
+            if (string.Equals(troca.Status, "TROCADO", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(troca.Status, "Recebida", StringComparison.OrdinalIgnoreCase)
+                || (string.Equals(troca.Status, "Aprovado", StringComparison.OrdinalIgnoreCase) && troca.CupomDescontoId.HasValue)) {
+                return "TROCADO";
+            }
+
+            if (string.Equals(troca.Status, "TROCA AUTORIZADA", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(troca.Status, "Autorizada", StringComparison.OrdinalIgnoreCase)
+                || (string.Equals(troca.Status, "Aprovado", StringComparison.OrdinalIgnoreCase) && !troca.CupomDescontoId.HasValue)) {
+                return "TROCA AUTORIZADA";
+            }
+
+            if (string.Equals(troca.Status, "TROCA RECUSADA", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(troca.Status, "Recusado", StringComparison.OrdinalIgnoreCase)) {
+                return "TROCA RECUSADA";
+            }
+
+            if (string.Equals(troca.Status, "EM TROCA", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(troca.Status, "Solicitado", StringComparison.OrdinalIgnoreCase)) {
+                return "EM TROCA";
+            }
+
+            return troca.Status;
         }
 
         private decimal ObterValorPagamento(string campo, decimal? valorPadrao) {

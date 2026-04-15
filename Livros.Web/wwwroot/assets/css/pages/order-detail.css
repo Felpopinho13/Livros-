@@ -347,6 +347,7 @@ h1 {
 }
 
 .exchange-chip.available,
+.exchange-chip.status-em-troca,
 .exchange-chip.status-solicitado {
     background: #fef3c7;
     color: #b45309;
@@ -357,16 +358,19 @@ h1 {
     color: #16a34a;
 }
 
+.exchange-chip.status-troca-autorizada,
 .exchange-chip.status-autorizada {
     background: #dbeafe;
     color: #1d4ed8;
 }
 
+.exchange-chip.status-trocado,
 .exchange-chip.status-recebida {
     background: #dcfce7;
     color: #15803d;
 }
 
+.exchange-chip.status-troca-recusada,
 .exchange-chip.status-recusado {
     background: #fee2e2;
     color: #dc2626;

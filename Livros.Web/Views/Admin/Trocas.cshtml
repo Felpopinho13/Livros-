@@ -79,10 +79,10 @@
 
         <select name="status" class="admin-select exchange-select">
             <option value="">Todos Status</option>
-            <option value="Solicitado" selected="@(Model.StatusFiltro == "Solicitado")">Solicitado</option>
-            <option value="Autorizada" selected="@(Model.StatusFiltro == "Autorizada")">Autorizada</option>
-            <option value="Recebida" selected="@(Model.StatusFiltro == "Recebida")">Recebida</option>
-            <option value="Recusado" selected="@(Model.StatusFiltro == "Recusado")">Recusado</option>
+                        <option value="EM TROCA" selected="@(Model.StatusFiltro == "EM TROCA")">EM TROCA</option>
+                        <option value="TROCA AUTORIZADA" selected="@(Model.StatusFiltro == "TROCA AUTORIZADA")">TROCA AUTORIZADA</option>
+                        <option value="TROCADO" selected="@(Model.StatusFiltro == "TROCADO")">TROCADO</option>
+                        <option value="TROCA RECUSADA" selected="@(Model.StatusFiltro == "TROCA RECUSADA")">TROCA RECUSADA</option>
         </select>
 
         <button type="submit" class="btn-secondary exchange-filter-btn">Filtrar</button>
@@ -439,8 +439,8 @@
         const cupomGeradoBox = document.getElementById('cupomGeradoBox');
         const blocoRecebimento = document.getElementById('trocaRecebimentoMeta');
         const form = document.getElementById('trocaForm');
-        const modoAnalise = status === 'Solicitado';
-        const modoRecebimento = status === 'Autorizada';
+        const modoAnalise = status === 'EM TROCA';
+        const modoRecebimento = status === 'TROCA AUTORIZADA';
         const somenteLeitura = !modoAnalise && !modoRecebimento;
 
         camposAnalise.forEach((campo) => {
