@@ -12,6 +12,14 @@
             <div class="checkout-feedback error">@TempData["ErroCarrinho"]</div>
         }
 
+        @if (Model.Avisos.Any()) {
+            <div class="checkout-feedback warning">
+                @foreach (var aviso in Model.Avisos.Distinct()) {
+                    <div>@aviso</div>
+                }
+            </div>
+        }
+
         @if (Model.CarrinhoVazio) {
             <div class="card cart-empty-state">
                 <h3>Seu carrinho está vazio.</h3>
@@ -31,6 +39,9 @@
                                     <h3>@item.Titulo</h3>
                                     <p>@item.Autor</p>
                                     <p class="stock">@(item.EmEstoque ? "Em estoque" : "Indisponível")</p>
+                                    @if (!string.IsNullOrWhiteSpace(item.AvisoReserva)) {
+                                        <p class="cart-reservation-warning">@item.AvisoReserva</p>
+                                    }
 
                                     <div class="cart-actions">
                                         <form asp-controller="Pedido" asp-action="RemoverDoCarrinho" method="post">
@@ -79,6 +90,10 @@
                         <span>Total</span>
                         <span>R$ @Model.Subtotal.ToString("N2")</span>
                     </div>
+
+                    <p class="cart-summary-note">
+                        Os itens do carrinho ficam reservados por até 10 minutos. Quando faltarem 5 minutos para a expiracao, o sistema avisa e remove automaticamente o item se a reserva vencer.
+                    </p>
 
                     <div class="summary-actions cart-summary-actions">
                         <a asp-controller="Home" asp-action="Index" class="btn-outline">

@@ -23,6 +23,8 @@ public class CheckoutViewModel {
     public decimal Total { get; set; }
     public bool OrigemCarrinho { get; set; }
     public bool PermiteAlterarQuantidade { get; set; }
+    public bool RequerRevisaoCarrinho { get; set; }
+    public List<string> AvisosCarrinho { get; set; } = new();
     public CheckoutFormData Form { get; set; } = new();
 }
 

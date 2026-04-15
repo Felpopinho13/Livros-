@@ -20,6 +20,8 @@
 
         public string? CarrinhoPersistidoJson { get; set; }
 
+        public List<ReservaCarrinho>? ReservasCarrinho { get; set; }
+
         public bool IsAtivo { get; set; } = true;
     }
 }

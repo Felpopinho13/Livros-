@@ -110,6 +110,24 @@ namespace Livros.Infrastructure.Data {
                 .WithMany()
                 .HasForeignKey(c => c.PedidoId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ReservaCarrinho>()
+                .HasOne(r => r.Livro)
+                .WithMany()
+                .HasForeignKey(r => r.LivroId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ReservaCarrinho>()
+                .HasOne(r => r.Cliente)
+                .WithMany(c => c.ReservasCarrinho)
+                .HasForeignKey(r => r.ClienteId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<ReservaCarrinho>()
+                .HasIndex(r => new { r.LivroId, r.ExpiraEm });
+
+            modelBuilder.Entity<ReservaCarrinho>()
+                .HasIndex(r => new { r.ClienteId, r.SessionKey });
         }
 
         public DbSet<Cliente> Clientes { get; set; }
@@ -127,5 +145,6 @@ namespace Livros.Infrastructure.Data {
         public DbSet<Estoque> Estoques { get; set; }
         public DbSet<Troca> Trocas { get; set; }
         public DbSet<CupomDesconto> CuponsDesconto { get; set; }
+        public DbSet<ReservaCarrinho> ReservasCarrinho { get; set; }
     }
 }

@@ -11,6 +11,8 @@ using System.Text.Json;
 namespace Livros.Web.Controllers {
     public class PedidoController : Controller {
         private const string CarrinhoSessionKey = "Carrinho";
+        private static readonly TimeSpan ReservaCarrinhoDuracao = TimeSpan.FromMinutes(10);
+        private static readonly TimeSpan ReservaCarrinhoAviso = TimeSpan.FromMinutes(5);
 
         private readonly AppDbContext _context;
         private readonly LivroService _livroService;
@@ -31,6 +33,8 @@ namespace Livros.Web.Controllers {
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult AdicionarAoCarrinho(int livroId, int quantidade = 1) {
+            LimparReservasExpiradas();
+
             var livro = _context.Livros
                 .Include(l => l.Estoque)
                 .FirstOrDefault(l => l.Id == livroId && l.IsAtivo);
@@ -50,26 +54,46 @@ namespace Livros.Web.Controllers {
 
             var carrinho = ObterCarrinhoDaSessao();
             var itemExistente = carrinho.FirstOrDefault(i => i.LivroId == livroId);
+            var clienteId = ObterClienteId();
+            var sessionKey = ObterSessionKeyReserva();
+            var quantidadeDesejada = (itemExistente?.Quantidade ?? 0) + quantidade;
+            var quantidadeDisponivel = ObterQuantidadeDisponivelParaUsuario(livroId, estoqueDisponivel, clienteId, sessionKey);
+            var quantidadeFinal = Math.Min(quantidadeDesejada, quantidadeDisponivel);
+
+            if (quantidadeFinal <= 0) {
+                TempData["ErroCarrinho"] = $"O livro \"{livro.Titulo}\" nao possui saldo disponivel para reserva no momento.";
+                return RedirecionarParaOrigemOuHome();
+            }
 
             if (itemExistente == null) {
                 carrinho.Add(new CarrinhoSessionItem {
                     LivroId = livroId,
-                    Quantidade = Math.Min(quantidade, estoqueDisponivel)
+                    Quantidade = quantidadeFinal
                 });
             }
             else {
-                itemExistente.Quantidade = Math.Min(itemExistente.Quantidade + quantidade, estoqueDisponivel);
+                itemExistente.Quantidade = quantidadeFinal;
+            }
+
+            CriarOuAtualizarReservaCarrinho(livroId, quantidadeFinal, clienteId, sessionKey, renovarExpiracao: true);
+            _context.SaveChanges();
+
+            if (quantidadeFinal < quantidadeDesejada) {
+                TempData["ErroCarrinho"] = $"O estoque reservado de \"{livro.Titulo}\" foi ajustado para {quantidadeFinal} unidade(s).";
+            }
+            else {
+                TempData["SucessoCarrinho"] = $"\"{livro.Titulo}\" foi adicionado ao carrinho.";
             }
 
             SalvarCarrinhoNaSessao(carrinho);
-            TempData["SucessoCarrinho"] = $"\"{livro.Titulo}\" foi adicionado ao carrinho.";
-
             return RedirecionarParaOrigemOuHome();
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult AtualizarCarrinho(int livroId, int quantidade) {
+            LimparReservasExpiradas();
+
             var carrinho = ObterCarrinhoDaSessao();
             var item = carrinho.FirstOrDefault(i => i.LivroId == livroId);
 
@@ -79,6 +103,8 @@ namespace Livros.Web.Controllers {
 
             if (quantidade <= 0) {
                 carrinho.Remove(item);
+                RemoverReservaCarrinho(livroId, ObterClienteId(), ObterSessionKeyReserva());
+                _context.SaveChanges();
                 SalvarCarrinhoNaSessao(carrinho);
                 return RedirectToAction(nameof(Carrinho));
             }
@@ -89,15 +115,36 @@ namespace Livros.Web.Controllers {
 
             if (livro == null) {
                 carrinho.Remove(item);
+                RemoverReservaCarrinho(livroId, ObterClienteId(), ObterSessionKeyReserva());
+                _context.SaveChanges();
                 SalvarCarrinhoNaSessao(carrinho);
                 TempData["ErroCarrinho"] = "O item nao esta mais disponivel.";
                 return RedirectToAction(nameof(Carrinho));
             }
 
             var estoqueDisponivel = livro.Estoque?.Quantidade ?? 0;
-            item.Quantidade = Math.Min(Math.Max(1, quantidade), Math.Max(estoqueDisponivel, 1));
+            var clienteId = ObterClienteId();
+            var sessionKey = ObterSessionKeyReserva();
+            var quantidadeDisponivel = ObterQuantidadeDisponivelParaUsuario(livroId, estoqueDisponivel, clienteId, sessionKey);
+            var quantidadeFinal = Math.Min(Math.Max(1, quantidade), quantidadeDisponivel);
+
+            if (quantidadeFinal <= 0) {
+                carrinho.Remove(item);
+                RemoverReservaCarrinho(livroId, clienteId, sessionKey);
+                _context.SaveChanges();
+                SalvarCarrinhoNaSessao(carrinho);
+                TempData["ErroCarrinho"] = $"O livro \"{livro.Titulo}\" ficou sem saldo reservado no momento.";
+                return RedirectToAction(nameof(Carrinho));
+            }
+
+            item.Quantidade = quantidadeFinal;
+            CriarOuAtualizarReservaCarrinho(livroId, quantidadeFinal, clienteId, sessionKey, renovarExpiracao: true);
+            _context.SaveChanges();
 
             SalvarCarrinhoNaSessao(carrinho);
+            if (quantidadeFinal < quantidade) {
+                TempData["ErroCarrinho"] = $"A quantidade de \"{livro.Titulo}\" foi ajustada para {quantidadeFinal} unidade(s) por falta de estoque reservado.";
+            }
             return RedirectToAction(nameof(Carrinho));
         }
 
@@ -106,6 +153,8 @@ namespace Livros.Web.Controllers {
         public IActionResult RemoverDoCarrinho(int livroId) {
             var carrinho = ObterCarrinhoDaSessao();
             carrinho.RemoveAll(i => i.LivroId == livroId);
+            RemoverReservaCarrinho(livroId, ObterClienteId(), ObterSessionKeyReserva());
+            _context.SaveChanges();
             SalvarCarrinhoNaSessao(carrinho);
             return RedirectToAction(nameof(Carrinho));
         }
@@ -147,7 +196,8 @@ namespace Livros.Web.Controllers {
                 UsarCarrinho = true
             };
 
-            var vm = MontarCheckoutViewModel(clienteId.Value, form);
+            var sincronizacao = SincronizarCarrinhoComEstoque(renovarReservas: true);
+            var vm = MontarCheckoutViewModel(clienteId.Value, form, sincronizacao);
             if (!vm.Itens.Any()) {
                 TempData["ErroCarrinho"] = "Seu carrinho esta vazio.";
                 return RedirectToAction(nameof(Carrinho));
@@ -210,12 +260,21 @@ namespace Livros.Web.Controllers {
             form.Valor1 = ObterValorPagamento("Valor1", form.Valor1);
             form.Valor2 = ObterValorPagamento("Valor2", form.Valor2);
 
-            var itensCheckout = ObterItensCheckout(form);
+            CarrinhoSyncResult? sincronizacaoCarrinho = null;
+            if (form.UsarCarrinho) {
+                sincronizacaoCarrinho = SincronizarCarrinhoComEstoque(renovarReservas: true);
+            }
+
+            var itensCheckout = ObterItensCheckout(form, sincronizacaoCarrinho);
             if (!itensCheckout.Any()) {
                 TempData["ErroCarrinho"] = "Nao ha itens validos para finalizar a compra.";
                 return form.UsarCarrinho
                     ? RedirectToAction(nameof(Carrinho))
                     : RedirectToAction("Index", "Home");
+            }
+
+            if (form.UsarCarrinho && sincronizacaoCarrinho?.RequerRevisao == true) {
+                ModelState.AddModelError(string.Empty, "Seu carrinho foi atualizado por alteracao de estoque ou expiracao da reserva. Revise os itens antes de finalizar.");
             }
 
             ValidarEstoqueCheckout(itensCheckout);
@@ -232,7 +291,7 @@ namespace Livros.Web.Controllers {
             ValidarPagamentos(clienteId.Value, form, total, cupomAplicado);
 
             if (!ModelState.IsValid || !enderecoId.HasValue) {
-                var vmInvalido = MontarCheckoutViewModel(clienteId.Value, form);
+                var vmInvalido = MontarCheckoutViewModel(clienteId.Value, form, sincronizacaoCarrinho);
                 return View("Checkout", vmInvalido);
             }
 
@@ -480,72 +539,34 @@ namespace Livros.Web.Controllers {
         }
 
         private CarrinhoViewModel MontarCarrinhoViewModel() {
-            var carrinho = ObterCarrinhoDaSessao();
-            if (!carrinho.Any()) {
-                return new CarrinhoViewModel();
-            }
-
-            var livroIds = carrinho.Select(i => i.LivroId).Distinct().ToList();
-            var livros = _context.Livros
-                .Include(l => l.Estoque)
-                .Where(l => livroIds.Contains(l.Id) && l.IsAtivo)
-                .ToList();
-
-            var itens = new List<CarrinhoItemViewModel>();
-
-            foreach (var item in carrinho) {
-                var livro = livros.FirstOrDefault(l => l.Id == item.LivroId);
-                if (livro == null) {
-                    continue;
-                }
-
-                var estoqueDisponivel = livro.Estoque?.Quantidade ?? 0;
-                var quantidadeAjustada = Math.Min(item.Quantidade, Math.Max(estoqueDisponivel, 0));
-
-                if (quantidadeAjustada <= 0) {
-                    continue;
-                }
-
-                itens.Add(new CarrinhoItemViewModel {
-                    LivroId = livro.Id,
-                    Titulo = livro.Titulo,
-                    Autor = livro.Autor,
-                    ImagemUrl = livro.ImagemUrl,
-                    PrecoUnitario = livro.Preco,
-                    Quantidade = quantidadeAjustada,
-                    EmEstoque = estoqueDisponivel > 0,
-                    EstoqueDisponivel = estoqueDisponivel
-                });
-            }
-
-            var carrinhoAtualizado = itens
-                .Select(i => new CarrinhoSessionItem { LivroId = i.LivroId, Quantidade = i.Quantidade })
-                .ToList();
-
-            var carrinhoMudou = carrinhoAtualizado.Count != carrinho.Count;
-
-            if (!carrinhoMudou) {
-                for (var indice = 0; indice < carrinhoAtualizado.Count; indice++) {
-                    if (carrinhoAtualizado[indice].LivroId != carrinho[indice].LivroId ||
-                        carrinhoAtualizado[indice].Quantidade != carrinho[indice].Quantidade) {
-                        carrinhoMudou = true;
-                        break;
-                    }
-                }
-            }
-
-            if (carrinhoMudou) {
-                SalvarCarrinhoNaSessao(carrinhoAtualizado);
-            }
+            var sincronizacao = SincronizarCarrinhoComEstoque(renovarReservas: false);
 
             return new CarrinhoViewModel {
-                Itens = itens
+                Avisos = sincronizacao.Avisos,
+                Itens = sincronizacao.Itens.Select(item => new CarrinhoItemViewModel {
+                    LivroId = item.Livro.Id,
+                    Titulo = item.Livro.Titulo,
+                    Autor = item.Livro.Autor,
+                    ImagemUrl = item.Livro.ImagemUrl,
+                    PrecoUnitario = item.Livro.Preco,
+                    Quantidade = item.Quantidade,
+                    EmEstoque = item.EstoqueDisponivel > 0,
+                    EstoqueDisponivel = item.EstoqueDisponivel,
+                    ReservaExpiraEm = item.ReservaExpiraEm,
+                    ReservaExpirando = item.ReservaExpirando,
+                    AvisoReserva = item.AvisoReserva
+                }).ToList()
             };
         }
 
-        private List<CheckoutItemRequest> ObterItensCheckout(CheckoutFormData form) {
+        private List<CheckoutItemRequest> ObterItensCheckout(CheckoutFormData form, CarrinhoSyncResult? sincronizacaoCarrinho = null) {
             if (form.UsarCarrinho) {
-                return ObterItensCarrinhoParaCheckout();
+                var sincronizacao = sincronizacaoCarrinho ?? SincronizarCarrinhoComEstoque(renovarReservas: true);
+                return sincronizacao.Itens.Select(item => new CheckoutItemRequest {
+                    Livro = item.Livro,
+                    Quantidade = item.Quantidade,
+                    PrecoUnitario = item.Livro.Preco
+                }).ToList();
             }
 
             var livro = _context.Livros
@@ -565,10 +586,27 @@ namespace Livros.Web.Controllers {
             };
         }
 
-        private List<CheckoutItemRequest> ObterItensCarrinhoParaCheckout() {
+        private void ValidarEstoqueCheckout(List<CheckoutItemRequest> itensCheckout) {
+            foreach (var item in itensCheckout) {
+                var estoqueDisponivel = item.Livro.Estoque?.Quantidade ?? 0;
+                if (estoqueDisponivel < item.Quantidade) {
+                    ModelState.AddModelError(string.Empty, $"O livro \"{item.Livro.Titulo}\" nao possui estoque suficiente para concluir a compra.");
+                }
+            }
+        }
+
+        private CarrinhoSyncResult SincronizarCarrinhoComEstoque(bool renovarReservas) {
+            var resultado = new CarrinhoSyncResult();
+            var agora = DateTime.Now;
+            var clienteId = ObterClienteId();
+            var sessionKey = ObterSessionKeyReserva();
+            var livrosExpirados = ObterLivroIdsExpiradosDoUsuario(agora, clienteId, sessionKey);
+
+            LimparReservasExpiradas(agora);
+
             var carrinho = ObterCarrinhoDaSessao();
             if (!carrinho.Any()) {
-                return new List<CheckoutItemRequest>();
+                return resultado;
             }
 
             var livroIds = carrinho.Select(i => i.LivroId).Distinct().ToList();
@@ -577,37 +615,87 @@ namespace Livros.Web.Controllers {
                 .Where(l => livroIds.Contains(l.Id) && l.IsAtivo)
                 .ToList();
 
-            var itens = new List<CheckoutItemRequest>();
+            var reservasAtivas = _context.ReservasCarrinho
+                .Where(r => livroIds.Contains(r.LivroId) && r.ExpiraEm > agora)
+                .ToList();
 
             foreach (var item in carrinho) {
+                if (livrosExpirados.Contains(item.LivroId)) {
+                    resultado.CarrinhoMudou = true;
+                    resultado.RequerRevisao = true;
+                    resultado.Avisos.Add("Um item foi removido do carrinho porque a reserva expirou.");
+                    continue;
+                }
+
                 var livro = livros.FirstOrDefault(l => l.Id == item.LivroId);
                 if (livro == null) {
+                    RemoverReservaCarrinho(item.LivroId, clienteId, sessionKey);
+                    resultado.CarrinhoMudou = true;
+                    resultado.RequerRevisao = true;
+                    resultado.Avisos.Add("Um item foi removido do carrinho porque nao esta mais disponivel.");
                     continue;
                 }
 
                 var estoqueDisponivel = livro.Estoque?.Quantidade ?? 0;
-                var quantidade = Math.Min(item.Quantidade, Math.Max(estoqueDisponivel, 0));
-                if (quantidade <= 0) {
+                var quantidadeReservadaPorOutros = reservasAtivas
+                    .Where(r => r.LivroId == item.LivroId && !ReservaPertenceAoUsuario(r, clienteId, sessionKey))
+                    .Sum(r => r.Quantidade);
+
+                var disponivelAoUsuario = Math.Max(estoqueDisponivel - quantidadeReservadaPorOutros, 0);
+                var quantidadeAjustada = Math.Min(item.Quantidade, disponivelAoUsuario);
+
+                if (quantidadeAjustada <= 0) {
+                    RemoverReservaCarrinho(item.LivroId, clienteId, sessionKey);
+                    resultado.CarrinhoMudou = true;
+                    resultado.RequerRevisao = true;
+                    resultado.Avisos.Add($"\"{livro.Titulo}\" foi removido do carrinho porque ficou sem estoque.");
                     continue;
                 }
 
-                itens.Add(new CheckoutItemRequest {
+                if (quantidadeAjustada != item.Quantidade) {
+                    resultado.CarrinhoMudou = true;
+                    resultado.RequerRevisao = true;
+                    resultado.Avisos.Add($"A quantidade de \"{livro.Titulo}\" foi ajustada para {quantidadeAjustada} unidade(s) por alteracao de estoque.");
+                }
+
+                var reserva = reservasAtivas
+                    .FirstOrDefault(r => r.LivroId == item.LivroId && ReservaPertenceAoUsuario(r, clienteId, sessionKey));
+
+                if (reserva == null) {
+                    reserva = CriarOuAtualizarReservaCarrinho(item.LivroId, quantidadeAjustada, clienteId, sessionKey, renovarExpiracao: true);
+                    reservasAtivas.Add(reserva);
+                }
+                else if (reserva.Quantidade != quantidadeAjustada || renovarReservas) {
+                    reserva = CriarOuAtualizarReservaCarrinho(item.LivroId, quantidadeAjustada, clienteId, sessionKey, renovarExpiracao: true);
+                }
+
+                var tempoRestante = reserva.ExpiraEm - agora;
+                var reservaExpirando = tempoRestante <= ReservaCarrinhoAviso;
+
+                resultado.Itens.Add(new CarrinhoItemNormalizado {
                     Livro = livro,
-                    Quantidade = quantidade,
-                    PrecoUnitario = livro.Preco
+                    Quantidade = quantidadeAjustada,
+                    EstoqueDisponivel = disponivelAoUsuario,
+                    ReservaExpiraEm = reserva.ExpiraEm,
+                    ReservaExpirando = reservaExpirando,
+                    AvisoReserva = reservaExpirando
+                        ? $"Reserva expira em {Math.Max((int)Math.Ceiling(tempoRestante.TotalMinutes), 0)} minuto(s)."
+                        : null
                 });
             }
 
-            return itens;
-        }
+            _context.SaveChanges();
 
-        private void ValidarEstoqueCheckout(List<CheckoutItemRequest> itensCheckout) {
-            foreach (var item in itensCheckout) {
-                var estoqueDisponivel = item.Livro.Estoque?.Quantidade ?? 0;
-                if (estoqueDisponivel < item.Quantidade) {
-                    ModelState.AddModelError(string.Empty, $"O livro \"{item.Livro.Titulo}\" nao possui estoque suficiente para concluir a compra.");
-                }
+            var carrinhoAtualizado = resultado.Itens
+                .Select(i => new CarrinhoSessionItem { LivroId = i.Livro.Id, Quantidade = i.Quantidade })
+                .ToList();
+
+            if (CarrinhoMudou(carrinho, carrinhoAtualizado)) {
+                resultado.CarrinhoMudou = true;
+                SalvarCarrinhoNaSessao(carrinhoAtualizado);
             }
+
+            return resultado;
         }
 
         private List<CarrinhoSessionItem> ObterCarrinhoDaSessao() {
@@ -653,6 +741,8 @@ namespace Livros.Web.Controllers {
         private void LimparCarrinho() {
             HttpContext.Session.Remove(CarrinhoSessionKey);
             PersistirCarrinhoDoCliente(new List<CarrinhoSessionItem>());
+            RemoverTodasReservasDoUsuario(ObterClienteId(), ObterSessionKeyReserva());
+            _context.SaveChanges();
         }
 
         private void PersistirCarrinhoDoCliente(List<CarrinhoSessionItem> itens) {
@@ -672,8 +762,8 @@ namespace Livros.Web.Controllers {
 
             _context.SaveChanges();
         }
-        private CheckoutViewModel MontarCheckoutViewModel(int clienteId, CheckoutFormData form) {
-            var itensCheckout = ObterItensCheckout(form);
+        private CheckoutViewModel MontarCheckoutViewModel(int clienteId, CheckoutFormData form, CarrinhoSyncResult? sincronizacaoCarrinho = null) {
+            var itensCheckout = ObterItensCheckout(form, sincronizacaoCarrinho);
             var enderecos = (_enderecoService.ListarPorCliente(clienteId) ?? new List<Endereco>())
                 .Where(e => e.IsEntrega)
                 .OrderByDescending(e => e.IsPadrao)
@@ -733,8 +823,128 @@ namespace Livros.Web.Controllers {
                 Total = subtotal + frete - desconto,
                 OrigemCarrinho = form.UsarCarrinho,
                 PermiteAlterarQuantidade = !form.UsarCarrinho && itensCheckout.Count == 1,
+                RequerRevisaoCarrinho = form.UsarCarrinho && (sincronizacaoCarrinho?.RequerRevisao ?? false),
+                AvisosCarrinho = form.UsarCarrinho ? (sincronizacaoCarrinho?.Avisos ?? new List<string>()) : new List<string>(),
                 Form = form
             };
+        }
+
+        private string ObterSessionKeyReserva() {
+            _ = HttpContext.Session.Id;
+            return HttpContext.Session.Id;
+        }
+
+        private int ObterQuantidadeDisponivelParaUsuario(int livroId, int estoqueDisponivel, int? clienteId, string sessionKey) {
+            var agora = DateTime.Now;
+            var quantidadeReservadaPorOutros = _context.ReservasCarrinho
+                .Where(r => r.LivroId == livroId && r.ExpiraEm > agora)
+                .AsEnumerable()
+                .Where(r => !ReservaPertenceAoUsuario(r, clienteId, sessionKey))
+                .Sum(r => r.Quantidade);
+
+            return Math.Max(estoqueDisponivel - quantidadeReservadaPorOutros, 0);
+        }
+
+        private HashSet<int> ObterLivroIdsExpiradosDoUsuario(DateTime agora, int? clienteId, string sessionKey) {
+            var expiradas = _context.ReservasCarrinho
+                .Where(r => r.ExpiraEm <= agora)
+                .AsEnumerable()
+                .Where(r => ReservaPertenceAoUsuario(r, clienteId, sessionKey))
+                .Select(r => r.LivroId)
+                .ToHashSet();
+
+            return expiradas;
+        }
+
+        private void LimparReservasExpiradas() {
+            LimparReservasExpiradas(DateTime.Now);
+        }
+
+        private void LimparReservasExpiradas(DateTime agora) {
+            var reservasExpiradas = _context.ReservasCarrinho
+                .Where(r => r.ExpiraEm <= agora)
+                .ToList();
+
+            if (reservasExpiradas.Any()) {
+                _context.ReservasCarrinho.RemoveRange(reservasExpiradas);
+                _context.SaveChanges();
+            }
+        }
+
+        private ReservaCarrinho CriarOuAtualizarReservaCarrinho(int livroId, int quantidade, int? clienteId, string sessionKey, bool renovarExpiracao) {
+            var agora = DateTime.Now;
+            var reserva = _context.ReservasCarrinho
+                .AsEnumerable()
+                .FirstOrDefault(r => r.LivroId == livroId && r.ExpiraEm > agora && ReservaPertenceAoUsuario(r, clienteId, sessionKey));
+
+            if (reserva == null) {
+                reserva = new ReservaCarrinho {
+                    LivroId = livroId,
+                    ClienteId = clienteId,
+                    SessionKey = clienteId.HasValue ? null : sessionKey,
+                    Quantidade = quantidade,
+                    ReservadoEm = agora,
+                    ExpiraEm = agora.Add(ReservaCarrinhoDuracao)
+                };
+
+                _context.ReservasCarrinho.Add(reserva);
+                return reserva;
+            }
+
+            reserva.Quantidade = quantidade;
+            reserva.ReservadoEm = agora;
+            if (renovarExpiracao) {
+                reserva.ExpiraEm = agora.Add(ReservaCarrinhoDuracao);
+            }
+
+            return reserva;
+        }
+
+        private void RemoverReservaCarrinho(int livroId, int? clienteId, string sessionKey) {
+            var reservas = _context.ReservasCarrinho
+                .AsEnumerable()
+                .Where(r => r.LivroId == livroId && ReservaPertenceAoUsuario(r, clienteId, sessionKey))
+                .ToList();
+
+            if (reservas.Any()) {
+                _context.ReservasCarrinho.RemoveRange(reservas);
+            }
+        }
+
+        private void RemoverTodasReservasDoUsuario(int? clienteId, string sessionKey) {
+            var reservas = _context.ReservasCarrinho
+                .AsEnumerable()
+                .Where(r => ReservaPertenceAoUsuario(r, clienteId, sessionKey))
+                .ToList();
+
+            if (reservas.Any()) {
+                _context.ReservasCarrinho.RemoveRange(reservas);
+            }
+        }
+
+        private static bool ReservaPertenceAoUsuario(ReservaCarrinho reserva, int? clienteId, string sessionKey) {
+            if (clienteId.HasValue) {
+                return reserva.ClienteId == clienteId.Value;
+            }
+
+            return !reserva.ClienteId.HasValue &&
+                   !string.IsNullOrWhiteSpace(reserva.SessionKey) &&
+                   string.Equals(reserva.SessionKey, sessionKey, StringComparison.Ordinal);
+        }
+
+        private static bool CarrinhoMudou(List<CarrinhoSessionItem> original, List<CarrinhoSessionItem> atualizado) {
+            if (original.Count != atualizado.Count) {
+                return true;
+            }
+
+            for (var indice = 0; indice < atualizado.Count; indice++) {
+                if (original[indice].LivroId != atualizado[indice].LivroId ||
+                    original[indice].Quantidade != atualizado[indice].Quantidade) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private int? ResolverEndereco(int clienteId, CheckoutFormData form) {
@@ -1142,6 +1352,22 @@ namespace Livros.Web.Controllers {
             public Livro Livro { get; set; } = null!;
             public int Quantidade { get; set; }
             public decimal PrecoUnitario { get; set; }
+        }
+
+        private sealed class CarrinhoItemNormalizado {
+            public Livro Livro { get; set; } = null!;
+            public int Quantidade { get; set; }
+            public int EstoqueDisponivel { get; set; }
+            public DateTime? ReservaExpiraEm { get; set; }
+            public bool ReservaExpirando { get; set; }
+            public string? AvisoReserva { get; set; }
+        }
+
+        private sealed class CarrinhoSyncResult {
+            public List<CarrinhoItemNormalizado> Itens { get; set; } = new();
+            public List<string> Avisos { get; set; } = new();
+            public bool CarrinhoMudou { get; set; }
+            public bool RequerRevisao { get; set; }
         }
 
         private sealed class CarrinhoSessionItem {

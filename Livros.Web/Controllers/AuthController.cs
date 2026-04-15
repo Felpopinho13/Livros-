@@ -142,6 +142,7 @@ public class AuthController : Controller {
             return View();
         }
 
+        var sessionKey = HttpContext.Session.Id;
         var carrinhoSessaoAtual = ObterCarrinhoDaSessaoAtual();
         var carrinhoPersistido = DeserializarCarrinho(cliente.CarrinhoPersistidoJson);
         var carrinhoMesclado = MesclarCarrinhos(carrinhoPersistido, carrinhoSessaoAtual);
@@ -154,6 +155,7 @@ public class AuthController : Controller {
             var carrinhoJson = JsonSerializer.Serialize(carrinhoMesclado);
             HttpContext.Session.SetString(CarrinhoSessionKey, carrinhoJson);
             cliente.CarrinhoPersistidoJson = carrinhoJson;
+            TransferirReservasSessaoParaCliente(cliente.Id, sessionKey);
             _context.SaveChanges();
         }
         else {
@@ -198,6 +200,21 @@ public class AuthController : Controller {
             .ToList();
 
         return itens;
+    }
+
+    private void TransferirReservasSessaoParaCliente(int clienteId, string? sessionKey) {
+        if (string.IsNullOrWhiteSpace(sessionKey)) {
+            return;
+        }
+
+        var reservasSessao = _context.ReservasCarrinho
+            .Where(r => r.SessionKey == sessionKey && r.ClienteId == null)
+            .ToList();
+
+        foreach (var reserva in reservasSessao) {
+            reserva.ClienteId = clienteId;
+            reserva.SessionKey = null;
+        }
     }
 
     private sealed class CarrinhoSessionItem {

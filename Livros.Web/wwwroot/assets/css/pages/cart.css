@@ -151,3 +151,15 @@
 .cart-summary-actions a {
     width: 100%;
 }
+
+.checkout-feedback.warning {
+    background: #fff7ed;
+    color: #9a3412;
+}
+
+.cart-reservation-warning {
+    margin-top: 8px;
+    color: #b45309;
+    font-size: 13px;
+    font-weight: 600;
+}

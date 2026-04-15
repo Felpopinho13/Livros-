@@ -26,6 +26,14 @@
                 </div>
             }
 
+            @if (Model.AvisosCarrinho.Any()) {
+                <div class="checkout-feedback warning">
+                    @foreach (var aviso in Model.AvisosCarrinho.Distinct()) {
+                        <div>@aviso</div>
+                    }
+                </div>
+            }
+
             <div class="checkout-layout"
                  data-unit-price="@((Model.PermiteAlterarQuantidade && Model.Livro != null ? Model.Livro.Preco : 0).ToString(System.Globalization.CultureInfo.InvariantCulture))"
                  data-subtotal-base="@Model.Subtotal.ToString(System.Globalization.CultureInfo.InvariantCulture)"
@@ -303,9 +311,19 @@
                         R$ <span id="totalCompra">@Model.Total.ToString("N2")</span>
                     </p>
 
-                    <button type="submit" class="btn btn-primary btn-block">
-                        Finalizar pagamento
-                    </button>
+                    @if (Model.RequerRevisaoCarrinho) {
+                        <div class="checkout-review-warning">
+                            Revise o carrinho antes de concluir a compra. Houve alteracao de estoque ou expiracao da reserva.
+                        </div>
+                        <a asp-controller="Pedido" asp-action="Carrinho" class="btn btn-secondary btn-block">
+                            Revisar carrinho
+                        </a>
+                    }
+                    else {
+                        <button type="submit" class="btn btn-primary btn-block">
+                            Finalizar pagamento
+                        </button>
+                    }
                 </div>
             </div>
         </form>
