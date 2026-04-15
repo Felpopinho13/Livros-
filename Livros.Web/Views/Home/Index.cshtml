@@ -30,6 +30,14 @@
                         <h3>@livro.Titulo</h3>
                     </a>
 
+                    @if (livro.Categorias != null && livro.Categorias.Any()) {
+                        <div class="product-categories">
+                            @foreach (var categoria in livro.Categorias.OrderBy(c => c.Nome).Take(2)) {
+                                <span class="product-category-tag">@categoria.Nome</span>
+                            }
+                        </div>
+                    }
+
                     <p class="price">
                         R$ @livro.Preco.ToString("N2")
                     </p>

@@ -30,6 +30,20 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope()) {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+    if (!context.Categorias.Any()) {
+        context.Categorias.AddRange(
+            new Categoria { Nome = "Romance" },
+            new Categoria { Nome = "Ficcao" },
+            new Categoria { Nome = "Fantasia" },
+            new Categoria { Nome = "Drama" },
+            new Categoria { Nome = "Biografia" },
+            new Categoria { Nome = "Negocios" },
+            new Categoria { Nome = "Tecnologia" },
+            new Categoria { Nome = "Classicos" }
+        );
+        context.SaveChanges();
+    }
+
     if (!context.Clientes.Any(c => c.Email == "admin@admin.com")) {
         var admin = new Cliente {
             Nome = "Admin",

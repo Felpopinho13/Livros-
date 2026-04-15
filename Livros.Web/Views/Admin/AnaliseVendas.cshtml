@@ -1,0 +1,209 @@
+@using System.Text.Json
+@model Livros.Web.Models.ViewModels.AdminAnaliseVendasViewModel
+
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Analise de Vendas";
+    var graficoReceitaJson = JsonSerializer.Serialize(Model.EvolucaoPeriodo.Select(p => new { label = p.Rotulo, value = p.Receita }));
+    var graficoPedidosJson = JsonSerializer.Serialize(Model.EvolucaoPeriodo.Select(p => new { label = p.Rotulo, value = p.Pedidos }));
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/assets/css/admin/admin-table.css" />
+    <link rel="stylesheet" href="~/assets/css/admin/admin-orders.css" />
+    <link rel="stylesheet" href="~/assets/css/admin/admin-sales.css" />
+}
+
+<div class="admin-page-header">
+    <div>
+        <h2>Analise de Vendas</h2>
+        <p class="admin-page-subtitle">Compare produtos e categorias vendidas por periodo e acompanhe a evolucao do faturamento.</p>
+    </div>
+</div>
+
+<div class="admin-table-wrapper">
+    <form method="get" class="admin-filters-card admin-sales-filters">
+        <div class="admin-form-group">
+            <label>Data inicial</label>
+            <input type="date" name="dataInicio" value="@Model.DataInicio.ToString("yyyy-MM-dd")" class="admin-input" />
+        </div>
+
+        <div class="admin-form-group">
+            <label>Data final</label>
+            <input type="date" name="dataFim" value="@Model.DataFim.ToString("yyyy-MM-dd")" class="admin-input" />
+        </div>
+
+        <button type="submit" class="btn-primary">Atualizar analise</button>
+    </form>
+
+    <div class="admin-sales-summary">
+        <article class="admin-sales-card">
+            <span class="admin-sales-label">Receita do periodo</span>
+            <strong>R$ @Model.ReceitaTotal.ToString("N2")</strong>
+        </article>
+
+        <article class="admin-sales-card">
+            <span class="admin-sales-label">Pedidos validos</span>
+            <strong>@Model.TotalPedidos</strong>
+        </article>
+
+        <article class="admin-sales-card">
+            <span class="admin-sales-label">Itens vendidos</span>
+            <strong>@Model.TotalItensVendidos</strong>
+        </article>
+
+        <article class="admin-sales-card">
+            <span class="admin-sales-label">Ticket medio</span>
+            <strong>R$ @Model.TicketMedio.ToString("N2")</strong>
+        </article>
+    </div>
+
+    <div class="admin-sales-chart-card">
+        <div class="admin-sales-chart-header">
+            <div>
+                <h3>Evolucao por periodo</h3>
+                <p>Grafico de linhas com faturamento e quantidade de pedidos no intervalo selecionado.</p>
+            </div>
+            <div class="admin-sales-legend">
+                <span><i class="legend-line legend-line-revenue"></i> Receita</span>
+                <span><i class="legend-line legend-line-orders"></i> Pedidos</span>
+            </div>
+        </div>
+
+        <div id="salesChart" class="admin-sales-chart"></div>
+    </div>
+
+    <div class="admin-sales-comparison-grid">
+        <section class="admin-sales-section">
+            <div class="admin-sales-section-header">
+                <div>
+                    <h3>Comparativo por produto</h3>
+                    <p>@Model.QuantidadeProdutosComparados produto(s) com vendas no periodo.</p>
+                </div>
+            </div>
+
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th>Unidades</th>
+                        <th>Pedidos</th>
+                        <th>Receita</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Produtos.Any()) {
+                        <tr>
+                            <td colspan="4" style="text-align:center;">Nenhuma venda encontrada no periodo.</td>
+                        </tr>
+                    }
+                    else {
+                        @foreach (var produto in Model.Produtos) {
+                            <tr>
+                                <td>@produto.Titulo</td>
+                                <td>@produto.UnidadesVendidas</td>
+                                <td>@produto.Pedidos</td>
+                                <td class="order-total">R$ @produto.Receita.ToString("N2")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </section>
+
+        <section class="admin-sales-section">
+            <div class="admin-sales-section-header">
+                <div>
+                    <h3>Comparativo por categoria</h3>
+                    <p>@Model.QuantidadeCategoriasComparadas categoria(s) com vendas no periodo.</p>
+                </div>
+            </div>
+
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Categoria</th>
+                        <th>Unidades</th>
+                        <th>Pedidos</th>
+                        <th>Receita</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Categorias.Any()) {
+                        <tr>
+                            <td colspan="4" style="text-align:center;">Nenhuma categoria com vendas no periodo.</td>
+                        </tr>
+                    }
+                    else {
+                        @foreach (var categoria in Model.Categorias) {
+                            <tr>
+                                <td>@categoria.Nome</td>
+                                <td>@categoria.UnidadesVendidas</td>
+                                <td>@categoria.Pedidos</td>
+                                <td class="order-total">R$ @categoria.Receita.ToString("N2")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const revenueData = @Html.Raw(graficoReceitaJson);
+            const ordersData = @Html.Raw(graficoPedidosJson);
+            const container = document.getElementById('salesChart');
+
+            if (!container) return;
+
+            const width = 920;
+            const height = 320;
+            const padding = 42;
+            const labels = revenueData.map(item => item.label);
+            const revenueValues = revenueData.map(item => Number(item.value));
+            const orderValues = ordersData.map(item => Number(item.value));
+            const combinedMax = Math.max(1, ...revenueValues, ...orderValues);
+
+            const buildPoints = (values) => values.map((value, index) => {
+                const x = labels.length === 1
+                    ? width / 2
+                    : padding + (index * (width - padding * 2)) / (labels.length - 1);
+                const y = height - padding - ((value / combinedMax) * (height - padding * 2));
+                return `${x},${y}`;
+            }).join(' ');
+
+            const gridLines = [0, 1, 2, 3, 4].map(step => {
+                const y = padding + ((height - padding * 2) / 4) * step;
+                return `<line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" class="chart-grid-line"></line>`;
+            }).join('');
+
+            const xLabels = labels.map((label, index) => {
+                const x = labels.length === 1
+                    ? width / 2
+                    : padding + (index * (width - padding * 2)) / (labels.length - 1);
+                return `<text x="${x}" y="${height - 12}" text-anchor="middle" class="chart-axis-label">${label}</text>`;
+            }).join('');
+
+            const yLabels = [0, 1, 2, 3, 4].map(step => {
+                const value = ((combinedMax / 4) * (4 - step));
+                const y = padding + ((height - padding * 2) / 4) * step + 4;
+                return `<text x="${padding - 10}" y="${y}" text-anchor="end" class="chart-axis-label">${value.toFixed(0)}</text>`;
+            }).join('');
+
+            container.innerHTML = `
+                <svg viewBox="0 0 ${width} ${height}" class="sales-chart-svg" role="img" aria-label="Grafico de linhas de vendas por periodo">
+                    ${gridLines}
+                    <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" class="chart-axis-line"></line>
+                    <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" class="chart-axis-line"></line>
+                    <polyline fill="none" points="${buildPoints(revenueValues)}" class="chart-line chart-line-revenue"></polyline>
+                    <polyline fill="none" points="${buildPoints(orderValues)}" class="chart-line chart-line-orders"></polyline>
+                    ${xLabels}
+                    ${yLabels}
+                </svg>
+            `;
+        })();
+    </script>
+}

@@ -3,6 +3,7 @@
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Livros";
+    var categoriasDisponiveis = ViewBag.CategoriasDisponiveis as List<Livros.Domain.Categoria> ?? new List<Livros.Domain.Categoria>();
 }
 @if (TempData["Erro"] != null) {
     <div class="alert-error">
@@ -26,6 +27,7 @@
                 <th>ID</th>
                 <th>Título</th>
                 <th>Autor</th>
+                <th>Categorias</th>
                 <th>ISBN</th>
                 <th>Status</th>
             </tr>
@@ -34,7 +36,7 @@
         <tbody>
             @if (!Model.Any()) {
                 <tr>
-                    <td colspan="5" style="text-align:center;">
+                    <td colspan="6" style="text-align:center;">
                         Nenhum livro cadastrado
                     </td>
                 </tr>
@@ -45,6 +47,18 @@
                         <td>@livro.Id</td>
                         <td>@livro.Titulo</td>
                         <td>@livro.Autor</td>
+                        <td>
+                            @if (livro.Categorias != null && livro.Categorias.Any()) {
+                                <div class="admin-tag-list">
+                                    @foreach (var categoria in livro.Categorias.OrderBy(c => c.Nome)) {
+                                        <span class="admin-tag">@categoria.Nome</span>
+                                    }
+                                </div>
+                            }
+                            else {
+                                <span class="admin-muted">Sem categoria</span>
+                            }
+                        </td>
                         <td>@livro.ISBN</td>
 
                         <td>
@@ -113,6 +127,16 @@
                         <div class="admin-form-group">
                             <label>Edição</label>
                             <input name="Edicao" class="admin-input">
+                        </div>
+
+                        <div class="admin-form-group admin-form-group-full">
+                            <label>Categorias</label>
+                            <select name="categoriasIds" class="admin-input admin-multiselect" multiple size="6" required>
+                                @foreach (var categoria in categoriasDisponiveis) {
+                                    <option value="@categoria.Id">@categoria.Nome</option>
+                                }
+                            </select>
+                            <small class="quantity-help">Segure Ctrl para selecionar mais de uma categoria.</small>
                         </div>
                     </div>
                 </section>

@@ -29,6 +29,25 @@
     margin-bottom: 20px;
 }
 
+.book-category-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.book-category-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    font-size: 13px;
+    font-weight: 700;
+}
+
 .description {
     margin-top: 20px;
     line-height: 1.6;

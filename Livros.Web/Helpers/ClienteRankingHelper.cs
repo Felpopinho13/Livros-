@@ -11,8 +11,10 @@ namespace Livros.Web.Helpers {
 
     public static class ClienteRankingHelper {
         private static readonly string[] StatusElegiveis = {
+            "APROVADA",
             "PAGAMENTO APROVADO",
             "EM SEPARACAO",
+            "EM TRANSPORTE",
             "ENVIADO",
             "ENTREGUE"
         };

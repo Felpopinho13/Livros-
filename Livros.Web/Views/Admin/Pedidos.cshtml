@@ -54,11 +54,10 @@
 
         <select name="status" class="admin-select">
             <option value="">Todos status</option>
-            <option value="EM PROCESSAMENTO" selected="@(Model.StatusFiltro == "EM PROCESSAMENTO")">Em processamento</option>
-            <option value="PAGAMENTO APROVADO" selected="@(Model.StatusFiltro == "PAGAMENTO APROVADO")">Pagamento aprovado</option>
-            <option value="PAGAMENTO RECUSADO" selected="@(Model.StatusFiltro == "PAGAMENTO RECUSADO")">Pagamento recusado</option>
+            <option value="APROVADA" selected="@(Model.StatusFiltro == "APROVADA")">Aprovada</option>
+            <option value="REPROVADA" selected="@(Model.StatusFiltro == "REPROVADA")">Reprovada</option>
             <option value="EM SEPARACAO" selected="@(Model.StatusFiltro == "EM SEPARACAO")">Em separação</option>
-            <option value="ENVIADO" selected="@(Model.StatusFiltro == "ENVIADO")">Enviado</option>
+            <option value="EM TRANSPORTE" selected="@(Model.StatusFiltro == "EM TRANSPORTE")">Em transporte</option>
             <option value="ENTREGUE" selected="@(Model.StatusFiltro == "ENTREGUE")">Entregue</option>
             <option value="CANCELADO" selected="@(Model.StatusFiltro == "CANCELADO")">Cancelado</option>
         </select>

@@ -30,7 +30,11 @@
                     }
                     else {
                         @foreach (var pedido in Model.Pedidos) {
-                            var statusClass = pedido.Status == "EM PROCESSAMENTO" ? "processing" : "success";
+                            var statusClass = pedido.Status == "REPROVADA" || pedido.Status == "CANCELADO"
+                                ? "danger"
+                                : pedido.Status == "EM SEPARACAO" || pedido.Status == "EM TRANSPORTE"
+                                    ? "processing"
+                                    : "success";
                             var dataFormatada = pedido.Data.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-BR"));
                             var tituloExibido = pedido.QuantidadeItens > 1
                                 ? $"{pedido.LivroTitulo} e mais {pedido.QuantidadeItens - 1} item(ns)"

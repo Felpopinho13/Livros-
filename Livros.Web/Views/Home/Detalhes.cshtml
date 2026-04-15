@@ -22,6 +22,14 @@
 
             <p class="author">por @Model.Autor</p>
 
+            @if (Model.Categorias != null && Model.Categorias.Any()) {
+                <div class="book-category-list">
+                    @foreach (var categoria in Model.Categorias.OrderBy(c => c.Nome)) {
+                        <span class="book-category-tag">@categoria.Nome</span>
+                    }
+                </div>
+            }
+
             <p class="description">
                 @Model.Sinopse
             </p>

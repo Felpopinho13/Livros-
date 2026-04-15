@@ -8,6 +8,18 @@ namespace Livros.Infrastructure.Data {
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
+            modelBuilder.Entity<Categoria>()
+                .HasData(
+                    new Categoria { Id = 1, Nome = "Romance" },
+                    new Categoria { Id = 2, Nome = "Ficcao" },
+                    new Categoria { Id = 3, Nome = "Fantasia" },
+                    new Categoria { Id = 4, Nome = "Drama" },
+                    new Categoria { Id = 5, Nome = "Biografia" },
+                    new Categoria { Id = 6, Nome = "Negocios" },
+                    new Categoria { Id = 7, Nome = "Tecnologia" },
+                    new Categoria { Id = 8, Nome = "Classicos" }
+                );
+
             modelBuilder.Entity<BandeiraCartao>()
                 .HasIndex(b => b.Codigo)
                 .IsUnique();

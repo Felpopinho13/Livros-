@@ -241,7 +241,7 @@ namespace Livros.Web.Controllers {
                 EnderecoId = enderecoId.Value,
                 Data = DateTime.Now,
                 Total = total,
-                Status = "EM PROCESSAMENTO",
+                Status = "APROVADA",
                 Itens = new List<PedidoItem>(),
                 Pagamentos = new List<Pagamento>()
             };
@@ -1062,7 +1062,23 @@ namespace Livros.Web.Controllers {
                 return "Troca efetuada";
             }
 
-            return statusAtual ?? "Nao informado";
+            return NormalizarStatusPedidoExibicao(statusAtual);
+        }
+
+        private static string NormalizarStatusPedidoExibicao(string? statusAtual) {
+            return (statusAtual ?? string.Empty).Trim().ToUpperInvariant() switch {
+                "EM PROCESSAMENTO" => "APROVADA",
+                "PAGAMENTO APROVADO" => "APROVADA",
+                "PAGAMENTO RECUSADO" => "REPROVADA",
+                "ENVIADO" => "EM TRANSPORTE",
+                "APROVADA" => "APROVADA",
+                "REPROVADA" => "REPROVADA",
+                "EM SEPARACAO" => "EM SEPARACAO",
+                "EM TRANSPORTE" => "EM TRANSPORTE",
+                "ENTREGUE" => "ENTREGUE",
+                "CANCELADO" => "CANCELADO",
+                _ => statusAtual ?? "Nao informado"
+            };
         }
 
         private static bool TrocaConcluidaParaCliente(Troca troca) {

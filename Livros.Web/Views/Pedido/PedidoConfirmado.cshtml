@@ -1,7 +1,11 @@
 ﻿@model PedidoConfirmadoViewModel
 
 @{
-    string statusClass = Model.Status == "EM PROCESSAMENTO" ? "processing" : "success";
+    string statusClass = Model.Status == "REPROVADA" || Model.Status == "CANCELADO"
+        ? "danger"
+        : Model.Status == "EM SEPARACAO" || Model.Status == "EM TRANSPORTE"
+            ? "processing"
+            : "success";
 }
 
 <section class="order-success">

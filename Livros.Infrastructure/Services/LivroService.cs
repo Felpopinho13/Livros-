@@ -16,6 +16,7 @@ namespace Livros.Infrastructure.Services {
 
             return _context.Livros
                 .Include(l => l.Estoque)
+                .Include(l => l.Categorias)
                 .Where(l => l.IsAtivo)
                 .ToList();
         }
@@ -38,6 +39,7 @@ namespace Livros.Infrastructure.Services {
 
             return _context.Livros
                 .Include(l => l.Estoque)
+                .Include(l => l.Categorias)
                 .FirstOrDefault(l => l.Id == id && l.IsAtivo);
         }
 
@@ -57,6 +59,7 @@ namespace Livros.Infrastructure.Services {
                 .Where(i =>
                     livroIds.Contains(i.LivroId) &&
                     i.Pedido != null &&
+                    i.Pedido.Status != "REPROVADA" &&
                     i.Pedido.Status != "PAGAMENTO RECUSADO" &&
                     i.Pedido.Status != "CANCELADO")
                 .GroupBy(i => i.LivroId)

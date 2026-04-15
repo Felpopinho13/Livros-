@@ -2,9 +2,7 @@
 
 @{
     var itemPrincipal = Model.Itens.FirstOrDefault();
-    var statusTexto = Model.Status == "EM PROCESSAMENTO"
-        ? "Em processamento"
-        : Model.Status;
+    var statusTexto = Model.Status;
 }
 
 <section class="order-detail-page">

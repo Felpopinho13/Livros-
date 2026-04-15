@@ -55,8 +55,10 @@ public class AdminController : Controller {
 
         var clienteIds = clientes.Select(c => c.Id).ToList();
         var statusElegiveisRanking = new[] {
+            "APROVADA",
             "PAGAMENTO APROVADO",
             "EM SEPARACAO",
+            "EM TRANSPORTE",
             "ENVIADO",
             "ENTREGUE"
         };
@@ -138,7 +140,7 @@ public class AdminController : Controller {
             Pedidos = pedidos.Select(p => new AdminClientePedidoTransacaoViewModel {
                 PedidoId = p.Id,
                 Data = p.Data,
-                Status = p.Status,
+                Status = NormalizarStatusPedidoExibicao(p.Status),
                 Total = p.Total,
                 ResumoItens = MontarResumoItensPedido(p)
             }).ToList(),
@@ -264,17 +266,26 @@ public class AdminController : Controller {
     }
 
     public IActionResult Livros() {
+        ViewBag.CategoriasDisponiveis = _context.Categorias
+            .OrderBy(c => c.Nome)
+            .ToList();
+
         var livros = _livroService.Listar();
         return View(livros);
     }
 
     [HttpPost]
-    public IActionResult CriarLivro(Livro livro, IFormFile ImagemArquivo) {
+    public IActionResult CriarLivro(Livro livro, IFormFile ImagemArquivo, int[] categoriasIds) {
         livro.Preco = ObterDecimalFormulario("Preco", livro.Preco);
         livro.Altura = ObterDecimalFormulario("Altura", livro.Altura);
         livro.Largura = ObterDecimalFormulario("Largura", livro.Largura);
         livro.Peso = ObterDecimalFormulario("Peso", livro.Peso);
         livro.Profundidade = ObterDecimalFormulario("Profundidade", livro.Profundidade);
+        livro.Categorias = categoriasIds == null || categoriasIds.Length == 0
+            ? new List<Categoria>()
+            : _context.Categorias
+                .Where(c => categoriasIds.Contains(c.Id))
+                .ToList();
 
         if (ImagemArquivo != null && ImagemArquivo.Length > 0) {
             var nomeArquivo = Guid.NewGuid() + Path.GetExtension(ImagemArquivo.FileName);
@@ -308,6 +319,11 @@ public class AdminController : Controller {
             return RedirectToAction("Livros");
         }
 
+        if (livro.Categorias == null || !livro.Categorias.Any()) {
+            TempData["Erro"] = "Selecione pelo menos uma categoria para o livro.";
+            return RedirectToAction("Livros");
+        }
+
         _livroService.Criar(livro);
         TempData["Sucesso"] = "Livro cadastrado com sucesso!";
         return RedirectToAction("Livros");
@@ -319,6 +335,113 @@ public class AdminController : Controller {
 
         var estoques = _estoqueService.Listar();
         return View(estoques);
+    }
+
+    [HttpGet]
+    public IActionResult AnaliseVendas(DateTime? dataInicio, DateTime? dataFim) {
+        var inicio = (dataInicio ?? DateTime.Today.AddDays(-29)).Date;
+        var fim = (dataFim ?? DateTime.Today).Date;
+
+        if (fim < inicio) {
+            (inicio, fim) = (fim, inicio);
+        }
+
+        var statusElegiveis = new[] {
+            "APROVADA",
+            "PAGAMENTO APROVADO",
+            "EM SEPARACAO",
+            "EM TRANSPORTE",
+            "ENVIADO",
+            "ENTREGUE"
+        };
+
+        var fimExclusivo = fim.AddDays(1);
+
+        var itensVendidos = _context.PedidoItens
+            .Include(i => i.Pedido)
+            .Include(i => i.Livro)
+                .ThenInclude(l => l.Categorias)
+            .Where(i =>
+                i.Pedido != null &&
+                statusElegiveis.Contains(i.Pedido.Status) &&
+                i.Pedido.Data >= inicio &&
+                i.Pedido.Data < fimExclusivo)
+            .ToList();
+
+        var pedidosFiltrados = itensVendidos
+            .Select(i => i.Pedido)
+            .Where(p => p != null)
+            .GroupBy(p => p!.Id)
+            .Select(g => g.First()!)
+            .OrderBy(p => p.Data)
+            .ToList();
+
+        var evolucaoPeriodo = Enumerable
+            .Range(0, (fim - inicio).Days + 1)
+            .Select(offset => inicio.AddDays(offset))
+            .Select(data => {
+                var pedidosDoDia = pedidosFiltrados
+                    .Where(p => p.Data.Date == data)
+                    .ToList();
+
+                return new AdminAnalisePeriodoItemViewModel {
+                    Rotulo = data.ToString("dd/MM"),
+                    Receita = decimal.Round(pedidosDoDia.Sum(p => p.Total), 2),
+                    Pedidos = pedidosDoDia.Count
+                };
+            })
+            .ToList();
+
+        var produtos = itensVendidos
+            .GroupBy(i => new { i.LivroId, Titulo = i.Livro?.Titulo ?? "Livro" })
+            .Select(g => new AdminAnaliseProdutoItemViewModel {
+                Titulo = g.Key.Titulo,
+                UnidadesVendidas = g.Sum(x => x.Quantidade),
+                Pedidos = g.Select(x => x.PedidoId).Distinct().Count(),
+                Receita = decimal.Round(g.Sum(x => x.PrecoUnitario * x.Quantidade), 2)
+            })
+            .OrderByDescending(x => x.Receita)
+            .ThenByDescending(x => x.UnidadesVendidas)
+            .ToList();
+
+        var categorias = itensVendidos
+            .SelectMany(i => (i.Livro?.Categorias != null && i.Livro.Categorias.Any()
+                    ? i.Livro.Categorias.Select(c => c.Nome)
+                    : new[] { "Sem categoria" })
+                .Select(nomeCategoria => new {
+                    Nome = nomeCategoria,
+                    i.Quantidade,
+                    i.PedidoId,
+                    Receita = i.PrecoUnitario * i.Quantidade
+                }))
+            .GroupBy(x => x.Nome)
+            .Select(g => new AdminAnaliseCategoriaItemViewModel {
+                Nome = g.Key,
+                UnidadesVendidas = g.Sum(x => x.Quantidade),
+                Pedidos = g.Select(x => x.PedidoId).Distinct().Count(),
+                Receita = decimal.Round(g.Sum(x => x.Receita), 2)
+            })
+            .OrderByDescending(x => x.Receita)
+            .ThenByDescending(x => x.UnidadesVendidas)
+            .ToList();
+
+        var receitaTotal = decimal.Round(pedidosFiltrados.Sum(p => p.Total), 2);
+
+        var vm = new AdminAnaliseVendasViewModel {
+            DataInicio = inicio,
+            DataFim = fim,
+            TotalPedidos = pedidosFiltrados.Count,
+            TotalItensVendidos = itensVendidos.Sum(i => i.Quantidade),
+            ReceitaTotal = receitaTotal,
+            TicketMedio = pedidosFiltrados.Any() ? decimal.Round(receitaTotal / pedidosFiltrados.Count, 2) : 0,
+            QuantidadeProdutosComparados = produtos.Count,
+            QuantidadeCategoriasComparadas = categorias.Count,
+            EvolucaoPeriodo = evolucaoPeriodo,
+            Produtos = produtos,
+            Categorias = categorias
+        };
+
+        return View(vm);
     }
 
     [HttpPost]
@@ -364,7 +487,8 @@ public class AdminController : Controller {
         }
 
         if (!string.IsNullOrWhiteSpace(status)) {
-            query = query.Where(p => p.Status == status);
+            var statusEquivalentes = ObterStatusEquivalentesFiltroPedido(status);
+            query = query.Where(p => statusEquivalentes.Contains(p.Status));
         }
 
         var totalPedidos = query.Count();
@@ -391,7 +515,7 @@ public class AdminController : Controller {
                 ClienteNome = p.Cliente?.Nome ?? string.Empty,
                 ClienteEmail = p.Cliente?.Email ?? string.Empty,
                 Total = p.Total,
-                Status = p.Status,
+                Status = NormalizarStatusPedidoExibicao(p.Status),
                 StatusPagamento = ObterStatusPagamentoPedido(p),
                 ResumoItens = MontarResumoItensPedido(p),
                 QuantidadeItens = p.Itens.Count,
@@ -859,20 +983,21 @@ public class AdminController : Controller {
             return false;
         }
 
-        return status.Equals("PAGAMENTO APROVADO", StringComparison.OrdinalIgnoreCase)
+        return status.Equals("APROVADA", StringComparison.OrdinalIgnoreCase)
+            || status.Equals("PAGAMENTO APROVADO", StringComparison.OrdinalIgnoreCase)
             || status.Equals("EM SEPARACAO", StringComparison.OrdinalIgnoreCase)
+            || status.Equals("EM TRANSPORTE", StringComparison.OrdinalIgnoreCase)
             || status.Equals("ENVIADO", StringComparison.OrdinalIgnoreCase)
             || status.Equals("ENTREGUE", StringComparison.OrdinalIgnoreCase);
     }
 
     private IEnumerable<string> ObterProximosStatusPedido(string? statusAtual) {
-        var status = (statusAtual ?? string.Empty).Trim().ToUpperInvariant();
+        var status = NormalizarStatusPedidoInterno(statusAtual);
 
         return status switch {
-            "EM PROCESSAMENTO" => new[] { "PAGAMENTO APROVADO", "PAGAMENTO RECUSADO", "CANCELADO" },
-            "PAGAMENTO APROVADO" => new[] { "EM SEPARACAO", "CANCELADO" },
-            "EM SEPARACAO" => new[] { "ENVIADO", "CANCELADO" },
-            "ENVIADO" => new[] { "ENTREGUE" },
+            "APROVADA" => new[] { "EM SEPARACAO", "CANCELADO" },
+            "EM SEPARACAO" => new[] { "EM TRANSPORTE", "CANCELADO" },
+            "EM TRANSPORTE" => new[] { "ENTREGUE" },
             _ => Array.Empty<string>()
         };
     }
@@ -934,13 +1059,12 @@ public class AdminController : Controller {
             return;
         }
 
-        var statusPagamento = novoStatus.Trim().ToUpperInvariant() switch {
-            "EM PROCESSAMENTO" => "Pendente",
-            "PAGAMENTO APROVADO" => "Aprovado",
+        var statusPagamento = NormalizarStatusPedidoInterno(novoStatus) switch {
+            "APROVADA" => "Aprovado",
             "EM SEPARACAO" => "Aprovado",
-            "ENVIADO" => "Aprovado",
+            "EM TRANSPORTE" => "Aprovado",
             "ENTREGUE" => "Aprovado",
-            "PAGAMENTO RECUSADO" => "Recusado",
+            "REPROVADA" => "Recusado",
             "CANCELADO" => "Cancelado",
             _ => "Pendente"
         };
@@ -948,6 +1072,37 @@ public class AdminController : Controller {
         foreach (var pagamento in pedido.Pagamentos) {
             pagamento.Status = statusPagamento;
         }
+    }
+
+    private static string NormalizarStatusPedidoInterno(string? statusAtual) {
+        return (statusAtual ?? string.Empty).Trim().ToUpperInvariant() switch {
+            "EM PROCESSAMENTO" => "APROVADA",
+            "PAGAMENTO APROVADO" => "APROVADA",
+            "PAGAMENTO RECUSADO" => "REPROVADA",
+            "ENVIADO" => "EM TRANSPORTE",
+            var status => status
+        };
+    }
+
+    private static string NormalizarStatusPedidoExibicao(string? statusAtual) {
+        return NormalizarStatusPedidoInterno(statusAtual) switch {
+            "APROVADA" => "APROVADA",
+            "REPROVADA" => "REPROVADA",
+            "EM SEPARACAO" => "EM SEPARACAO",
+            "EM TRANSPORTE" => "EM TRANSPORTE",
+            "ENTREGUE" => "ENTREGUE",
+            "CANCELADO" => "CANCELADO",
+            _ => statusAtual ?? "NAO INFORMADO"
+        };
+    }
+
+    private static string[] ObterStatusEquivalentesFiltroPedido(string status) {
+        return NormalizarStatusPedidoInterno(status) switch {
+            "APROVADA" => new[] { "APROVADA", "PAGAMENTO APROVADO", "EM PROCESSAMENTO" },
+            "REPROVADA" => new[] { "REPROVADA", "PAGAMENTO RECUSADO" },
+            "EM TRANSPORTE" => new[] { "EM TRANSPORTE", "ENVIADO" },
+            var statusNormalizado => new[] { statusNormalizado }
+        };
     }
 
     private decimal CalcularValorCupomTroca(PedidoItem? pedidoItem, Pedido? pedido) {
