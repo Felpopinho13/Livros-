@@ -80,6 +80,77 @@
     margin-bottom: 10px;
 }
 
+.checkout-coupons-wallet {
+    margin: 16px 0 10px;
+    padding: 14px;
+    border: 1px solid #ececec;
+    border-radius: 14px;
+    background: #fffaf2;
+}
+
+.checkout-coupons-title {
+    margin: 0 0 6px;
+    font-weight: 700;
+}
+
+.checkout-coupons-hint {
+    margin: 0 0 12px;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.checkout-coupons-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.checkout-coupon-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid #f3d2a1;
+    border-radius: 12px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.checkout-coupon-option input {
+    width: auto;
+    margin: 0;
+}
+
+.checkout-coupon-option span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.checkout-coupon-option small {
+    color: #9a3412;
+    font-size: 13px;
+}
+
+.checkout-coupon-message {
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.checkout-coupon-message.success {
+    background: #ecfdf3;
+    color: #166534;
+}
+
+.checkout-coupon-message.error {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
 .total-price {
     font-size: 22px;
     font-weight: bold;

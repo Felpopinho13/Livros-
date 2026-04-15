@@ -4,6 +4,8 @@ if (checkoutLayout) {
     const quantidadeInput = document.getElementById('quantidade');
     const cupomInput = document.getElementById('cupom');
     const aplicarCupomBtn = document.getElementById('aplicarCupomBtn');
+    const cupomCheckboxes = document.querySelectorAll("input[name='CuponsTrocaSelecionados']");
+    const cupomMensagem = document.getElementById('cupomMensagem');
     const enderecoRadios = document.querySelectorAll("input[name='EnderecoId']");
     const metodoSelects = document.querySelectorAll('.payment-method-select');
     const cardSelects = document.querySelectorAll('.saved-card-select');
@@ -84,6 +86,29 @@ if (checkoutLayout) {
         recalcularDivisao(total);
     }
 
+    function obterCuponsSelecionados() {
+        return Array.from(cupomCheckboxes)
+            .filter((checkbox) => checkbox.checked)
+            .map((checkbox) => checkbox.value);
+    }
+
+    function exibirMensagemCupom(mensagem, tipo = 'info') {
+        if (!cupomMensagem) {
+            return;
+        }
+
+        if (!mensagem) {
+            cupomMensagem.style.display = 'none';
+            cupomMensagem.textContent = '';
+            cupomMensagem.className = 'checkout-coupon-message';
+            return;
+        }
+
+        cupomMensagem.style.display = 'block';
+        cupomMensagem.textContent = mensagem;
+        cupomMensagem.className = `checkout-coupon-message ${tipo}`;
+    }
+
     function recalcularDivisao(total) {
         if (!valor1Input || !valor2Input) {
             return;
@@ -149,7 +174,7 @@ if (checkoutLayout) {
         } catch (_) {
         }
 
-        if (cupomAplicadoCodigo) {
+        if (cupomAplicadoCodigo || obterCuponsSelecionados().length > 0) {
             await aplicarCupom();
             return;
         }
@@ -211,41 +236,58 @@ if (checkoutLayout) {
         }
 
         const codigo = cupomInput.value.trim();
-        if (!codigo) {
+        const cuponsSelecionados = obterCuponsSelecionados();
+
+        if (!codigo && cuponsSelecionados.length === 0) {
             descontoAplicado = 0;
             cupomAplicadoCodigo = '';
+            exibirMensagemCupom('');
             atualizarResumo();
             return;
         }
 
         const subtotal = calcularSubtotal();
-        const url = `/Pedido/ValidarCupom?codigo=${encodeURIComponent(codigo)}&subtotal=${encodeURIComponent(subtotal.toFixed(2))}&frete=${encodeURIComponent(freteAtual.toFixed(2))}`;
+        const params = new URLSearchParams();
+        params.set('codigo', codigo);
+        params.set('subtotal', subtotal.toFixed(2));
+        params.set('frete', freteAtual.toFixed(2));
+        cuponsSelecionados.forEach((cupomId) => params.append('cuponsTrocaSelecionados', cupomId));
 
         try {
-            const response = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const response = await fetch(`/Pedido/ValidarCupom?${params.toString()}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
             const data = await response.json();
 
             if (data?.valido) {
                 descontoAplicado = parseFloat(data.desconto || 0);
                 cupomAplicadoCodigo = data.codigo || codigo;
                 cupomInput.value = cupomAplicadoCodigo;
+                exibirMensagemCupom(data?.mensagem || 'Cupom aplicado com sucesso.', 'success');
+
+                if (Array.isArray(data?.cuponsTrocaAplicados)) {
+                    const aplicados = data.cuponsTrocaAplicados.map((id) => String(id));
+                    cupomCheckboxes.forEach((checkbox) => {
+                        checkbox.checked = aplicados.includes(checkbox.value);
+                    });
+                }
             } else {
                 descontoAplicado = 0;
                 cupomAplicadoCodigo = '';
-                window.alert(data?.mensagem || 'Cupom inválido ou indisponível.');
+                exibirMensagemCupom(data?.mensagem || 'Cupom invalido ou indisponivel.', 'error');
             }
         } catch (_) {
             descontoAplicado = 0;
             cupomAplicadoCodigo = '';
-            window.alert('Não foi possível validar o cupom agora.');
+            exibirMensagemCupom('Nao foi possivel validar o cupom agora.', 'error');
         }
 
         atualizarResumo();
     }
 
     quantidadeInput?.addEventListener('input', atualizarFrete);
-
     aplicarCupomBtn?.addEventListener('click', aplicarCupom);
+    cupomCheckboxes.forEach((checkbox) => checkbox.addEventListener('change', aplicarCupom));
     valor1Input?.addEventListener('input', () => recalcularDivisao(obterTotalAtual()));
     valor2Input?.addEventListener('input', () => recalcularDivisao(obterTotalAtual()));
     toggleSegundoPagamentoBtn?.addEventListener('click', () => {
@@ -264,10 +306,5 @@ if (checkoutLayout) {
     toggleNovoEndereco();
     togglePagamento(1);
     atualizarSegundoPagamentoUI();
-
-    if (cupomInput?.value?.trim()) {
-        atualizarFrete();
-    } else {
-        atualizarFrete();
-    }
+    atualizarFrete();
 }

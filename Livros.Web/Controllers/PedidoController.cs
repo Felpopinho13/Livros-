@@ -207,7 +207,7 @@ namespace Livros.Web.Controllers {
         }
 
         [HttpGet]
-        public IActionResult ValidarCupom(string? codigo, decimal subtotal, decimal frete = 0) {
+        public IActionResult ValidarCupom(string? codigo, decimal subtotal, decimal frete = 0, [FromQuery] List<int>? cuponsTrocaSelecionados = null) {
             var clienteId = ObterClienteId();
             if (clienteId == null) {
                 return Json(new { valido = false, mensagem = "Faca login para aplicar um cupom." });
@@ -217,8 +217,12 @@ namespace Livros.Web.Controllers {
                 return Json(new { valido = false, mensagem = "Subtotal invalido para aplicar o cupom." });
             }
 
-            var cupomAplicado = ObterCupomValido(clienteId.Value, codigo);
-            var desconto = CalcularDesconto(cupomAplicado, codigo, subtotal, frete);
+            var form = new CheckoutFormData {
+                Cupom = codigo,
+                CuponsTrocaSelecionados = cuponsTrocaSelecionados ?? new List<int>()
+            };
+            var aplicacaoCupons = CalcularAplicacaoCupons(clienteId.Value, form, subtotal, frete);
+            var desconto = aplicacaoCupons.DescontoTotal;
 
             if (desconto <= 0) {
                 return Json(new { valido = false, mensagem = "Cupom invalido ou indisponivel." });
@@ -226,9 +230,10 @@ namespace Livros.Web.Controllers {
 
             return Json(new {
                 valido = true,
-                codigo = cupomAplicado?.Codigo ?? codigo?.Trim(),
+                codigo = aplicacaoCupons.CodigoPromocionalAplicado ?? codigo?.Trim(),
                 desconto,
-                mensagem = "Cupom aplicado com sucesso."
+                mensagem = aplicacaoCupons.Mensagem ?? "Cupom aplicado com sucesso.",
+                cuponsTrocaAplicados = aplicacaoCupons.CuponsTrocaAplicados.Select(c => c.Id).ToList()
             });
         }
 
@@ -284,11 +289,11 @@ namespace Livros.Web.Controllers {
             var quantidadeTotal = itensCheckout.Sum(i => i.Quantidade);
             var estadoFrete = ObterEstadoFreteDoFormularioOuEndereco(clienteId.Value, form, enderecoId);
             var frete = CalcularFrete(quantidadeTotal, estadoFrete);
-            var cupomAplicado = ObterCupomValido(clienteId.Value, form.Cupom);
-            var desconto = CalcularDesconto(cupomAplicado, form.Cupom, subtotal, frete);
+            var aplicacaoCupons = CalcularAplicacaoCupons(clienteId.Value, form, subtotal, frete);
+            var desconto = aplicacaoCupons.DescontoTotal;
             var total = Math.Max(subtotal + frete - desconto, 0);
 
-            ValidarPagamentos(clienteId.Value, form, total, cupomAplicado);
+            ValidarPagamentos(clienteId.Value, form, total, aplicacaoCupons);
 
             if (!ModelState.IsValid || !enderecoId.HasValue) {
                 var vmInvalido = MontarCheckoutViewModel(clienteId.Value, form, sincronizacaoCarrinho);
@@ -322,8 +327,15 @@ namespace Livros.Web.Controllers {
             _context.Pedidos.Add(pedido);
             _context.SaveChanges();
 
-            if (cupomAplicado != null) {
-                MarcarCupomComoUtilizado(cupomAplicado, pedido, desconto);
+            if (aplicacaoCupons.CupomPromocional != null) {
+                MarcarCupomComoUtilizado(aplicacaoCupons.CupomPromocional, pedido, aplicacaoCupons.DescontoPromocional);
+            }
+
+            if (aplicacaoCupons.CuponsTrocaAplicados.Any()) {
+                MarcarCuponsTrocaComoUtilizados(aplicacaoCupons.CuponsTrocaAplicados, pedido, aplicacaoCupons.DescontoTroca);
+            }
+
+            if (aplicacaoCupons.CupomPromocional != null || aplicacaoCupons.CuponsTrocaAplicados.Any()) {
                 _context.SaveChanges();
             }
 
@@ -778,6 +790,13 @@ namespace Livros.Web.Controllers {
                 .Where(b => b.IsAtiva)
                 .OrderBy(b => b.Nome)
                 .ToList();
+            var cuponsTrocaDisponiveis = _context.CuponsDesconto
+                .Where(c => c.IsAtivo
+                    && c.DataUtilizacao == null
+                    && c.ClienteId == clienteId
+                    && c.Tipo == "TROCA")
+                .OrderByDescending(c => c.DataCriacao)
+                .ToList();
 
             if (form.EnderecoId == 0 && enderecos.Any() && string.IsNullOrWhiteSpace(form.Logradouro)) {
                 var enderecoPadrao = enderecos.FirstOrDefault(e => e.IsPadrao) ?? enderecos.First();
@@ -792,8 +811,9 @@ namespace Livros.Web.Controllers {
             var quantidadeTotal = itensCheckout.Sum(i => i.Quantidade);
             var estadoFrete = ObterEstadoFreteDoFormularioOuEndereco(clienteId, form, form.EnderecoId > 0 ? form.EnderecoId : null);
             var frete = CalcularFrete(quantidadeTotal, estadoFrete);
-            var cupomAplicado = ObterCupomValido(clienteId, form.Cupom);
-            var desconto = CalcularDesconto(cupomAplicado, form.Cupom, subtotal, frete);
+            var aplicacaoCupons = CalcularAplicacaoCupons(clienteId, form, subtotal, frete);
+            form.CuponsTrocaSelecionados = aplicacaoCupons.CuponsTrocaAplicados.Select(c => c.Id).ToList();
+            form.Cupom = aplicacaoCupons.CodigoPromocionalAplicado ?? form.Cupom;
             var primeiroLivro = itensCheckout.FirstOrDefault()?.Livro;
 
             if (quantidadeTotal > 0) {
@@ -816,11 +836,16 @@ namespace Livros.Web.Controllers {
                 Enderecos = enderecos,
                 Cartoes = cartoes,
                 Bandeiras = bandeiras,
+                CuponsTrocaDisponiveis = cuponsTrocaDisponiveis.Select(c => new CheckoutCupomDisponivelViewModel {
+                    Id = c.Id,
+                    Codigo = c.Codigo,
+                    Valor = c.Valor
+                }).ToList(),
                 Quantidade = quantidadeTotal,
                 Subtotal = subtotal,
                 Frete = frete,
-                Desconto = desconto,
-                Total = subtotal + frete - desconto,
+                Desconto = aplicacaoCupons.DescontoTotal,
+                Total = Math.Max(subtotal + frete - aplicacaoCupons.DescontoTotal, 0),
                 OrigemCarrinho = form.UsarCarrinho,
                 PermiteAlterarQuantidade = !form.UsarCarrinho && itensCheckout.Count == 1,
                 RequerRevisaoCarrinho = form.UsarCarrinho && (sincronizacaoCarrinho?.RequerRevisao ?? false),
@@ -1035,8 +1060,8 @@ namespace Livros.Web.Controllers {
             return endereco.Id;
         }
 
-        private void ValidarPagamentos(int clienteId, CheckoutFormData form, decimal total, CupomDesconto? cupomAplicado = null) {
-            var usaCupom = cupomAplicado != null || string.Equals(form.Cupom?.Trim(), "DESCONTO10", StringComparison.OrdinalIgnoreCase);
+        private void ValidarPagamentos(int clienteId, CheckoutFormData form, decimal total, AplicacaoCuponsCheckoutResult? aplicacaoCupons = null) {
+            var usaCupom = aplicacaoCupons != null && aplicacaoCupons.DescontoTotal > 0;
             var totalArredondado = decimal.Round(total, 2);
 
             if (totalArredondado <= 0 && usaCupom) {
@@ -1165,6 +1190,42 @@ namespace Livros.Web.Controllers {
             }
         }
 
+        private void MarcarCuponsTrocaComoUtilizados(List<CupomDesconto> cuponsAplicados, Pedido pedido, decimal descontoAplicado) {
+            if (!cuponsAplicados.Any()) {
+                return;
+            }
+
+            var restanteParaConsumir = descontoAplicado;
+            var saldoRestanteTotal = 0m;
+
+            foreach (var cupom in cuponsAplicados
+                .OrderBy(c => c.Valor)
+                .ThenBy(c => c.Id)) {
+                var valorOriginal = cupom.Valor;
+                var valorUtilizado = Math.Min(valorOriginal, Math.Max(restanteParaConsumir, 0));
+                var saldoRestante = Math.Max(valorOriginal - valorUtilizado, 0);
+
+                cupom.Valor = decimal.Round(valorUtilizado, 2);
+                cupom.IsAtivo = false;
+                cupom.DataUtilizacao = DateTime.Now;
+                cupom.PedidoId = pedido.Id;
+
+                restanteParaConsumir -= valorUtilizado;
+                saldoRestanteTotal += saldoRestante;
+            }
+
+            if (saldoRestanteTotal > 0) {
+                _context.CuponsDesconto.Add(new CupomDesconto {
+                    Codigo = $"TROCA-{DateTime.Now:yyyyMMddHHmmss}",
+                    Valor = decimal.Round(saldoRestanteTotal, 2),
+                    Tipo = "TROCA",
+                    IsAtivo = true,
+                    ClienteId = cuponsAplicados.First().ClienteId,
+                    DataCriacao = DateTime.Now
+                });
+            }
+        }
+
         private string ObterEstadoFreteDoFormularioOuEndereco(int clienteId, CheckoutFormData form, int? enderecoId) {
             if (enderecoId.HasValue && enderecoId.Value > 0) {
                 return ResolverEstadoFrete(clienteId, enderecoId, null);
@@ -1248,6 +1309,115 @@ namespace Livros.Web.Controllers {
             return string.Equals(cupom.Trim(), "DESCONTO10", StringComparison.OrdinalIgnoreCase)
                 ? decimal.Round(subtotal * 0.10m, 2)
                 : 0;
+        }
+
+        private AplicacaoCuponsCheckoutResult CalcularAplicacaoCupons(int clienteId, CheckoutFormData form, decimal subtotal, decimal frete) {
+            var resultado = new AplicacaoCuponsCheckoutResult();
+            var cupomDigitado = ObterCupomValido(clienteId, form.Cupom);
+
+            if (cupomDigitado != null && !string.Equals(cupomDigitado.Tipo, "TROCA", StringComparison.OrdinalIgnoreCase)) {
+                resultado.CupomPromocional = cupomDigitado;
+                resultado.CodigoPromocionalAplicado = cupomDigitado.Codigo;
+                resultado.DescontoPromocional = CalcularDesconto(cupomDigitado, null, subtotal, frete);
+            } else if (string.Equals(form.Cupom?.Trim(), "DESCONTO10", StringComparison.OrdinalIgnoreCase)) {
+                resultado.CodigoPromocionalAplicado = "DESCONTO10";
+                resultado.DescontoPromocional = CalcularDesconto(null, form.Cupom, subtotal, frete);
+            }
+
+            var cuponsTrocaSelecionados = ObterCuponsTrocaSelecionadosValidos(clienteId, form.CuponsTrocaSelecionados);
+
+            if (cupomDigitado != null
+                && string.Equals(cupomDigitado.Tipo, "TROCA", StringComparison.OrdinalIgnoreCase)
+                && cuponsTrocaSelecionados.All(c => c.Id != cupomDigitado.Id)) {
+                cuponsTrocaSelecionados.Add(cupomDigitado);
+            }
+
+            var subtotalRestante = Math.Max(subtotal - resultado.DescontoPromocional, 0);
+            var baseTroca = subtotalRestante + frete;
+
+            if (!cuponsTrocaSelecionados.Any() || baseTroca <= 0) {
+                return resultado;
+            }
+
+            var melhorCombinacao = EscolherMelhorCombinacaoTroca(cuponsTrocaSelecionados, baseTroca);
+            resultado.CuponsTrocaAplicados = melhorCombinacao.CuponsAplicados;
+            resultado.DescontoTroca = Math.Min(baseTroca, melhorCombinacao.TotalSelecionado);
+
+            if (cuponsTrocaSelecionados.Count > resultado.CuponsTrocaAplicados.Count) {
+                var quantidadeIgnorada = cuponsTrocaSelecionados.Count - resultado.CuponsTrocaAplicados.Count;
+                resultado.Mensagem = quantidadeIgnorada == 1
+                    ? "Selecionamos automaticamente apenas os cupons necessarios para esta compra."
+                    : "Selecionamos automaticamente a melhor combinacao de cupons para evitar sobra desnecessaria.";
+            }
+
+            return resultado;
+        }
+
+        private List<CupomDesconto> ObterCuponsTrocaSelecionadosValidos(int clienteId, IEnumerable<int>? cupomIds) {
+            var ids = (cupomIds ?? Enumerable.Empty<int>())
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any()) {
+                return new List<CupomDesconto>();
+            }
+
+            return _context.CuponsDesconto
+                .Where(c => ids.Contains(c.Id)
+                    && c.ClienteId == clienteId
+                    && c.IsAtivo
+                    && c.DataUtilizacao == null
+                    && c.Tipo == "TROCA")
+                .OrderBy(c => c.Valor)
+                .ToList();
+        }
+
+        private MelhorCombinacaoCuponsTrocaResult EscolherMelhorCombinacaoTroca(List<CupomDesconto> cupons, decimal valorAlvo) {
+            var melhor = new MelhorCombinacaoCuponsTrocaResult {
+                CuponsAplicados = cupons.ToList(),
+                TotalSelecionado = cupons.Sum(c => c.Valor)
+            };
+
+            var quantidade = cupons.Count;
+            if (quantidade == 0) {
+                return melhor;
+            }
+
+            List<CupomDesconto>? melhorCobertura = null;
+            decimal melhorTotalCobertura = decimal.MaxValue;
+
+            var limite = 1 << quantidade;
+            for (var mascara = 1; mascara < limite; mascara++) {
+                var combinacao = new List<CupomDesconto>();
+                decimal total = 0;
+
+                for (var i = 0; i < quantidade; i++) {
+                    if ((mascara & (1 << i)) == 0) {
+                        continue;
+                    }
+
+                    combinacao.Add(cupons[i]);
+                    total += cupons[i].Valor;
+                }
+
+                if (total < valorAlvo) {
+                    continue;
+                }
+
+                if (melhorCobertura == null
+                    || total < melhorTotalCobertura
+                    || (total == melhorTotalCobertura && combinacao.Count < melhorCobertura.Count)) {
+                    melhorCobertura = combinacao;
+                    melhorTotalCobertura = total;
+                }
+            }
+
+            if (melhorCobertura != null) {
+                melhor.CuponsAplicados = melhorCobertura;
+                melhor.TotalSelecionado = melhorTotalCobertura;
+            }
+
+            return melhor;
         }
 
         private string GerarCodigoTroca() {
@@ -1399,6 +1569,21 @@ namespace Livros.Web.Controllers {
             public List<string> Avisos { get; set; } = new();
             public bool CarrinhoMudou { get; set; }
             public bool RequerRevisao { get; set; }
+        }
+
+        private sealed class AplicacaoCuponsCheckoutResult {
+            public CupomDesconto? CupomPromocional { get; set; }
+            public string? CodigoPromocionalAplicado { get; set; }
+            public List<CupomDesconto> CuponsTrocaAplicados { get; set; } = new();
+            public decimal DescontoPromocional { get; set; }
+            public decimal DescontoTroca { get; set; }
+            public decimal DescontoTotal => decimal.Round(DescontoPromocional + DescontoTroca, 2);
+            public string? Mensagem { get; set; }
+        }
+
+        private sealed class MelhorCombinacaoCuponsTrocaResult {
+            public List<CupomDesconto> CuponsAplicados { get; set; } = new();
+            public decimal TotalSelecionado { get; set; }
         }
 
         private sealed class CarrinhoSessionItem {

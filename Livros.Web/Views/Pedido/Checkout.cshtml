@@ -304,6 +304,33 @@
                     <input id="cupom" name="Cupom" placeholder="Cupom de desconto" value="@form.Cupom">
                     <button type="button" class="btn btn-secondary" id="aplicarCupomBtn">Aplicar cupom</button>
 
+                    @if (Model.CuponsTrocaDisponiveis.Any()) {
+                        <div class="checkout-coupons-wallet">
+                            <p class="checkout-coupons-title">Cupons de troca disponiveis</p>
+                            <p class="checkout-coupons-hint">
+                                Selecione os cupons que deseja usar. O sistema escolhe automaticamente a melhor combinacao para evitar sobra desnecessaria.
+                            </p>
+
+                            <div class="checkout-coupons-list">
+                                @foreach (var cupom in Model.CuponsTrocaDisponiveis) {
+                                    var selecionado = form.CuponsTrocaSelecionados.Contains(cupom.Id);
+                                    <label class="checkout-coupon-option">
+                                        <input type="checkbox"
+                                               name="CuponsTrocaSelecionados"
+                                               value="@cupom.Id"
+                                               @(selecionado ? "checked" : "")>
+                                        <span>
+                                            <strong>@cupom.Codigo</strong>
+                                            <small>R$ @cupom.Valor.ToString("N2")</small>
+                                        </span>
+                                    </label>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div id="cupomMensagem" class="checkout-coupon-message" style="display:none;"></div>
+
                     <hr>
 
                     <p class="total-price">

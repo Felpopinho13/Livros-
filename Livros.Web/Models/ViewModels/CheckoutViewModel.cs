@@ -16,6 +16,7 @@ public class CheckoutViewModel {
     public List<Endereco> Enderecos { get; set; } = new();
     public List<Cartao> Cartoes { get; set; } = new();
     public List<BandeiraCartao> Bandeiras { get; set; } = new();
+    public List<CheckoutCupomDisponivelViewModel> CuponsTrocaDisponiveis { get; set; } = new();
     public int Quantidade { get; set; }
     public decimal Subtotal { get; set; }
     public decimal Frete { get; set; }
@@ -26,6 +27,12 @@ public class CheckoutViewModel {
     public bool RequerRevisaoCarrinho { get; set; }
     public List<string> AvisosCarrinho { get; set; } = new();
     public CheckoutFormData Form { get; set; } = new();
+}
+
+public class CheckoutCupomDisponivelViewModel {
+    public int Id { get; set; }
+    public string Codigo { get; set; } = string.Empty;
+    public decimal Valor { get; set; }
 }
 
 public class CheckoutFormData {
@@ -48,6 +55,7 @@ public class CheckoutFormData {
     public string? Estado { get; set; }
 
     public string? Cupom { get; set; }
+    public List<int> CuponsTrocaSelecionados { get; set; } = new();
 
     public string? Metodo1 { get; set; }
     public decimal? Valor1 { get; set; }
