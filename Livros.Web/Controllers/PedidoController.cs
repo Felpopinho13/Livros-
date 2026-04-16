@@ -450,10 +450,12 @@ namespace Livros.Web.Controllers {
             var desconto = cuponsPedido.Sum(c => c.Valor);
             var frete = Math.Max(pedido.Total - subtotal + desconto, 0);
 
+            var statusPedidoExibicao = FormatarStatusPedido(pedido.Status, trocas);
+
             var vm = new DetalhesPedidoViewModel {
                 PedidoId = pedido.Id,
                 Data = pedido.Data,
-                Status = FormatarStatusPedido(pedido.Status, trocas),
+                Status = statusPedidoExibicao,
                 ClienteNome = pedido.Cliente?.Nome ?? string.Empty,
                 EnderecoNome = pedido.Endereco?.NomeEndereco ?? string.Empty,
                 Logradouro = pedido.Endereco?.Logradouro ?? string.Empty,
@@ -477,6 +479,7 @@ namespace Livros.Web.Controllers {
                         ImagemUrl = item.Livro?.ImagemUrl ?? string.Empty,
                         Quantidade = item.Quantidade,
                         PrecoUnitario = item.PrecoUnitario,
+                        PedidoEntregue = statusPedidoExibicao == "ENTREGUE",
                         TrocaId = troca?.Id,
                         TrocaStatus = NormalizarStatusTrocaExibicao(troca),
                         CodigoCupomTroca = troca?.CupomDesconto?.Codigo,
@@ -510,6 +513,12 @@ namespace Livros.Web.Controllers {
 
             if (pedidoItem == null) {
                 TempData["ErroTroca"] = "Nao foi possivel localizar o item para solicitar a troca.";
+                return RedirectToAction(nameof(DetalhesPedido), new { id = pedidoId });
+            }
+
+            var statusPedidoExibicao = NormalizarStatusPedidoExibicao(pedidoItem.Pedido?.Status);
+            if (statusPedidoExibicao != "ENTREGUE") {
+                TempData["ErroTroca"] = "A troca so pode ser solicitada para pedidos ENTREGUE.";
                 return RedirectToAction(nameof(DetalhesPedido), new { id = pedidoId });
             }
 

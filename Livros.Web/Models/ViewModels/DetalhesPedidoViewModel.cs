@@ -10,7 +10,9 @@ public class DetalhesPedidoItemViewModel {
     public string? TrocaStatus { get; set; }
     public string? CodigoCupomTroca { get; set; }
     public decimal? ValorCupomTroca { get; set; }
-    public bool PodeSolicitarTroca => !TrocaId.HasValue;
+    public bool PedidoEntregue { get; set; }
+    public bool PodeSolicitarTroca => PedidoEntregue && !TrocaId.HasValue;
+    public bool AguardandoEntregaParaTroca => !PedidoEntregue && !TrocaId.HasValue;
     public bool TemCupomTroca => !string.IsNullOrWhiteSpace(CodigoCupomTroca) && ValorCupomTroca.HasValue && ValorCupomTroca.Value > 0;
     public decimal TotalItem => PrecoUnitario * Quantidade;
 }

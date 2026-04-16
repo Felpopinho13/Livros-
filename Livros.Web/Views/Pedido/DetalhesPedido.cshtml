@@ -133,6 +133,9 @@
                                 @if (item.PodeSolicitarTroca) {
                                     <span class="exchange-chip available">Elegível para troca</span>
                                 }
+                                else if (item.AguardandoEntregaParaTroca) {
+                                    <span class="exchange-chip status-em-transporte">Disponível após entrega</span>
+                                }
                                 else {
                                     <span class="exchange-chip status-@((item.TrocaStatus ?? string.Empty).ToLowerInvariant().Replace(" ", "-"))">@item.TrocaStatus</span>
                                 }
@@ -144,6 +147,11 @@
                                             class="btn-amazon btn-secondary"
                                             onclick="abrirModalTroca(@Model.PedidoId, @item.PedidoItemId, '@tituloEscapado')">
                                         Solicitar troca
+                                    </button>
+                                }
+                                else if (item.AguardandoEntregaParaTroca) {
+                                    <button type="button" class="btn-amazon btn-secondary" disabled>
+                                        Aguardando entrega
                                     </button>
                                 }
                                 else if (item.TemCupomTroca) {
