@@ -22,15 +22,56 @@ public class AdminController : Controller {
         return View();
     }
 
-    public IActionResult Clientes(string busca, string status, string admin, int pagina = 1) {
+    public IActionResult Clientes(
+        string? busca,
+        string? nome,
+        string? email,
+        string? cpf,
+        string? telefone,
+        string? genero,
+        string? dataNascimento,
+        string? status,
+        string? admin,
+        int pagina = 1) {
         int pageSize = 10;
 
         var query = _context.Clientes.AsQueryable();
 
-        if (!string.IsNullOrEmpty(busca)) {
+        if (!string.IsNullOrWhiteSpace(busca)) {
             query = query.Where(c =>
                 c.Nome.Contains(busca) ||
-                c.Email.Contains(busca));
+                c.Email.Contains(busca) ||
+                (c.CPF != null && c.CPF.Contains(busca)) ||
+                (c.Telefone != null && c.Telefone.Contains(busca)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(nome)) {
+            query = query.Where(c => c.Nome.Contains(nome));
+        }
+
+        if (!string.IsNullOrWhiteSpace(email)) {
+            query = query.Where(c => c.Email.Contains(email));
+        }
+
+        if (!string.IsNullOrWhiteSpace(cpf)) {
+            query = query.Where(c => c.CPF != null && c.CPF.Contains(cpf));
+        }
+
+        if (!string.IsNullOrWhiteSpace(telefone)) {
+            query = query.Where(c => c.Telefone != null && c.Telefone.Contains(telefone));
+        }
+
+        if (!string.IsNullOrWhiteSpace(genero)) {
+            query = query.Where(c => c.Genero != null && c.Genero == genero);
+        }
+
+        if (!string.IsNullOrWhiteSpace(dataNascimento)
+            && DateTime.TryParseExact(dataNascimento, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dataNascimentoFiltro)) {
+            var inicioDia = dataNascimentoFiltro.Date;
+            var fimDia = inicioDia.AddDays(1);
+            query = query.Where(c => c.DataNascimento.HasValue
+                && c.DataNascimento.Value >= inicioDia
+                && c.DataNascimento.Value < fimDia);
         }
 
         if (!string.IsNullOrEmpty(status)) {

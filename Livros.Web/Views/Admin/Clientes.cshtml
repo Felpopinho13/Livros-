@@ -21,7 +21,43 @@
         <input type="text"
                name="busca"
                value="@Context.Request.Query["busca"]"
-               placeholder="Buscar cliente..."
+               placeholder="Busca geral: nome, email, CPF ou telefone"
+               class="admin-input" />
+
+        <input type="text"
+               name="nome"
+               value="@Context.Request.Query["nome"]"
+               placeholder="Filtrar por nome"
+               class="admin-input" />
+
+        <input type="text"
+               name="email"
+               value="@Context.Request.Query["email"]"
+               placeholder="Filtrar por email"
+               class="admin-input" />
+
+        <input type="text"
+               name="cpf"
+               value="@Context.Request.Query["cpf"]"
+               placeholder="Filtrar por CPF"
+               class="admin-input" />
+
+        <input type="text"
+               name="telefone"
+               value="@Context.Request.Query["telefone"]"
+               placeholder="Filtrar por telefone"
+               class="admin-input" />
+
+        <select name="genero" class="admin-select">
+            <option value="">Todos os gêneros</option>
+            <option value="Masculino" selected="@(Context.Request.Query["genero"] == "Masculino")">Masculino</option>
+            <option value="Feminino" selected="@(Context.Request.Query["genero"] == "Feminino")">Feminino</option>
+            <option value="NaoInformar" selected="@(Context.Request.Query["genero"] == "NaoInformar")">Prefiro não informar</option>
+        </select>
+
+        <input type="date"
+               name="dataNascimento"
+               value="@Context.Request.Query["dataNascimento"]"
                class="admin-input" />
 
         <select name="status" class="admin-select">
@@ -36,9 +72,15 @@
             <option value="false" selected="@(Context.Request.Query["admin"] == "false")">Clientes</option>
         </select>
 
-        <button type="submit" class="btn-primary btn-sm">
-            Filtrar
-        </button>
+        <div class="admin-filter-actions">
+            <button type="submit" class="btn-primary btn-sm">
+                Filtrar
+            </button>
+
+            <a asp-action="Clientes" class="btn-outline btn-sm">
+                Limpar
+            </a>
+        </div>
 
     </form>
     <table class="admin-table">
@@ -163,6 +205,12 @@
             <a asp-action="Clientes"
                asp-route-pagina="@i"
                asp-route-busca="@Context.Request.Query["busca"]"
+               asp-route-nome="@Context.Request.Query["nome"]"
+               asp-route-email="@Context.Request.Query["email"]"
+               asp-route-cpf="@Context.Request.Query["cpf"]"
+               asp-route-telefone="@Context.Request.Query["telefone"]"
+               asp-route-genero="@Context.Request.Query["genero"]"
+               asp-route-dataNascimento="@Context.Request.Query["dataNascimento"]"
                asp-route-status="@Context.Request.Query["status"]"
                asp-route-admin="@Context.Request.Query["admin"]"
                class="page-number @(i == ViewBag.PaginaAtual ? "active" : "")">
