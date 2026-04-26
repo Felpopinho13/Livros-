@@ -27,6 +27,7 @@ public class DetalhesPedidoViewModel {
     public int PedidoId { get; set; }
     public DateTime Data { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string TipoEntrega { get; set; } = string.Empty;
     public string ClienteNome { get; set; } = string.Empty;
     public string EnderecoNome { get; set; } = string.Empty;
     public string Logradouro { get; set; } = string.Empty;

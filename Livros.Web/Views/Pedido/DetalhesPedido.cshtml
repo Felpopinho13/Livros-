@@ -72,6 +72,7 @@
 
                     <div class="a-column a-span4">
                         <h4>Forma de pagamento</h4>
+                        <p><strong>Tipo de entrega:</strong> @Model.TipoEntrega</p>
                         @foreach (var pagamento in Model.Pagamentos) {
                             <p>@pagamento.Metodo - R$ @pagamento.Valor.ToString("N2")</p>
                             <p>Status: @pagamento.Status</p>

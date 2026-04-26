@@ -83,6 +83,21 @@
                                 <span>Salvar este endereco no meu perfil</span>
                             </label>
                         </div>
+
+                        <div class="checkout-card-inner">
+                            <label for="tipoEntrega">Tipo de entrega</label>
+                            <select id="tipoEntrega" name="TipoEntrega" class="admin-select">
+                                @if (string.Equals(form.TipoEntrega, "PROGRAMADA", System.StringComparison.OrdinalIgnoreCase)) {
+                                    <option value="PADRAO">Entrega padrão</option>
+                                    <option value="PROGRAMADA" selected>Entrega programada</option>
+                                }
+                                else {
+                                    <option value="PADRAO" selected>Entrega padrão</option>
+                                    <option value="PROGRAMADA">Entrega programada</option>
+                                }
+                            </select>
+                            <p class="checkout-hint">Nesta versão, o tipo fica registrado no pedido para futura evolução de agenda e datas específicas.</p>
+                        </div>
                     </div>
 
                     <div class="payment-section card">

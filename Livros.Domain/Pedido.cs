@@ -18,6 +18,8 @@ namespace Livros.Domain {
 
         public decimal Total { get; set; }
 
+        public string TipoEntrega { get; set; } = "PADRAO";
+
         public string Status { get; set; } = "Aguardando Pagamento";
 
         public List<PedidoItem> Itens { get; set; }

@@ -69,6 +69,11 @@ namespace Livros.Infrastructure.Data {
                 .HasForeignKey(p => p.EnderecoId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Pedido>()
+                .Property(p => p.TipoEntrega)
+                .HasMaxLength(20)
+                .HasDefaultValue("PADRAO");
+
             modelBuilder.Entity<Estoque>()
                 .HasOne(e => e.Livro)
                 .WithOne(l => l.Estoque)

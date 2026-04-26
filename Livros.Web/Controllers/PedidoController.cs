@@ -171,7 +171,8 @@ namespace Livros.Web.Controllers {
             var form = new CheckoutFormData {
                 LivroId = id,
                 Quantidade = Math.Max(1, quantidade),
-                UsarCarrinho = false
+                UsarCarrinho = false,
+                TipoEntrega = "PADRAO"
             };
 
             var vm = MontarCheckoutViewModel(clienteId.Value, form);
@@ -193,7 +194,8 @@ namespace Livros.Web.Controllers {
             }
 
             var form = new CheckoutFormData {
-                UsarCarrinho = true
+                UsarCarrinho = true,
+                TipoEntrega = "PADRAO"
             };
 
             var sincronizacao = SincronizarCarrinhoComEstoque(renovarReservas: true);
@@ -262,6 +264,7 @@ namespace Livros.Web.Controllers {
                 return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action(nameof(Carrinho), "Pedido") });
             }
 
+            form.TipoEntrega = NormalizarTipoEntrega(form.TipoEntrega);
             form.Valor1 = ObterValorPagamento("Valor1", form.Valor1);
             form.Valor2 = ObterValorPagamento("Valor2", form.Valor2);
 
@@ -305,6 +308,7 @@ namespace Livros.Web.Controllers {
                 EnderecoId = enderecoId.Value,
                 Data = DateTime.Now,
                 Total = total,
+                TipoEntrega = form.TipoEntrega,
                 Status = "APROVADA",
                 Itens = new List<PedidoItem>(),
                 Pagamentos = new List<Pagamento>()
@@ -366,6 +370,7 @@ namespace Livros.Web.Controllers {
             var vm = new PedidoConfirmadoViewModel {
                 PedidoId = pedido.Id,
                 Status = FormatarStatusPedido(pedido.Status, _context.Trocas.Where(t => t.PedidoId == pedido.Id).ToList()),
+                TipoEntrega = FormatarTipoEntrega(pedido.TipoEntrega),
                 Total = pedido.Total,
                 LivroTitulo = itemPrincipal?.Livro?.Titulo ?? "Pedido",
                 Quantidade = pedido.Itens.Sum(i => i.Quantidade)
@@ -402,6 +407,7 @@ namespace Livros.Web.Controllers {
                         Data = p.Data,
                         Total = p.Total,
                         Status = FormatarStatusPedido(p.Status, trocasPorPedido.TryGetValue(p.Id, out var trocasPedido) ? trocasPedido : null),
+                        TipoEntrega = FormatarTipoEntrega(p.TipoEntrega),
                         LivroTitulo = itemPrincipal?.Livro?.Titulo ?? "Pedido sem itens",
                         LivroAutor = itemPrincipal?.Livro?.Autor ?? string.Empty,
                         LivroImagemUrl = itemPrincipal?.Livro?.ImagemUrl ?? string.Empty,
@@ -456,6 +462,7 @@ namespace Livros.Web.Controllers {
                 PedidoId = pedido.Id,
                 Data = pedido.Data,
                 Status = statusPedidoExibicao,
+                TipoEntrega = FormatarTipoEntrega(pedido.TipoEntrega),
                 ClienteNome = pedido.Cliente?.Nome ?? string.Empty,
                 EnderecoNome = pedido.Endereco?.NomeEndereco ?? string.Empty,
                 Logradouro = pedido.Endereco?.Logradouro ?? string.Empty,
@@ -812,6 +819,7 @@ namespace Livros.Web.Controllers {
                 form.EnderecoId = enderecoPadrao.Id;
             }
 
+            form.TipoEntrega = NormalizarTipoEntrega(form.TipoEntrega);
             form.TipoLogradouro ??= "Rua";
             form.TipoResidencia ??= "Casa";
             form.Pais ??= "Brasil";
@@ -1512,6 +1520,20 @@ namespace Livros.Web.Controllers {
             }
 
             return troca.Status;
+        }
+
+        private static string NormalizarTipoEntrega(string? tipoEntrega) {
+            if (string.Equals(tipoEntrega, "PROGRAMADA", StringComparison.OrdinalIgnoreCase)) {
+                return "PROGRAMADA";
+            }
+
+            return "PADRAO";
+        }
+
+        private static string FormatarTipoEntrega(string? tipoEntrega) {
+            return string.Equals(tipoEntrega, "PROGRAMADA", StringComparison.OrdinalIgnoreCase)
+                ? "Entrega programada"
+                : "Entrega padrão";
         }
 
         private decimal ObterValorPagamento(string campo, decimal? valorPadrao) {
