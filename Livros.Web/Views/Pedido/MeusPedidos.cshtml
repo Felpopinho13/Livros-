@@ -71,6 +71,9 @@
                                         }
 
                                         <p><strong>Tipo de entrega:</strong> @pedido.TipoEntrega</p>
+                                        @if (pedido.DataEntregaPrevista.HasValue) {
+                                            <p><strong>Entrega prevista:</strong> @pedido.DataEntregaPrevista.Value.ToString("dd/MM/yyyy")</p>
+                                        }
                                         <p><strong>Total de livros:</strong> @pedido.QuantidadeLivros</p>
                                         <p class="status @statusClass">@pedido.Status</p>
 

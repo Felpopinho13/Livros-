@@ -4,6 +4,7 @@
     public decimal Total { get; set; }
     public string Status { get; set; } = string.Empty;
     public string TipoEntrega { get; set; } = string.Empty;
+    public DateTime? DataEntregaPrevista { get; set; }
     public string LivroTitulo { get; set; } = string.Empty;
     public string LivroAutor { get; set; } = string.Empty;
     public string LivroImagemUrl { get; set; } = string.Empty;

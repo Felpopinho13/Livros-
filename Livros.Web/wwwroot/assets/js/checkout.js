@@ -15,6 +15,9 @@ if (checkoutLayout) {
     const segundoPagamentoWrapper = document.getElementById('segundoPagamentoWrapper');
     const metodo2Select = document.querySelector("[name='Metodo2']");
     const estadoNovoEnderecoInput = document.getElementById('estadoNovoEndereco');
+    const tipoEntregaSelect = document.getElementById('tipoEntrega');
+    const dataEntregaProgramadaWrapper = document.getElementById('dataEntregaProgramadaWrapper');
+    const dataEntregaPrevistaInput = document.getElementById('dataEntregaPrevista');
 
     const unitPrice = parseFloat(checkoutLayout.dataset.unitPrice || '0');
     const subtotalBase = parseFloat(checkoutLayout.dataset.subtotalBase || '0');
@@ -230,6 +233,20 @@ if (checkoutLayout) {
         }
     }
 
+    function toggleEntregaProgramada() {
+        if (!tipoEntregaSelect || !dataEntregaProgramadaWrapper) {
+            return;
+        }
+
+        const entregaProgramadaAtiva = tipoEntregaSelect.value === 'PROGRAMADA';
+        dataEntregaProgramadaWrapper.style.display = entregaProgramadaAtiva ? 'grid' : 'none';
+        dataEntregaProgramadaWrapper.classList.toggle('is-visible', entregaProgramadaAtiva);
+
+        if (!entregaProgramadaAtiva && dataEntregaPrevistaInput) {
+            dataEntregaPrevistaInput.value = '';
+        }
+    }
+
     async function aplicarCupom() {
         if (!cupomInput) {
             return;
@@ -302,9 +319,11 @@ if (checkoutLayout) {
     metodoSelects.forEach((select) => select.addEventListener('change', () => togglePagamento(select.dataset.index)));
     cardSelects.forEach((select) => select.addEventListener('change', () => toggleNovoCartao(select.dataset.index)));
     estadoNovoEnderecoInput?.addEventListener('input', atualizarFrete);
+    tipoEntregaSelect?.addEventListener('change', toggleEntregaProgramada);
 
     toggleNovoEndereco();
     togglePagamento(1);
     atualizarSegundoPagamentoUI();
+    toggleEntregaProgramada();
     atualizarFrete();
 }

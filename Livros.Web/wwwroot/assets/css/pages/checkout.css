@@ -52,6 +52,52 @@
     border-top: 1px solid #ececec;
 }
 
+.checkout-delivery-panel {
+    display: grid;
+    gap: 14px;
+}
+
+.checkout-delivery-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.checkout-delivery-panel .admin-select,
+.checkout-scheduled-delivery input {
+    width: 100%;
+    padding: 13px 14px;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+    background: #fafafa;
+    font-size: 15px;
+}
+
+.checkout-scheduled-delivery {
+    display: grid;
+    gap: 10px;
+    padding: 16px;
+    border: 1px solid #f3dfbf;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #fffaf2 0%, #ffffff 100%);
+}
+
+.checkout-scheduled-delivery label {
+    margin: 0;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.checkout-scheduled-delivery.is-visible {
+    animation: checkoutFadeIn 0.18s ease;
+}
+
+.checkout-field-error {
+    font-size: 13px;
+    color: #b91c1c;
+    line-height: 1.5;
+}
+
 .checkout-form h3 {
     margin-bottom: 15px;
 }
@@ -296,7 +342,9 @@
 .cartao-form input:focus,
 .payment-block select:focus,
 .payment-block input:focus,
-.checkout-summary input:focus {
+.checkout-summary input:focus,
+.checkout-delivery-panel .admin-select:focus,
+.checkout-scheduled-delivery input:focus {
     border-color: #ff9800;
     box-shadow: 0 0 0 3px rgba(255,152,0,0.15);
     outline: none;
@@ -345,6 +393,18 @@
 .checkout-item-row span {
     color: #6b7280;
     font-size: 14px;
+}
+
+@keyframes checkoutFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @media (max-width: 900px) {

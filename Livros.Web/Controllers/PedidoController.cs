@@ -172,7 +172,8 @@ namespace Livros.Web.Controllers {
                 LivroId = id,
                 Quantidade = Math.Max(1, quantidade),
                 UsarCarrinho = false,
-                TipoEntrega = "PADRAO"
+                TipoEntrega = "PADRAO",
+                DataEntregaPrevista = null
             };
 
             var vm = MontarCheckoutViewModel(clienteId.Value, form);
@@ -195,7 +196,8 @@ namespace Livros.Web.Controllers {
 
             var form = new CheckoutFormData {
                 UsarCarrinho = true,
-                TipoEntrega = "PADRAO"
+                TipoEntrega = "PADRAO",
+                DataEntregaPrevista = null
             };
 
             var sincronizacao = SincronizarCarrinhoComEstoque(renovarReservas: true);
@@ -265,6 +267,7 @@ namespace Livros.Web.Controllers {
             }
 
             form.TipoEntrega = NormalizarTipoEntrega(form.TipoEntrega);
+            form.DataEntregaPrevista = NormalizarDataEntregaPrevista(form.TipoEntrega, form.DataEntregaPrevista);
             form.Valor1 = ObterValorPagamento("Valor1", form.Valor1);
             form.Valor2 = ObterValorPagamento("Valor2", form.Valor2);
 
@@ -296,6 +299,17 @@ namespace Livros.Web.Controllers {
             var desconto = aplicacaoCupons.DescontoTotal;
             var total = Math.Max(subtotal + frete - desconto, 0);
 
+            if (string.Equals(form.TipoEntrega, "PROGRAMADA", StringComparison.OrdinalIgnoreCase)) {
+                var dataMinimaEntregaProgramada = ObterDataMinimaEntregaProgramada();
+
+                if (!form.DataEntregaPrevista.HasValue) {
+                    ModelState.AddModelError(nameof(form.DataEntregaPrevista), "Informe a data prevista para a entrega programada.");
+                }
+                else if (form.DataEntregaPrevista.Value.Date < dataMinimaEntregaProgramada) {
+                    ModelState.AddModelError(nameof(form.DataEntregaPrevista), $"A entrega programada deve ser agendada para {dataMinimaEntregaProgramada:dd/MM/yyyy} ou uma data posterior.");
+                }
+            }
+
             ValidarPagamentos(clienteId.Value, form, total, aplicacaoCupons);
 
             if (!ModelState.IsValid || !enderecoId.HasValue) {
@@ -309,6 +323,7 @@ namespace Livros.Web.Controllers {
                 Data = DateTime.Now,
                 Total = total,
                 TipoEntrega = form.TipoEntrega,
+                DataEntregaPrevista = form.DataEntregaPrevista,
                 Status = "APROVADA",
                 Itens = new List<PedidoItem>(),
                 Pagamentos = new List<Pagamento>()
@@ -371,6 +386,7 @@ namespace Livros.Web.Controllers {
                 PedidoId = pedido.Id,
                 Status = FormatarStatusPedido(pedido.Status, _context.Trocas.Where(t => t.PedidoId == pedido.Id).ToList()),
                 TipoEntrega = FormatarTipoEntrega(pedido.TipoEntrega),
+                DataEntregaPrevista = pedido.DataEntregaPrevista,
                 Total = pedido.Total,
                 LivroTitulo = itemPrincipal?.Livro?.Titulo ?? "Pedido",
                 Quantidade = pedido.Itens.Sum(i => i.Quantidade)
@@ -408,6 +424,7 @@ namespace Livros.Web.Controllers {
                         Total = p.Total,
                         Status = FormatarStatusPedido(p.Status, trocasPorPedido.TryGetValue(p.Id, out var trocasPedido) ? trocasPedido : null),
                         TipoEntrega = FormatarTipoEntrega(p.TipoEntrega),
+                        DataEntregaPrevista = p.DataEntregaPrevista,
                         LivroTitulo = itemPrincipal?.Livro?.Titulo ?? "Pedido sem itens",
                         LivroAutor = itemPrincipal?.Livro?.Autor ?? string.Empty,
                         LivroImagemUrl = itemPrincipal?.Livro?.ImagemUrl ?? string.Empty,
@@ -463,6 +480,7 @@ namespace Livros.Web.Controllers {
                 Data = pedido.Data,
                 Status = statusPedidoExibicao,
                 TipoEntrega = FormatarTipoEntrega(pedido.TipoEntrega),
+                DataEntregaPrevista = pedido.DataEntregaPrevista,
                 ClienteNome = pedido.Cliente?.Nome ?? string.Empty,
                 EnderecoNome = pedido.Endereco?.NomeEndereco ?? string.Empty,
                 Logradouro = pedido.Endereco?.Logradouro ?? string.Empty,
@@ -820,6 +838,7 @@ namespace Livros.Web.Controllers {
             }
 
             form.TipoEntrega = NormalizarTipoEntrega(form.TipoEntrega);
+            form.DataEntregaPrevista = NormalizarDataEntregaPrevista(form.TipoEntrega, form.DataEntregaPrevista);
             form.TipoLogradouro ??= "Rua";
             form.TipoResidencia ??= "Casa";
             form.Pais ??= "Brasil";
@@ -1534,6 +1553,18 @@ namespace Livros.Web.Controllers {
             return string.Equals(tipoEntrega, "PROGRAMADA", StringComparison.OrdinalIgnoreCase)
                 ? "Entrega programada"
                 : "Entrega padrão";
+        }
+
+        private static DateTime? NormalizarDataEntregaPrevista(string? tipoEntrega, DateTime? dataEntregaPrevista) {
+            if (!string.Equals(tipoEntrega, "PROGRAMADA", StringComparison.OrdinalIgnoreCase)) {
+                return null;
+            }
+
+            return dataEntregaPrevista?.Date;
+        }
+
+        private static DateTime ObterDataMinimaEntregaProgramada() {
+            return DateTime.Today.AddDays(7);
         }
 
         private decimal ObterValorPagamento(string campo, decimal? valorPadrao) {

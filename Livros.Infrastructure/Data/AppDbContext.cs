@@ -74,6 +74,9 @@ namespace Livros.Infrastructure.Data {
                 .HasMaxLength(20)
                 .HasDefaultValue("PADRAO");
 
+            modelBuilder.Entity<Pedido>()
+                .Property(p => p.DataEntregaPrevista);
+
             modelBuilder.Entity<Estoque>()
                 .HasOne(e => e.Livro)
                 .WithOne(l => l.Estoque)

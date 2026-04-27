@@ -43,6 +43,7 @@ public class CheckoutFormData {
     public int EnderecoId { get; set; }
     public bool SalvarNovoEndereco { get; set; }
     public string TipoEntrega { get; set; } = "PADRAO";
+    public DateTime? DataEntregaPrevista { get; set; }
     public string? NomeEndereco { get; set; }
     public string? CEP { get; set; }
     public string? TipoLogradouro { get; set; }

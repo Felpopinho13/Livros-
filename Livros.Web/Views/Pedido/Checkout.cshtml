@@ -3,6 +3,8 @@
 @{
     var form = Model.Form;
     var segundoPagamentoAtivo = !string.IsNullOrWhiteSpace(form.Metodo2);
+    var entregaProgramadaSelecionada = string.Equals(form.TipoEntrega, "PROGRAMADA", System.StringComparison.OrdinalIgnoreCase);
+    var dataMinimaEntregaProgramada = DateTime.Today.AddDays(7).ToString("yyyy-MM-dd");
 }
 
 <section class="checkout-page">
@@ -84,8 +86,10 @@
                             </label>
                         </div>
 
-                        <div class="checkout-card-inner">
-                            <label for="tipoEntrega">Tipo de entrega</label>
+                        <div class="checkout-card-inner checkout-delivery-panel">
+                            <div class="checkout-delivery-header">
+                                <label for="tipoEntrega">Tipo de entrega</label>
+                            </div>
                             <select id="tipoEntrega" name="TipoEntrega" class="admin-select">
                                 @if (string.Equals(form.TipoEntrega, "PROGRAMADA", System.StringComparison.OrdinalIgnoreCase)) {
                                     <option value="PADRAO">Entrega padrão</option>
@@ -96,7 +100,18 @@
                                     <option value="PROGRAMADA">Entrega programada</option>
                                 }
                             </select>
-                            <p class="checkout-hint">Nesta versão, o tipo fica registrado no pedido para futura evolução de agenda e datas específicas.</p>
+
+                            <div id="dataEntregaProgramadaWrapper"
+                                 class="checkout-scheduled-delivery @(entregaProgramadaSelecionada ? "is-visible" : string.Empty)"
+                                 style="@(entregaProgramadaSelecionada ? string.Empty : "display:none;")">
+                                <label for="dataEntregaPrevista">Data da entrega programada</label>
+                                <input id="dataEntregaPrevista"
+                                       name="DataEntregaPrevista"
+                                       type="date"
+                                       min="@dataMinimaEntregaProgramada"
+                                       value="@(form.DataEntregaPrevista?.ToString("yyyy-MM-dd"))">
+                                @Html.ValidationMessage("DataEntregaPrevista", null, new { @class = "checkout-field-error" })
+                            </div>
                         </div>
                     </div>
 

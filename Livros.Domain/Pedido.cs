@@ -20,6 +20,8 @@ namespace Livros.Domain {
 
         public string TipoEntrega { get; set; } = "PADRAO";
 
+        public DateTime? DataEntregaPrevista { get; set; }
+
         public string Status { get; set; } = "Aguardando Pagamento";
 
         public List<PedidoItem> Itens { get; set; }

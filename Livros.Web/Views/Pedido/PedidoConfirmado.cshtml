@@ -20,6 +20,9 @@
                 <p><strong>Livro:</strong> @Model.LivroTitulo</p>
                 <p><strong>Quantidade:</strong> @Model.Quantidade</p>
                 <p><strong>Tipo de entrega:</strong> @Model.TipoEntrega</p>
+                @if (Model.DataEntregaPrevista.HasValue) {
+                    <p><strong>Entrega prevista:</strong> @Model.DataEntregaPrevista.Value.ToString("dd/MM/yyyy")</p>
+                }
                 <p>
                     <strong>Status:</strong>
                     <span class="status @statusClass">@Model.Status</span>

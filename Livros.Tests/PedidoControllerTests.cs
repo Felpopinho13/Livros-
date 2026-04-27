@@ -14,14 +14,97 @@ namespace Livros.Tests;
 
 public class PedidoControllerTests {
     [Fact]
-    public void FinalizarPedido_DeveRegistrarPedidoDeVendaComSucesso() {
+    public void FinalizarPedido_DeveRegistrarPedidoDeVendaComSucesso_EComEntregaPrevistaProgramada() {
+        using var context = CriarContexto();
+        var cliente = CriarCliente(context);
+        var endereco = CriarEndereco(context, cliente.Id);
+        var livro = CriarLivroComEstoque(context);
+
+        var controller = CriarController(context, cliente.Id, "32,00");
+        var totalEsperado = 32m; // Livro R$ 20,00 + frete SP R$ 12,00
+        var dataEntregaPrevista = DateTime.Today.AddDays(8);
+
+        var form = new CheckoutFormData {
+            LivroId = livro.Id,
+            Quantidade = 1,
+            EnderecoId = endereco.Id,
+            TipoEntrega = "PROGRAMADA",
+            DataEntregaPrevista = dataEntregaPrevista,
+            Metodo1 = "pix",
+            Valor1 = totalEsperado
+        };
+
+        var resultado = controller.FinalizarPedido(form);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(resultado);
+        Assert.Equal("PedidoConfirmado", redirect.ActionName);
+        Assert.NotNull(redirect.RouteValues);
+        Assert.True(redirect.RouteValues!.ContainsKey("id"));
+
+        var pedido = context.Pedidos
+            .Include(p => p.Itens)
+            .Include(p => p.Pagamentos)
+            .Single();
+
+        Assert.Equal(cliente.Id, pedido.ClienteId);
+        Assert.Equal(endereco.Id, pedido.EnderecoId);
+        Assert.Equal("APROVADA", pedido.Status);
+        Assert.Equal("PROGRAMADA", pedido.TipoEntrega);
+        Assert.Equal(dataEntregaPrevista.Date, pedido.DataEntregaPrevista?.Date);
+        Assert.Equal(totalEsperado, pedido.Total);
+        Assert.Single(pedido.Itens);
+        Assert.Single(pedido.Pagamentos);
+
+        var item = pedido.Itens.Single();
+        Assert.Equal(livro.Id, item.LivroId);
+        Assert.Equal(1, item.Quantidade);
+        Assert.Equal(livro.Preco, item.PrecoUnitario);
+
+        var pagamento = pedido.Pagamentos.Single();
+        Assert.Equal("pix", pagamento.Metodo);
+        Assert.Equal(totalEsperado, pagamento.Valor);
+        Assert.Equal("Pendente", pagamento.Status);
+    }
+
+    [Fact]
+    public void FinalizarPedido_NaoDeveRegistrarPedidoQuandoEntregaProgramadaEstiverNoPassado() {
+        using var context = CriarContexto();
+        var cliente = CriarCliente(context);
+        var endereco = CriarEndereco(context, cliente.Id);
+        var livro = CriarLivroComEstoque(context);
+
+        var controller = CriarController(context, cliente.Id, "32,00");
+        var form = new CheckoutFormData {
+            LivroId = livro.Id,
+            Quantidade = 1,
+            EnderecoId = endereco.Id,
+            TipoEntrega = "PROGRAMADA",
+            // DataEntregaPrevista = DateTime.Today.AddDays(-1),
+            DataEntregaPrevista = new DateTime(2025, 10, 6),
+            Metodo1 = "pix",
+            Valor1 = 32m
+        };
+
+        var resultado = controller.FinalizarPedido(form);
+
+        var viewResult = Assert.IsType<ViewResult>(resultado);
+        Assert.Equal("Checkout", viewResult.ViewName);
+        Assert.False(controller.ModelState.IsValid);
+        Assert.True(controller.ModelState.ContainsKey(nameof(CheckoutFormData.DataEntregaPrevista)));
+        Assert.Empty(context.Pedidos);
+    }
+
+    private static AppDbContext CriarContexto() {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"livros-finalizar-pedido-{Guid.NewGuid()}")
             .Options;
 
-        using var context = new AppDbContext(options);
+        var context = new AppDbContext(options);
         context.Database.EnsureCreated();
+        return context;
+    }
 
+    private static Cliente CriarCliente(AppDbContext context) {
         var cliente = new Cliente {
             Nome = "Cliente Teste",
             Email = "cliente@teste.com",
@@ -35,7 +118,10 @@ public class PedidoControllerTests {
 
         context.Clientes.Add(cliente);
         context.SaveChanges();
+        return cliente;
+    }
 
+    private static Endereco CriarEndereco(AppDbContext context, int clienteId) {
         var estado = new Estado { Nome = "Sao Paulo", Sigla = "SP" };
         context.Estados.Add(estado);
         context.SaveChanges();
@@ -59,7 +145,7 @@ public class PedidoControllerTests {
             Pais = "Brasil",
             CidadeId = cidade.Id,
             BairroId = bairro.Id,
-            ClienteId = cliente.Id,
+            ClienteId = clienteId,
             IsPadrao = true,
             IsEntrega = true,
             IsCobranca = true
@@ -67,7 +153,10 @@ public class PedidoControllerTests {
 
         context.Enderecos.Add(endereco);
         context.SaveChanges();
+        return endereco;
+    }
 
+    private static Livro CriarLivroComEstoque(AppDbContext context) {
         var livro = new Livro {
             Titulo = "Livro de Teste",
             Ano = 2024,
@@ -96,7 +185,10 @@ public class PedidoControllerTests {
             QuantidadeMinima = 1
         });
         context.SaveChanges();
+        return livro;
+    }
 
+    private static PedidoController CriarController(AppDbContext context, int clienteId, string valor1) {
         var controller = new PedidoController(
             context,
             new LivroService(context),
@@ -104,56 +196,16 @@ public class PedidoControllerTests {
 
         var httpContext = new DefaultHttpContext();
         var session = new TestSession();
-        session.SetString("ClienteId", cliente.Id.ToString());
+        session.SetString("ClienteId", clienteId.ToString());
         httpContext.Features.Set<ISessionFeature>(new TestSessionFeature { Session = session });
         httpContext.Request.ContentType = "application/x-www-form-urlencoded";
         httpContext.Request.Form = new FormCollection(new Dictionary<string, StringValues> {
-            ["Valor1"] = "32,00"
+            ["Valor1"] = valor1
         });
 
         controller.ControllerContext = new ControllerContext {
             HttpContext = httpContext
         };
-
-        var totalEsperado = 32m; // Livro R$ 20,00 + frete SP R$ 12,00
-
-        var form = new CheckoutFormData {
-            LivroId = livro.Id,
-            Quantidade = 1,
-            EnderecoId = endereco.Id,
-            TipoEntrega = "PADRAO",
-            Metodo1 = "pix",
-            Valor1 = totalEsperado
-        };
-
-        var resultado = controller.FinalizarPedido(form);
-
-        var redirect = Assert.IsType<RedirectToActionResult>(resultado);
-        Assert.Equal("PedidoConfirmado", redirect.ActionName);
-        Assert.NotNull(redirect.RouteValues);
-        Assert.True(redirect.RouteValues!.ContainsKey("id"));
-
-        var pedido = context.Pedidos
-            .Include(p => p.Itens)
-            .Include(p => p.Pagamentos)
-            .Single();
-
-        Assert.Equal(cliente.Id, pedido.ClienteId);
-        Assert.Equal(endereco.Id, pedido.EnderecoId);
-        Assert.Equal("APROVADA", pedido.Status);
-        Assert.Equal("PADRAO", pedido.TipoEntrega);
-        Assert.Equal(totalEsperado, pedido.Total);
-        Assert.Single(pedido.Itens);
-        Assert.Single(pedido.Pagamentos);
-
-        var item = pedido.Itens.Single();
-        Assert.Equal(livro.Id, item.LivroId);
-        Assert.Equal(1, item.Quantidade);
-        Assert.Equal(livro.Preco, item.PrecoUnitario);
-
-        var pagamento = pedido.Pagamentos.Single();
-        Assert.Equal("pix", pagamento.Metodo);
-        Assert.Equal(totalEsperado, pagamento.Valor);
-        Assert.Equal("Pendente", pagamento.Status);
+        return controller;
     }
 }
