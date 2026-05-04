@@ -40,25 +40,16 @@ if (cepInput) {
     });
 }
 
-const senhaInput = document.querySelector('input[name="senha"]');
+const form = document.querySelector(".register-form");
 
-if (senhaInput) {
-    senhaInput.addEventListener("blur", function () {
-        if (senhaInput.value.length < 6) {
-            alert("A senha deve ter pelo menos 6 caracteres.");
+if (form) {
+    form.addEventListener("submit", function (e) {
+        const senha = document.querySelector('input[name="senha"]')?.value ?? "";
+        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9\s])(?=\S+$).{8,}$/;
+
+        if (!regex.test(senha)) {
+            e.preventDefault();
+            alert("A senha deve ter pelo menos 8 caracteres, com letra maiuscula, minuscula, caractere especial e sem espacos.");
         }
     });
 }
-
-const form = document.querySelector(".register-form");
-
-form.addEventListener("submit", function (e) {
-    const senha = document.querySelector('input[name="senha"]').value;
-
-    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$/;
-
-    if (!regex.test(senha)) {
-        e.preventDefault();
-        alert("A senha deve ter no mínimo 8 caracteres, com letra maiúscula, minúscula e símbolo.");
-    }
-});
