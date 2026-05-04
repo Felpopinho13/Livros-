@@ -58,7 +58,7 @@ public class VendaPlaywrightTests {
         await page.Locator("input[name='Email']").FillAsync(email);
         await page.Locator("input[name='Senha']").FillAsync(senha);
         await page.GetByRole(AriaRole.Button, new() { Name = "Entrar" }).ClickAsync();
-        await page.WaitForURLAsync("**/Home/Index");
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await ExpectAsync(page.Locator(".product-card").First).ToBeVisibleAsync();
 
         var adicionarCarrinhoBotao = page.GetByRole(AriaRole.Button, new() { Name = "Adicionar ao carrinho" }).First;
