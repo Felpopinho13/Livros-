@@ -14,7 +14,12 @@ public class VendaPlaywrightTests {
         await ExecutarFluxoCompraVisualAsync("PADRAO", false);
     }
 
-    private static async Task ExecutarFluxoCompraVisualAsync(string tipoEntrega, bool usarEntregaProgramada) {
+    [Fact]
+    public async Task DeveRegistrarPedidoComSucessoNoFluxoVisualDeCompraComDoisCartoes() {
+        await ExecutarFluxoCompraVisualAsync("PADRAO", false, true);
+    }
+
+    private static async Task ExecutarFluxoCompraVisualAsync(string tipoEntrega, bool usarEntregaProgramada, bool usarDoisCartoes = false) {
         var baseUrl = Environment.GetEnvironmentVariable("LIVROS_BASE_URL") ?? "https://localhost:44357";
         var dataEntregaProgramada = DateTime.Today.AddDays(8).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var email = $"playwright.{DateTime.Now:yyyyMMddHHmmss}@teste.com";
@@ -97,9 +102,36 @@ public class VendaPlaywrightTests {
             await page.WaitForTimeoutAsync(900);
         }
 
-        await page.Locator("select[name='Metodo1']").SelectOptionAsync(new[] { "pix" });
         var total = (await page.Locator("#totalCompra").InnerTextAsync()).Trim();
-        await page.Locator("input[name='Valor1']").FillAsync(total);
+        if (usarDoisCartoes) {
+            await page.Locator("select[name='Metodo1']").SelectOptionAsync(new[] { "cartao" });
+            await ExpectAsync(page.Locator("#cartaoForm1")).ToBeVisibleAsync();
+            await page.Locator("select[name='BandeiraCartaoId1']").SelectOptionAsync(new[] { "1" });
+            await page.Locator("input[name='NomeCartao1']").FillAsync("Cliente Playwright");
+            await page.Locator("input[name='NumeroCartao1']").FillAsync("4111111111111111");
+            await page.Locator("input[name='CVV1']").FillAsync("123");
+            await page.Locator("input[name='Validade1']").FillAsync("12/30");
+
+            await page.GetByRole(AriaRole.Button, new() { Name = "Adicionar segundo meio de pagamento" }).ClickAsync();
+            await ExpectAsync(page.Locator("#segundoPagamentoWrapper")).ToBeVisibleAsync();
+            await page.WaitForTimeoutAsync(1200);
+
+            await page.Locator("select[name='Metodo2']").SelectOptionAsync(new[] { "cartao" });
+            await ExpectAsync(page.Locator("#cartaoForm2")).ToBeVisibleAsync();
+            await page.Locator("select[name='BandeiraCartaoId2']").SelectOptionAsync(new[] { "2" });
+            await page.Locator("input[name='NomeCartao2']").FillAsync("Cliente Playwright 2");
+            await page.Locator("input[name='NumeroCartao2']").FillAsync("5555555555554444");
+            await page.Locator("input[name='CVV2']").FillAsync("456");
+            await page.Locator("input[name='Validade2']").FillAsync("11/31");
+
+            var (valor1, valor2) = DividirTotalParaDoisCartoes(total);
+            await page.Locator("input[name='Valor1']").FillAsync(valor1);
+            await page.Locator("input[name='Valor2']").FillAsync(valor2);
+        }
+        else {
+            await page.Locator("select[name='Metodo1']").SelectOptionAsync(new[] { "pix" });
+            await page.Locator("input[name='Valor1']").FillAsync(total);
+        }
         await page.WaitForTimeoutAsync(1200);
 
         await page.GetByRole(AriaRole.Button, new() { Name = "Finalizar pagamento" }).ClickAsync();
@@ -115,6 +147,25 @@ public class VendaPlaywrightTests {
             await ExpectAsync(page.Locator(".order-info")).Not.ToContainTextAsync("Entrega prevista:");
         }
         await page.WaitForTimeoutAsync(2500);
+    }
+
+    private static (string valor1, string valor2) DividirTotalParaDoisCartoes(string totalFormatado) {
+        var total = decimal.Parse(totalFormatado, new CultureInfo("pt-BR"));
+        var valor1 = decimal.Round(total / 2m, 2, MidpointRounding.AwayFromZero);
+        if (valor1 < 10m) {
+            valor1 = 10m;
+        }
+
+        var valor2 = decimal.Round(total - valor1, 2, MidpointRounding.AwayFromZero);
+        if (valor2 < 10m) {
+            valor2 = 10m;
+            valor1 = decimal.Round(total - valor2, 2, MidpointRounding.AwayFromZero);
+        }
+
+        return (
+            valor1.ToString("N2", new CultureInfo("pt-BR")),
+            valor2.ToString("N2", new CultureInfo("pt-BR"))
+        );
     }
 
     private static ILocatorAssertions ExpectAsync(ILocator locator) => Assertions.Expect(locator);
