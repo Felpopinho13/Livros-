@@ -30,61 +30,10 @@ public class VendaPlaywrightTests {
 
     [Fact]
     public async Task DeveRegistrarPedidoComDoisCartoesEValidarFluxoAdministrativo() {
-        var baseUrl = Environment.GetEnvironmentVariable("LIVROS_BASE_URL") ?? "https://localhost:44357";
-
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions {
-            Headless = false,
-            SlowMo = 850
-        });
-
-        var artifactsDir = Path.Combine(AppContext.BaseDirectory, "playwright-artifacts");
-        Directory.CreateDirectory(artifactsDir);
-
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions {
-            IgnoreHTTPSErrors = true,
-            ViewportSize = new ViewportSize { Width = 1440, Height = 900 },
-            RecordVideoDir = artifactsDir,
-            RecordVideoSize = new RecordVideoSize { Width = 1440, Height = 900 }
-        });
-
-        var page = await context.NewPageAsync();
-
-        await ExecutarFluxoCompraVisualNaPaginaAsync(page, baseUrl, new CenarioCompraVisual {
+        await ExecutarFluxoCompraVisualAsync(new CenarioCompraVisual {
             TipoEntrega = "PADRAO",
             UsarDoisCartoes = true
         });
-
-        await page.GotoAsync($"{baseUrl}/Auth/Logout", new PageGotoOptions {
-            WaitUntil = WaitUntilState.NetworkIdle
-        });
-        await page.WaitForTimeoutAsync(1200);
-
-        await page.GotoAsync($"{baseUrl}/Auth/Login", new PageGotoOptions {
-            WaitUntil = WaitUntilState.NetworkIdle
-        });
-
-        await page.Locator("input[name='Email']").FillAsync("admin@admin.com");
-        await page.Locator("input[name='Senha']").FillAsync("123");
-        await page.GetByRole(AriaRole.Button, new() { Name = "Entrar" }).ClickAsync();
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        await page.WaitForTimeoutAsync(1500);
-
-        await page.GotoAsync($"{baseUrl}/Admin/Pedidos", new PageGotoOptions {
-            WaitUntil = WaitUntilState.NetworkIdle
-        });
-
-        await ExpectAsync(page.Locator(".admin-page-header h2")).ToContainTextAsync("Pedidos");
-
-        var linhaPedido = page.Locator("tbody tr").First;
-        await ExpectAsync(linhaPedido).ToBeVisibleAsync();
-        await linhaPedido.ScrollIntoViewIfNeededAsync();
-        await ExpectAsync(linhaPedido.Locator(".admin-order-status")).ToContainTextAsync("APROVADA");
-        await page.WaitForTimeoutAsync(1500);
-
-        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "APROVADA", "EM SEPARACAO", "Aprovado");
-        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "EM SEPARACAO", "EM TRANSPORTE", "Aprovado");
-        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "EM TRANSPORTE", "ENTREGUE", "Aprovado");
     }
 
     [Fact]
@@ -106,6 +55,113 @@ public class VendaPlaywrightTests {
     }
 
     [Fact]
+    public async Task DeveRegistrarPedidoComCupomECartaoEPermitirSolicitarTroca() {
+        var baseUrl = Environment.GetEnvironmentVariable("LIVROS_BASE_URL") ?? "https://localhost:44357";
+
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions {
+            Headless = false,
+            SlowMo = 850
+        });
+
+        var artifactsDir = Path.Combine(AppContext.BaseDirectory, "playwright-artifacts");
+        Directory.CreateDirectory(artifactsDir);
+
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions {
+            IgnoreHTTPSErrors = true,
+            ViewportSize = new ViewportSize { Width = 1550, Height = 850 },
+            RecordVideoDir = artifactsDir,
+            RecordVideoSize = new RecordVideoSize { Width = 1550, Height = 850 }
+        });
+
+        var page = await context.NewPageAsync();
+
+        var compra = await ExecutarFluxoCompraVisualNaPaginaAsync(page, baseUrl, new CenarioCompraVisual {
+            TipoEntrega = "PADRAO",
+            UsarCartao = true,
+            CupomPromocional = "DESCONTO10"
+        });
+
+        await page.GotoAsync($"{baseUrl}/Auth/Logout", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+        await page.WaitForTimeoutAsync(1200);
+
+        await page.GotoAsync($"{baseUrl}/Auth/Login", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+
+        await page.Locator("input[name='Email']").FillAsync("admin@admin.com");
+        await page.Locator("input[name='Senha']").FillAsync("123");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Entrar" }).ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForTimeoutAsync(1500);
+
+        await page.GotoAsync($"{baseUrl}/Admin/Pedidos?busca={compra.PedidoId}", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+
+        await ExpectAsync(page.Locator(".admin-page-header h2")).ToContainTextAsync("Pedidos");
+
+        var linhaPedido = page.Locator("tbody tr").Filter(new() { HasText = $"#{compra.PedidoId}" }).First;
+        await ExpectAsync(linhaPedido).ToBeVisibleAsync();
+        await linhaPedido.ScrollIntoViewIfNeededAsync();
+        await ExpectAsync(linhaPedido.Locator(".admin-order-status")).ToContainTextAsync("APROVADA");
+        await page.WaitForTimeoutAsync(1500);
+
+        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "APROVADA", "EM SEPARACAO", "Aprovado");
+        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "EM SEPARACAO", "EM TRANSPORTE", "Aprovado");
+        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "EM TRANSPORTE", "ENTREGUE", "Aprovado");
+
+        await page.GotoAsync($"{baseUrl}/Auth/Logout", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+        await page.WaitForTimeoutAsync(1200);
+
+        await FazerLoginAsync(page, baseUrl, compra.Email, compra.Senha);
+
+        await page.GotoAsync($"{baseUrl}/Pedido/MeusPedidos", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+        await ExpectAsync(page.GetByRole(AriaRole.Heading, new() { Name = "Seus pedidos" })).ToBeVisibleAsync();
+
+        await page.GetByRole(AriaRole.Link, new() { Name = "Ver detalhes" }).First.ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await ExpectAsync(page.GetByRole(AriaRole.Heading, new() { Name = "Detalhes do pedido" })).ToBeVisibleAsync();
+        await ExpectAsync(page.Locator(".delivery-status")).ToContainTextAsync("ENTREGUE");
+        await page.WaitForTimeoutAsync(1200);
+
+        await page.GetByRole(AriaRole.Button, new() { Name = "Solicitar troca" }).First.ClickAsync();
+        await Assertions.Expect(page.Locator("#trocaModal")).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await page.Locator("#trocaMotivo").SelectOptionAsync(new[] { "Arrependimento" });
+        await page.Locator("#trocaObservacao").FillAsync("Solicitacao automatizada de troca apos entrega do pedido.");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Enviar solicitação" }).ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await ExpectAsync(page.Locator(".checkout-alert-success")).ToContainTextAsync("enviada com sucesso");
+        await ExpectAsync(page.Locator(".exchange-chip")).ToContainTextAsync("EM TROCA");
+        await page.WaitForTimeoutAsync(1500);
+
+        await page.GotoAsync($"{baseUrl}/Auth/Logout", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+        await page.WaitForTimeoutAsync(1200);
+
+        await FazerLoginAsync(page, baseUrl, "admin@admin.com", "123");
+
+        await page.GotoAsync($"{baseUrl}/Admin/Trocas?busca={compra.PedidoId}", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+
+        await ExpectAsync(page.Locator(".admin-page-header h2")).ToContainTextAsync("Trocas");
+
+        var linhaTroca = page.Locator(".exchange-table tbody tr").Filter(new() { HasText = $"#{compra.PedidoId}" }).First;
+        await AprovarTrocaNoAdminAsync(page, linhaTroca);
+        await ConfirmarRecebimentoTrocaNoAdminAsync(page, linhaTroca);
+        await page.WaitForTimeoutAsync(2000);
+    }
+
+    [Fact]
     public async Task DevePermitirFluxoAdministrativoDoPedidoAteEntregue() {
         var baseUrl = Environment.GetEnvironmentVariable("LIVROS_BASE_URL") ?? "https://localhost:44357";
 
@@ -120,9 +176,9 @@ public class VendaPlaywrightTests {
 
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions {
             IgnoreHTTPSErrors = true,
-            ViewportSize = new ViewportSize { Width = 1440, Height = 900 },
+            ViewportSize = new ViewportSize { Width = 1550, Height = 850 },
             RecordVideoDir = artifactsDir,
-            RecordVideoSize = new RecordVideoSize { Width = 1440, Height = 900 }
+            RecordVideoSize = new RecordVideoSize { Width = 1550, Height = 850 }
         });
 
         var page = await context.NewPageAsync();
@@ -172,9 +228,9 @@ public class VendaPlaywrightTests {
 
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions {
             IgnoreHTTPSErrors = true,
-            ViewportSize = new ViewportSize { Width = 1440, Height = 900 },
+            ViewportSize = new ViewportSize { Width = 1550, Height = 850 },
             RecordVideoDir = artifactsDir,
-            RecordVideoSize = new RecordVideoSize { Width = 1440, Height = 900 }
+            RecordVideoSize = new RecordVideoSize { Width = 1550, Height = 850 }
         });
 
         var page = await context.NewPageAsync();
@@ -332,8 +388,22 @@ public class VendaPlaywrightTests {
         await page.WaitForTimeoutAsync(2500);
 
         return new ResultadoCompraVisual {
-            PedidoId = pedidoId
+            PedidoId = pedidoId,
+            Email = email,
+            Senha = senha
         };
+    }
+
+    private static async Task FazerLoginAsync(IPage page, string baseUrl, string email, string senha) {
+        await page.GotoAsync($"{baseUrl}/Auth/Login", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+
+        await page.Locator("input[name='Email']").FillAsync(email);
+        await page.Locator("input[name='Senha']").FillAsync(senha);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Entrar" }).ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForTimeoutAsync(1200);
     }
 
     private static async Task AtualizarStatusPedidoNoAdminAsync(IPage page, ILocator linhaPedido, string statusAtualEsperado, string novoStatus, string statusPagamentoEsperado) {
@@ -362,6 +432,61 @@ public class VendaPlaywrightTests {
         await page.WaitForTimeoutAsync(1500);
     }
 
+    private static async Task AprovarTrocaNoAdminAsync(IPage page, ILocator linhaTroca) {
+        await ExpectAsync(linhaTroca).ToBeVisibleAsync();
+        await linhaTroca.ScrollIntoViewIfNeededAsync();
+        await ExpectAsync(linhaTroca.Locator(".exchange-status")).ToContainTextAsync("EM TROCA");
+
+        var actionButton = linhaTroca.Locator(".exchange-action-btn");
+        var abrirModalScript = await actionButton.GetAttributeAsync("onclick");
+        if (string.IsNullOrWhiteSpace(abrirModalScript)) {
+            throw new InvalidOperationException("Nao foi possivel obter o comando de abertura do modal da troca.");
+        }
+
+        await page.EvaluateAsync("script => { eval(script); }", abrirModalScript);
+        await Assertions.Expect(page.Locator("#trocaModal")).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await ExpectAsync(page.Locator("#trocaStatusAtual")).ToContainTextAsync("EM TROCA");
+
+        await page.Locator("#decisaoTroca").SelectOptionAsync(new[] { "aprovar" });
+        await page.Locator("#observacaoAdminTroca").FillAsync("Troca aprovada automaticamente pelo teste Playwright.");
+        await page.WaitForTimeoutAsync(900);
+        await page.Locator(".exchange-analysis-submit").ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await ExpectAsync(linhaTroca).ToBeVisibleAsync();
+        await ExpectAsync(page.Locator(".checkout-alert-success")).ToContainTextAsync("autorizada");
+        await ExpectAsync(linhaTroca.Locator(".exchange-status")).ToContainTextAsync("TROCA AUTORIZADA");
+        await page.WaitForTimeoutAsync(1500);
+    }
+
+    private static async Task ConfirmarRecebimentoTrocaNoAdminAsync(IPage page, ILocator linhaTroca) {
+        await ExpectAsync(linhaTroca).ToBeVisibleAsync();
+        await linhaTroca.ScrollIntoViewIfNeededAsync();
+        await ExpectAsync(linhaTroca.Locator(".exchange-status")).ToContainTextAsync("TROCA AUTORIZADA");
+
+        var actionButton = linhaTroca.Locator(".exchange-action-btn");
+        var abrirModalScript = await actionButton.GetAttributeAsync("onclick");
+        if (string.IsNullOrWhiteSpace(abrirModalScript)) {
+            throw new InvalidOperationException("Nao foi possivel obter o comando de abertura do modal de recebimento da troca.");
+        }
+
+        await page.EvaluateAsync("script => { eval(script); }", abrirModalScript);
+        await Assertions.Expect(page.Locator("#trocaModal")).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await ExpectAsync(page.Locator("#trocaStatusAtual")).ToContainTextAsync("TROCA AUTORIZADA");
+
+        await page.Locator("#retornarAoEstoqueTroca").SelectOptionAsync(new[] { "true" });
+        await page.Locator("#valorCupomTroca").FillAsync("29,00");
+        await page.Locator("#observacaoAdminTroca").FillAsync("Recebimento confirmado automaticamente pelo teste Playwright.");
+        await page.WaitForTimeoutAsync(900);
+        await page.Locator(".exchange-receipt-submit").ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await ExpectAsync(linhaTroca).ToBeVisibleAsync();
+        await ExpectAsync(page.Locator(".checkout-alert-success")).ToContainTextAsync("cupom");
+        await ExpectAsync(linhaTroca.Locator(".exchange-status")).ToContainTextAsync("TROCADO");
+        await page.WaitForTimeoutAsync(1500);
+    }
+
     private sealed class CenarioCompraVisual {
         public string TipoEntrega { get; set; } = "PADRAO";
         public bool UsarEntregaProgramada { get; set; }
@@ -373,6 +498,8 @@ public class VendaPlaywrightTests {
 
     private sealed class ResultadoCompraVisual {
         public string PedidoId { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Senha { get; set; } = string.Empty;
     }
 
     private static string GerarCpfTeste(string identificador) {
