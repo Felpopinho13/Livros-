@@ -5,6 +5,9 @@ using Microsoft.Playwright;
 namespace Livros.Tests;
 
 public class VendaPlaywrightTests {
+    private const string ClienteExistenteEmail = "voceconhecetudo@gmail.com";
+    private const string ClienteExistenteSenha = "Fi2830pi@";
+
     [Fact]
     public async Task DeveRegistrarPedidoComSucessoNoFluxoVisualDeCompra() {
         await ExecutarFluxoCompraVisualAsync(new CenarioCompraVisual {
@@ -32,7 +35,9 @@ public class VendaPlaywrightTests {
     public async Task DeveRegistrarPedidoComDoisCartoesEValidarFluxoAdministrativo() {
         await ExecutarFluxoCompraVisualAsync(new CenarioCompraVisual {
             TipoEntrega = "PADRAO",
-            UsarDoisCartoes = true
+            UsarDoisCartoes = true,
+            EmailLoginExistente = ClienteExistenteEmail,
+            SenhaLoginExistente = ClienteExistenteSenha
         });
     }
 
@@ -41,7 +46,9 @@ public class VendaPlaywrightTests {
         await ExecutarFluxoCompraVisualAsync(new CenarioCompraVisual {
             TipoEntrega = "PADRAO",
             UsarNovoEnderecoNoCheckout = true,
-            UsarCartao = true
+            UsarCartao = true,
+            EmailLoginExistente = ClienteExistenteEmail,
+            SenhaLoginExistente = ClienteExistenteSenha
         });
     }
 
@@ -249,42 +256,49 @@ public class VendaPlaywrightTests {
     private static async Task<ResultadoCompraVisual> ExecutarFluxoCompraVisualNaPaginaAsync(IPage page, string baseUrl, CenarioCompraVisual cenario) {
         var dataEntregaProgramada = DateTime.Today.AddDays(8).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var identificador = DateTime.Now.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture);
-        var email = $"playwright.{identificador}@teste.com";
-        var senha = "Livro@Teste123!";
+        var email = !string.IsNullOrWhiteSpace(cenario.EmailLoginExistente)
+            ? cenario.EmailLoginExistente
+            : $"playwright.{identificador}@teste.com";
+        var senha = !string.IsNullOrWhiteSpace(cenario.SenhaLoginExistente)
+            ? cenario.SenhaLoginExistente
+            : "Livro@Teste123!";
         var cpf = GerarCpfTeste(identificador);
         var telefone = "119" + identificador[^8..];
 
-        await page.GotoAsync($"{baseUrl}/Auth/Cadastro", new PageGotoOptions {
-            WaitUntil = WaitUntilState.NetworkIdle
-        });
+        if (!string.IsNullOrWhiteSpace(cenario.EmailLoginExistente) && !string.IsNullOrWhiteSpace(cenario.SenhaLoginExistente)) {
+            await FazerLoginAsync(page, baseUrl, email, senha);
+        }
+        else {
+            await page.GotoAsync($"{baseUrl}/Auth/Cadastro", new PageGotoOptions {
+                WaitUntil = WaitUntilState.NetworkIdle
+            });
 
-        await page.Locator("select[name='genero']").SelectOptionAsync(new[] { "Masculino" });
-        await page.Locator("input[name='dataNascimento']").FillAsync("2000-01-01");
-        await page.Locator("input[name='nome']").FillAsync("Cliente Playwright");
-        await page.Locator("input[name='cpf']").FillAsync(cpf);
-        await page.Locator("input[name='telefone']").FillAsync(telefone);
-        await page.Locator("input[name='email']").FillAsync(email);
-        await page.Locator("input[name='senha']").FillAsync(senha);
-        await page.Locator("input[name='nomeEndereco']").FillAsync("Casa Playwright");
-        await page.Locator("input[name='cep']").FillAsync("01001-000");
-        await page.Locator("input[name='logradouro']").FillAsync("Rua Teste");
-        await page.Locator("select[name='tipoLogradouro']").SelectOptionAsync(new[] { "Rua" });
-        await page.Locator("select[name='tipoResidencia']").SelectOptionAsync(new[] { "Casa" });
-        await page.Locator("input[name='numero']").FillAsync("100");
-        await page.Locator("input[name='complemento']").FillAsync("Casa 1");
-        await page.Locator("input[name='bairro']").FillAsync("Centro");
-        await page.Locator("input[name='pais']").FillAsync("Brasil");
-        await page.Locator("input[name='cidade']").FillAsync("Sao Paulo");
-        await page.Locator("select[name='estado']").SelectOptionAsync(new[] { "SP" });
+            await page.Locator("select[name='genero']").SelectOptionAsync(new[] { "Masculino" });
+            await page.Locator("input[name='dataNascimento']").FillAsync("2000-01-01");
+            await page.Locator("input[name='nome']").FillAsync("Cliente Playwright");
+            await page.Locator("input[name='cpf']").FillAsync(cpf);
+            await page.Locator("input[name='telefone']").FillAsync(telefone);
+            await page.Locator("input[name='email']").FillAsync(email);
+            await page.Locator("input[name='senha']").FillAsync(senha);
+            await page.Locator("input[name='nomeEndereco']").FillAsync("Casa Playwright");
+            await page.Locator("input[name='cep']").FillAsync("01001-000");
+            await page.Locator("input[name='logradouro']").FillAsync("Rua Teste");
+            await page.Locator("select[name='tipoLogradouro']").SelectOptionAsync(new[] { "Rua" });
+            await page.Locator("select[name='tipoResidencia']").SelectOptionAsync(new[] { "Casa" });
+            await page.Locator("input[name='numero']").FillAsync("100");
+            await page.Locator("input[name='complemento']").FillAsync("Casa 1");
+            await page.Locator("input[name='bairro']").FillAsync("Centro");
+            await page.Locator("input[name='pais']").FillAsync("Brasil");
+            await page.Locator("input[name='cidade']").FillAsync("Sao Paulo");
+            await page.Locator("select[name='estado']").SelectOptionAsync(new[] { "SP" });
 
-        await page.GetByRole(AriaRole.Button, new() { Name = "Criar Conta" }).ClickAsync();
-        await page.WaitForURLAsync("**/Auth/Login");
-        await page.WaitForTimeoutAsync(1200);
+            await page.GetByRole(AriaRole.Button, new() { Name = "Criar Conta" }).ClickAsync();
+            await page.WaitForURLAsync("**/Auth/Login");
+            await page.WaitForTimeoutAsync(1200);
 
-        await page.Locator("input[name='Email']").FillAsync(email);
-        await page.Locator("input[name='Senha']").FillAsync(senha);
-        await page.GetByRole(AriaRole.Button, new() { Name = "Entrar" }).ClickAsync();
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            await FazerLoginAsync(page, baseUrl, email, senha);
+        }
+
         await ExpectAsync(page.Locator(".product-card").First).ToBeVisibleAsync();
         await page.WaitForTimeoutAsync(1500);
 
@@ -546,6 +560,8 @@ public class VendaPlaywrightTests {
         public bool UsarCartao { get; set; }
         public bool UsarNovoEnderecoNoCheckout { get; set; }
         public string? CupomPromocional { get; set; }
+        public string? EmailLoginExistente { get; set; }
+        public string? SenhaLoginExistente { get; set; }
     }
 
     private sealed class ResultadoCompraVisual {
