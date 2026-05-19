@@ -69,9 +69,9 @@ public class VendaPlaywrightTests {
 
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions {
             IgnoreHTTPSErrors = true,
-            ViewportSize = new ViewportSize { Width = 1550, Height = 850 },
+            ViewportSize = new ViewportSize { Width = 1550, Height = 730 },
             RecordVideoDir = artifactsDir,
-            RecordVideoSize = new RecordVideoSize { Width = 1550, Height = 850 }
+            RecordVideoSize = new RecordVideoSize { Width = 1550, Height = 730 }
         });
 
         var page = await context.NewPageAsync();
@@ -157,7 +157,15 @@ public class VendaPlaywrightTests {
 
         var linhaTroca = page.Locator(".exchange-table tbody tr").Filter(new() { HasText = $"#{compra.PedidoId}" }).First;
         await AprovarTrocaNoAdminAsync(page, linhaTroca);
-        await ConfirmarRecebimentoTrocaNoAdminAsync(page, linhaTroca);
+        var cupomTrocaGerado = await ConfirmarRecebimentoTrocaNoAdminAsync(page, linhaTroca);
+        
+        await page.GotoAsync($"{baseUrl}/Auth/Logout", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+        await page.WaitForTimeoutAsync(1200);
+
+        await FazerLoginAsync(page, baseUrl, compra.Email, compra.Senha);
+        await RealizarCompraComCupomGeradoAsync(page, baseUrl, cupomTrocaGerado);
         await page.WaitForTimeoutAsync(2000);
     }
 
@@ -176,9 +184,9 @@ public class VendaPlaywrightTests {
 
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions {
             IgnoreHTTPSErrors = true,
-            ViewportSize = new ViewportSize { Width = 1550, Height = 850 },
+            ViewportSize = new ViewportSize { Width = 1550, Height = 730 },
             RecordVideoDir = artifactsDir,
-            RecordVideoSize = new RecordVideoSize { Width = 1550, Height = 850 }
+            RecordVideoSize = new RecordVideoSize { Width = 1550, Height = 730 }
         });
 
         var page = await context.NewPageAsync();
@@ -228,9 +236,9 @@ public class VendaPlaywrightTests {
 
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions {
             IgnoreHTTPSErrors = true,
-            ViewportSize = new ViewportSize { Width = 1550, Height = 850 },
+            ViewportSize = new ViewportSize { Width = 1550, Height = 730 },
             RecordVideoDir = artifactsDir,
-            RecordVideoSize = new RecordVideoSize { Width = 1550, Height = 850 }
+            RecordVideoSize = new RecordVideoSize { Width = 1550, Height = 730 }
         });
 
         var page = await context.NewPageAsync();
@@ -459,7 +467,7 @@ public class VendaPlaywrightTests {
         await page.WaitForTimeoutAsync(1500);
     }
 
-    private static async Task ConfirmarRecebimentoTrocaNoAdminAsync(IPage page, ILocator linhaTroca) {
+    private static async Task<string> ConfirmarRecebimentoTrocaNoAdminAsync(IPage page, ILocator linhaTroca) {
         await ExpectAsync(linhaTroca).ToBeVisibleAsync();
         await linhaTroca.ScrollIntoViewIfNeededAsync();
         await ExpectAsync(linhaTroca.Locator(".exchange-status")).ToContainTextAsync("TROCA AUTORIZADA");
@@ -481,10 +489,54 @@ public class VendaPlaywrightTests {
         await page.Locator(".exchange-receipt-submit").ClickAsync();
         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
+        var mensagemSucesso = (await page.Locator(".checkout-alert-success").InnerTextAsync()).Trim();
         await ExpectAsync(linhaTroca).ToBeVisibleAsync();
         await ExpectAsync(page.Locator(".checkout-alert-success")).ToContainTextAsync("cupom");
         await ExpectAsync(linhaTroca.Locator(".exchange-status")).ToContainTextAsync("TROCADO");
         await page.WaitForTimeoutAsync(1500);
+
+        var codigoCupom = ExtrairCodigoCupom(mensagemSucesso);
+        return codigoCupom;
+    }
+
+    private static async Task RealizarCompraComCupomGeradoAsync(IPage page, string baseUrl, string codigoCupomTroca) {
+        await page.GotoAsync(baseUrl, new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+
+        await ExpectAsync(page.Locator(".product-card").First).ToBeVisibleAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Adicionar ao carrinho" }).First.ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await page.WaitForTimeoutAsync(1200);
+
+        await page.GotoAsync($"{baseUrl}/Pedido/Carrinho", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+        await page.WaitForTimeoutAsync(1200);
+
+        await page.GetByRole(AriaRole.Link, new() { Name = "Fechar pedido" }).ClickAsync();
+        await page.WaitForURLAsync("**/Pedido/CheckoutCarrinho");
+        await page.WaitForTimeoutAsync(1500);
+
+        await page.Locator("#cupom").FillAsync(codigoCupomTroca);
+        await page.Locator("#aplicarCupomBtn").ClickAsync();
+        await ExpectAsync(page.Locator("#cupomMensagem")).ToContainTextAsync("Cupom aplicado com sucesso.");
+        await page.WaitForTimeoutAsync(1200);
+
+        var totalTexto = (await page.Locator("#totalCompra").InnerTextAsync()).Trim();
+        var totalRestante = decimal.Parse(totalTexto, new CultureInfo("pt-BR"));
+
+        if (totalRestante > 0) {
+            await page.Locator("select[name='Metodo1']").SelectOptionAsync(new[] { "pix" });
+            await page.Locator("input[name='Valor1']").FillAsync(totalRestante.ToString("N2", new CultureInfo("pt-BR")));
+            await page.WaitForTimeoutAsync(900);
+        }
+
+        await page.GetByRole(AriaRole.Button, new() { Name = "Finalizar pagamento" }).ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await ExpectAsync(page.GetByRole(AriaRole.Heading, new() { Name = "Pedido confirmado!" })).ToBeVisibleAsync();
+        await ExpectAsync(page.Locator(".order-info")).ToContainTextAsync("Entrega padrÃ£o");
+        await page.WaitForTimeoutAsync(1800);
     }
 
     private sealed class CenarioCompraVisual {
@@ -533,6 +585,15 @@ public class VendaPlaywrightTests {
         }
 
         return match.Groups["id"].Value;
+    }
+
+    private static string ExtrairCodigoCupom(string mensagemSucesso) {
+        var match = Regex.Match(mensagemSucesso, @"cupom\s+(?<codigo>[A-Z0-9\-]+)", RegexOptions.IgnoreCase);
+        if (!match.Success) {
+            throw new InvalidOperationException("Nao foi possivel identificar o codigo do cupom gerado na mensagem de sucesso.");
+        }
+
+        return match.Groups["codigo"].Value.Trim().TrimEnd('.', ',');
     }
 
     private static ILocatorAssertions ExpectAsync(ILocator locator) => Assertions.Expect(locator);
