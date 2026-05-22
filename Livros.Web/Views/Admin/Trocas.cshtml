@@ -41,7 +41,7 @@
 }
 
 <div class="admin-page-header exchange-page-header">
-    <h2>Trocas e Devolucoes</h2>
+    <h2>Trocas e Devolu&ccedil;&otilde;es</h2>
 </div>
 
 @if (Model.TotalPaginasTrocas > 1) {
@@ -60,7 +60,7 @@
         }
 
         @if (Model.PaginaTrocasAtual < Model.TotalPaginasTrocas) {
-            <a asp-controller="Admin" asp-action="Trocas" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-paginaTrocas="@(Model.PaginaTrocasAtual + 1)" asp-route-paginaCupons="@Model.PaginaCuponsAtual" class="page-btn">PrÃ³xima</a>
+            <a asp-controller="Admin" asp-action="Trocas" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-paginaTrocas="@(Model.PaginaTrocasAtual + 1)" asp-route-paginaCupons="@Model.PaginaCuponsAtual" class="page-btn">Pr&oacute;xima</a>
         }
     </div>
 }
@@ -259,7 +259,7 @@
         }
 
         @if (Model.PaginaCuponsAtual < Model.TotalPaginasCupons) {
-            <a asp-controller="Admin" asp-action="Trocas" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-paginaTrocas="@Model.PaginaTrocasAtual" asp-route-paginaCupons="@(Model.PaginaCuponsAtual + 1)" class="page-btn">PrÃ³xima</a>
+            <a asp-controller="Admin" asp-action="Trocas" asp-route-busca="@Model.Busca" asp-route-status="@Model.StatusFiltro" asp-route-paginaTrocas="@Model.PaginaTrocasAtual" asp-route-paginaCupons="@(Model.PaginaCuponsAtual + 1)" class="page-btn">Pr&oacute;xima</a>
         }
     </div>
 }

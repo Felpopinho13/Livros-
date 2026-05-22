@@ -9,15 +9,30 @@ if (checkoutLayout) {
     const enderecoRadios = document.querySelectorAll("input[name='EnderecoId']");
     const metodoSelects = document.querySelectorAll('.payment-method-select');
     const cardSelects = document.querySelectorAll('.saved-card-select');
-    const valor1Input = document.querySelector("[name='Valor1']");
-    const valor2Input = document.querySelector("[name='Valor2']");
-    const toggleSegundoPagamentoBtn = document.getElementById('toggleSegundoPagamento');
-    const segundoPagamentoWrapper = document.getElementById('segundoPagamentoWrapper');
-    const metodo2Select = document.querySelector("[name='Metodo2']");
     const estadoNovoEnderecoInput = document.getElementById('estadoNovoEndereco');
     const tipoEntregaSelect = document.getElementById('tipoEntrega');
     const dataEntregaProgramadaWrapper = document.getElementById('dataEntregaProgramadaWrapper');
     const dataEntregaPrevistaInput = document.getElementById('dataEntregaPrevista');
+
+    const paymentIndexes = [1, 2, 3, 4];
+    const optionalPaymentIndexes = [2, 3, 4];
+    const valorInputs = Object.fromEntries(paymentIndexes.map((index) => [index, document.querySelector(`[name='Valor${index}']`)]));
+    const metodoSelectByIndex = Object.fromEntries(paymentIndexes.map((index) => [index, document.querySelector(`[name='Metodo${index}']`)]));
+    const paymentWrappers = {
+        2: document.getElementById('segundoPagamentoWrapper'),
+        3: document.getElementById('terceiroPagamentoWrapper'),
+        4: document.getElementById('quartoPagamentoWrapper')
+    };
+    const paymentToggleButtons = {
+        2: document.getElementById('toggleSegundoPagamento'),
+        3: document.getElementById('toggleTerceiroPagamento'),
+        4: document.getElementById('toggleQuartoPagamento')
+    };
+    const paymentLabels = {
+        2: { add: 'Adicionar outro pagamento', remove: 'Remover pagamentos adicionais' },
+        3: { add: 'Adicionar mais um pagamento', remove: 'Remover este pagamento adicional' },
+        4: { add: 'Adicionar mais um pagamento', remove: 'Remover este pagamento adicional' }
+    };
 
     const unitPrice = parseFloat(checkoutLayout.dataset.unitPrice || '0');
     const subtotalBase = parseFloat(checkoutLayout.dataset.subtotalBase || '0');
@@ -27,8 +42,12 @@ if (checkoutLayout) {
 
     let descontoAplicado = parseDecimal(document.getElementById('descontoValor')?.textContent || '0');
     let cupomAplicadoCodigo = cupomInput?.value?.trim() || '';
-    let segundoPagamentoAtivo = segundoPagamentoWrapper?.style.display !== 'none';
     let freteAtual = parseFloat(checkoutLayout.dataset.frete || '0');
+    let pagamentosAtivos = {
+        2: paymentWrappers[2]?.style.display !== 'none',
+        3: paymentWrappers[3]?.style.display !== 'none',
+        4: paymentWrappers[4]?.style.display !== 'none'
+    };
 
     function formatCurrency(value) {
         return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -112,20 +131,86 @@ if (checkoutLayout) {
         cupomMensagem.className = `checkout-coupon-message ${tipo}`;
     }
 
-    function recalcularDivisao(total) {
-        if (!valor1Input || !valor2Input) {
+    function obterIndicesPagamentosAtivos() {
+        const ativos = [1];
+        optionalPaymentIndexes.forEach((index) => {
+            if (pagamentosAtivos[index] && metodoSelectByIndex[index]?.value) {
+                ativos.push(index);
+            }
+        });
+
+        return ativos;
+    }
+
+    function limparPagamentosInativos() {
+        paymentIndexes.forEach((index) => {
+            const input = valorInputs[index];
+            if (!input) {
+                return;
+            }
+
+            if (index !== 1 && !pagamentosAtivos[index]) {
+                input.value = '';
+                return;
+            }
+
+            if (!metodoSelectByIndex[index]?.value && index !== 1) {
+                input.value = '';
+            }
+        });
+    }
+
+    function obterIndiceAutoCalculo(indiceEditado = null) {
+        const indicesAtivos = obterIndicesPagamentosAtivos();
+        if (indicesAtivos.length <= 1) {
+            return null;
+        }
+
+        if (indiceEditado === 1) {
+            return null;
+        }
+
+        return 1;
+    }
+
+    function recalcularDivisao(total, indiceEditado = null) {
+        limparPagamentosInativos();
+
+        const indicesAtivos = obterIndicesPagamentosAtivos();
+        if (indicesAtivos.length <= 1) {
+            preencherPagamentoUnico(total);
             return;
         }
 
-        const valor1 = parseDecimal(valor1Input.value);
-
-        if (!segundoPagamentoAtivo || !metodo2Select?.value) {
-            valor2Input.value = '';
+        const indiceAutoCalculo = obterIndiceAutoCalculo(indiceEditado);
+        if (!indiceAutoCalculo || !valorInputs[indiceAutoCalculo]) {
             return;
         }
 
-        const restante = total - valor1;
-        valor2Input.value = restante > 0 ? formatInputValue(restante) : formatInputValue(0);
+        const somaOutrosPagamentos = indicesAtivos
+            .filter((index) => index !== indiceAutoCalculo)
+            .reduce((acc, index) => acc + parseDecimal(valorInputs[index]?.value), 0);
+
+        const restante = total - somaOutrosPagamentos;
+        valorInputs[indiceAutoCalculo].value = formatInputValue(restante > 0 ? restante : 0);
+    }
+
+    function preencherPagamentoUnico(total) {
+        const indicesAtivos = obterIndicesPagamentosAtivos();
+        if (indicesAtivos.length !== 1 || !valorInputs[1]) {
+            return;
+        }
+
+        valorInputs[1].value = formatInputValue(total);
+    }
+
+    function sugerirValorParaPagamento(index) {
+        const input = valorInputs[index];
+        if (!input || input.value) {
+            return;
+        }
+
+        recalcularDivisao(obterTotalAtual(), index);
     }
 
     function toggleNovoEndereco() {
@@ -186,7 +271,7 @@ if (checkoutLayout) {
     }
 
     function togglePagamento(index) {
-        const metodo = document.querySelector(`[name='Metodo${index}']`)?.value;
+        const metodo = metodoSelectByIndex[index]?.value;
         const cartaoForm = document.getElementById(`cartaoForm${index}`);
 
         if (!cartaoForm) {
@@ -210,26 +295,55 @@ if (checkoutLayout) {
         novoCartaoForm.style.display = select.value ? 'none' : 'grid';
     }
 
-    function atualizarSegundoPagamentoUI() {
-        if (!segundoPagamentoWrapper || !toggleSegundoPagamentoBtn || !metodo2Select) {
+    function resetarPagamento(index) {
+        pagamentosAtivos[index] = false;
+        if (metodoSelectByIndex[index]) {
+            metodoSelectByIndex[index].value = '';
+        }
+
+        if (valorInputs[index]) {
+            valorInputs[index].value = '';
+        }
+
+        const cardSelect = document.querySelector(`[name='CartaoId${index}']`);
+        if (cardSelect) {
+            cardSelect.value = '';
+        }
+
+        togglePagamento(index);
+    }
+
+    function atualizarPagamentoOpcionalUI(index) {
+        const wrapper = paymentWrappers[index];
+        const button = paymentToggleButtons[index];
+
+        if (!wrapper || !button) {
             return;
         }
 
-        segundoPagamentoWrapper.style.display = segundoPagamentoAtivo ? 'block' : 'none';
-        toggleSegundoPagamentoBtn.textContent = segundoPagamentoAtivo
-            ? 'Remover segundo meio de pagamento'
-            : 'Adicionar segundo meio de pagamento';
-        toggleSegundoPagamentoBtn.setAttribute('aria-expanded', segundoPagamentoAtivo ? 'true' : 'false');
+        wrapper.style.display = pagamentosAtivos[index] ? 'block' : 'none';
+        button.textContent = pagamentosAtivos[index]
+            ? paymentLabels[index].remove
+            : paymentLabels[index].add;
+        button.setAttribute('aria-expanded', pagamentosAtivos[index] ? 'true' : 'false');
 
-        if (!segundoPagamentoAtivo) {
-            metodo2Select.value = '';
-            if (valor2Input) {
-                valor2Input.value = '';
+        if (!pagamentosAtivos[index]) {
+            resetarPagamento(index);
+
+            if (index === 2) {
+                pagamentosAtivos[3] = false;
+                pagamentosAtivos[4] = false;
+                atualizarPagamentoOpcionalUI(3);
+                atualizarPagamentoOpcionalUI(4);
             }
-            togglePagamento(2);
+
+            if (index === 3) {
+                pagamentosAtivos[4] = false;
+                atualizarPagamentoOpcionalUI(4);
+            }
         } else {
-            togglePagamento(2);
-            recalcularDivisao(obterTotalAtual());
+            togglePagamento(index);
+            sugerirValorParaPagamento(index);
         }
     }
 
@@ -305,25 +419,35 @@ if (checkoutLayout) {
     quantidadeInput?.addEventListener('input', atualizarFrete);
     aplicarCupomBtn?.addEventListener('click', aplicarCupom);
     cupomCheckboxes.forEach((checkbox) => checkbox.addEventListener('change', aplicarCupom));
-    valor1Input?.addEventListener('input', () => recalcularDivisao(obterTotalAtual()));
-    valor2Input?.addEventListener('input', () => recalcularDivisao(obterTotalAtual()));
-    toggleSegundoPagamentoBtn?.addEventListener('click', () => {
-        segundoPagamentoAtivo = !segundoPagamentoAtivo;
-        atualizarSegundoPagamentoUI();
+    valorInputs[1]?.addEventListener('input', () => recalcularDivisao(obterTotalAtual(), 1));
+    optionalPaymentIndexes.forEach((index) => {
+        valorInputs[index]?.addEventListener('input', () => recalcularDivisao(obterTotalAtual(), index));
+        paymentToggleButtons[index]?.addEventListener('click', () => {
+            pagamentosAtivos[index] = !pagamentosAtivos[index];
+            atualizarPagamentoOpcionalUI(index);
+            recalcularDivisao(obterTotalAtual(), index);
+        });
     });
 
     enderecoRadios.forEach((radio) => radio.addEventListener('change', async () => {
         toggleNovoEndereco();
         await atualizarFrete();
     }));
-    metodoSelects.forEach((select) => select.addEventListener('change', () => togglePagamento(select.dataset.index)));
+    metodoSelects.forEach((select) => select.addEventListener('change', () => {
+        togglePagamento(select.dataset.index);
+        const index = Number(select.dataset.index);
+        if (!Number.isNaN(index) && index !== 1) {
+            sugerirValorParaPagamento(index);
+        }
+        recalcularDivisao(obterTotalAtual(), Number.isNaN(index) ? null : index);
+    }));
     cardSelects.forEach((select) => select.addEventListener('change', () => toggleNovoCartao(select.dataset.index)));
     estadoNovoEnderecoInput?.addEventListener('input', atualizarFrete);
     tipoEntregaSelect?.addEventListener('change', toggleEntregaProgramada);
 
     toggleNovoEndereco();
-    togglePagamento(1);
-    atualizarSegundoPagamentoUI();
+    paymentIndexes.forEach((index) => togglePagamento(index));
+    optionalPaymentIndexes.forEach((index) => atualizarPagamentoOpcionalUI(index));
     toggleEntregaProgramada();
     atualizarFrete();
 }

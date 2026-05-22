@@ -23,10 +23,10 @@
 .exchange-toolbar {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     gap: 20px;
     flex-wrap: wrap;
-    margin-bottom: 24px;
+    margin: 24px 0px 24px 0px;
 }
 
 .exchange-filters {
@@ -34,6 +34,13 @@
     gap: 16px;
     flex-wrap: wrap;
     flex: 1;
+    align-items: center;
+}
+
+.exchange-filters .admin-input,
+.exchange-filters .admin-select,
+.exchange-filters .btn-secondary {
+    margin: 0;
 }
 
 .exchange-search,

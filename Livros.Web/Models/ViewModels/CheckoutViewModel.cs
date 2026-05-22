@@ -78,4 +78,24 @@ public class CheckoutFormData {
     public string? NumeroCartao2 { get; set; }
     public string? CVV2 { get; set; }
     public string? Validade2 { get; set; }
+
+    public string? Metodo3 { get; set; }
+    public decimal? Valor3 { get; set; }
+    public int? CartaoId3 { get; set; }
+    public int? BandeiraCartaoId3 { get; set; }
+    public bool SalvarNovoCartao3 { get; set; }
+    public string? NomeCartao3 { get; set; }
+    public string? NumeroCartao3 { get; set; }
+    public string? CVV3 { get; set; }
+    public string? Validade3 { get; set; }
+
+    public string? Metodo4 { get; set; }
+    public decimal? Valor4 { get; set; }
+    public int? CartaoId4 { get; set; }
+    public int? BandeiraCartaoId4 { get; set; }
+    public bool SalvarNovoCartao4 { get; set; }
+    public string? NomeCartao4 { get; set; }
+    public string? NumeroCartao4 { get; set; }
+    public string? CVV4 { get; set; }
+    public string? Validade4 { get; set; }
 }

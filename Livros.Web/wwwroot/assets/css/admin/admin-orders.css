@@ -46,6 +46,18 @@
 
 .admin-orders-actions {
     justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.admin-orders-table th:last-child,
+.admin-orders-table td:last-child {
+    text-align: center;
+}
+
+.admin-orders-table td.admin-actions {
+    padding-left: 14px;
+    padding-right: 14px;
 }
 
 .admin-order-action-btn {

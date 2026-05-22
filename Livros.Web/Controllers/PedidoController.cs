@@ -18,6 +18,19 @@ namespace Livros.Web.Controllers {
         private readonly LivroService _livroService;
         private readonly EnderecoService _enderecoService;
 
+        private sealed class PagamentoCheckoutSlot {
+            public int Indice { get; init; }
+            public string Metodo { get; init; } = string.Empty;
+            public decimal Valor { get; init; }
+            public int? CartaoId { get; init; }
+            public int? BandeiraCartaoId { get; init; }
+            public bool SalvarNovoCartao { get; init; }
+            public string? NomeCartao { get; init; }
+            public string? NumeroCartao { get; init; }
+            public string? CVV { get; init; }
+            public string? Validade { get; init; }
+        }
+
         public PedidoController(AppDbContext context, LivroService livroService, EnderecoService enderecoService) {
             _context = context;
             _livroService = livroService;
@@ -270,6 +283,8 @@ namespace Livros.Web.Controllers {
             form.DataEntregaPrevista = NormalizarDataEntregaPrevista(form.TipoEntrega, form.DataEntregaPrevista);
             form.Valor1 = ObterValorPagamento("Valor1", form.Valor1);
             form.Valor2 = ObterValorPagamento("Valor2", form.Valor2);
+            form.Valor3 = ObterValorPagamento("Valor3", form.Valor3);
+            form.Valor4 = ObterValorPagamento("Valor4", form.Valor4);
 
             CarrinhoSyncResult? sincronizacaoCarrinho = null;
             if (form.UsarCarrinho) {
@@ -317,6 +332,13 @@ namespace Livros.Web.Controllers {
                 return View("Checkout", vmInvalido);
             }
 
+            var erroBaixaEstoque = TentarBaixarEstoqueCheckout(itensCheckout);
+            if (!string.IsNullOrWhiteSpace(erroBaixaEstoque)) {
+                ModelState.AddModelError(string.Empty, erroBaixaEstoque);
+                var vmInvalido = MontarCheckoutViewModel(clienteId.Value, form, sincronizacaoCarrinho);
+                return View("Checkout", vmInvalido);
+            }
+
             var pedido = new Pedido {
                 ClienteId = clienteId.Value,
                 EnderecoId = enderecoId.Value,
@@ -337,11 +359,21 @@ namespace Livros.Web.Controllers {
                 });
             }
 
-            AdicionarPagamentoAoPedido(clienteId.Value, form.Metodo1, form.Valor1, form.CartaoId1, form.BandeiraCartaoId1, form.SalvarNovoCartao1,
-                form.NomeCartao1, form.NumeroCartao1, form.Validade1, form.CVV1, pedido);
-
-            AdicionarPagamentoAoPedido(clienteId.Value, form.Metodo2, form.Valor2, form.CartaoId2, form.BandeiraCartaoId2, form.SalvarNovoCartao2,
-                form.NomeCartao2, form.NumeroCartao2, form.Validade2, form.CVV2, pedido);
+            foreach (var pagamento in ObterPagamentosCheckout(form).Where(p => !string.IsNullOrWhiteSpace(p.Metodo))) {
+                AdicionarPagamentoAoPedido(
+                    clienteId.Value,
+                    pagamento.Metodo,
+                    pagamento.Valor,
+                    pagamento.CartaoId,
+                    pagamento.BandeiraCartaoId,
+                    pagamento.SalvarNovoCartao,
+                    pagamento.NomeCartao,
+                    pagamento.NumeroCartao,
+                    pagamento.Validade,
+                    pagamento.CVV,
+                    pedido
+                );
+            }
 
             _context.Pedidos.Add(pedido);
             _context.SaveChanges();
@@ -523,7 +555,7 @@ namespace Livros.Web.Controllers {
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult SolicitarTroca(int pedidoId, int pedidoItemId, string motivo, string? observacaoCliente) {
+        public IActionResult SolicitarTroca(int pedidoId, int pedidoItemId, int quantidadeSolicitada, string motivo, string? observacaoCliente) {
             var clienteId = ObterClienteId();
             if (clienteId == null) {
                 return RedirectToAction("Login", "Auth", new {
@@ -558,10 +590,35 @@ namespace Livros.Web.Controllers {
                 return RedirectToAction(nameof(DetalhesPedido), new { id = pedidoId });
             }
 
+            if (quantidadeSolicitada < 1) {
+                TempData["ErroTroca"] = "Informe uma quantidade valida para solicitar a troca.";
+                return RedirectToAction(nameof(DetalhesPedido), new { id = pedidoId });
+            }
+
+            if (quantidadeSolicitada > pedidoItem.Quantidade) {
+                TempData["ErroTroca"] = "A quantidade solicitada para troca nao pode ser maior que a quantidade comprada.";
+                return RedirectToAction(nameof(DetalhesPedido), new { id = pedidoId });
+            }
+
+            var pedidoItemTroca = pedidoItem;
+            if (quantidadeSolicitada < pedidoItem.Quantidade) {
+                pedidoItem.Quantidade -= quantidadeSolicitada;
+
+                pedidoItemTroca = new PedidoItem {
+                    PedidoId = pedidoItem.PedidoId,
+                    LivroId = pedidoItem.LivroId,
+                    Quantidade = quantidadeSolicitada,
+                    PrecoUnitario = pedidoItem.PrecoUnitario
+                };
+
+                _context.PedidoItens.Add(pedidoItemTroca);
+                _context.SaveChanges();
+            }
+
             var troca = new Troca {
                 Codigo = GerarCodigoTroca(),
                 PedidoId = pedidoId,
-                PedidoItemId = pedidoItemId,
+                PedidoItemId = pedidoItemTroca.Id,
                 ClienteId = clienteId.Value,
                 Motivo = motivo.Trim(),
                 ObservacaoCliente = observacaoCliente?.Trim(),
@@ -572,7 +629,7 @@ namespace Livros.Web.Controllers {
             _context.Trocas.Add(troca);
             _context.SaveChanges();
 
-            TempData["SucessoTroca"] = $"Solicitacao de troca do livro \"{pedidoItem.Livro?.Titulo}\" enviada com sucesso.";
+            TempData["SucessoTroca"] = $"Solicitacao de troca de {quantidadeSolicitada} unidade(s) do livro \"{pedidoItem.Livro?.Titulo}\" enviada com sucesso.";
             return RedirectToAction(nameof(DetalhesPedido), new { id = pedidoId });
         }
         private IActionResult RedirecionarParaOrigemOuHome() {
@@ -639,6 +696,26 @@ namespace Livros.Web.Controllers {
                     ModelState.AddModelError(string.Empty, $"O livro \"{item.Livro.Titulo}\" nao possui estoque suficiente para concluir a compra.");
                 }
             }
+        }
+
+        private string? TentarBaixarEstoqueCheckout(List<CheckoutItemRequest> itensCheckout) {
+            foreach (var item in itensCheckout) {
+                var estoque = _context.Estoques.FirstOrDefault(e => e.LivroId == item.Livro.Id);
+                if (estoque == null) {
+                    return $"Nao foi encontrado estoque para o livro \"{item.Livro.Titulo}\".";
+                }
+
+                if (estoque.Quantidade < item.Quantidade) {
+                    return $"Estoque insuficiente para o livro \"{item.Livro.Titulo}\". Disponivel: {estoque.Quantidade}.";
+                }
+            }
+
+            foreach (var item in itensCheckout) {
+                var estoque = _context.Estoques.First(e => e.LivroId == item.Livro.Id);
+                estoque.Quantidade -= item.Quantidade;
+            }
+
+            return null;
         }
 
         private CarrinhoSyncResult SincronizarCarrinhoComEstoque(bool renovarReservas) {
@@ -1104,41 +1181,60 @@ namespace Livros.Web.Controllers {
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(form.Metodo1)) {
+            var pagamentos = ObterPagamentosCheckout(form);
+            if (string.IsNullOrWhiteSpace(pagamentos[0].Metodo)) {
                 ModelState.AddModelError(string.Empty, "Selecione pelo menos uma forma de pagamento.");
                 return;
             }
 
-            var valor1 = form.Valor1 ?? 0;
-            var valor2 = string.IsNullOrWhiteSpace(form.Metodo2) ? 0 : form.Valor2 ?? 0;
-            var soma = decimal.Round(valor1 + valor2, 2);
+            var encontrouLacuna = false;
+            foreach (var pagamento in pagamentos) {
+                if (string.IsNullOrWhiteSpace(pagamento.Metodo)) {
+                    encontrouLacuna = true;
+                    continue;
+                }
 
-            if (valor1 <= 0) {
-                ModelState.AddModelError(string.Empty, "Informe um valor valido para o pagamento 1.");
+                if (encontrouLacuna) {
+                    ModelState.AddModelError(string.Empty, "Adicione os meios de pagamento em sequencia, sem pular blocos intermediarios.");
+                    break;
+                }
+
+                if (pagamento.Valor <= 0) {
+                    ModelState.AddModelError(string.Empty, $"Informe um valor valido para o pagamento {pagamento.Indice}.");
+                }
             }
 
-            if (!string.IsNullOrWhiteSpace(form.Metodo2) && valor2 <= 0) {
-                ModelState.AddModelError(string.Empty, "Informe um valor valido para o pagamento 2.");
-            }
-
+            var pagamentosAtivos = pagamentos.Where(p => !string.IsNullOrWhiteSpace(p.Metodo)).ToList();
+            var soma = decimal.Round(pagamentosAtivos.Sum(p => p.Valor), 2);
             if (soma != totalArredondado) {
                 ModelState.AddModelError(string.Empty, "A soma dos pagamentos deve ser igual ao total do pedido.");
             }
 
-            ValidarPagamentoCartao(clienteId, form.Metodo1 ?? string.Empty, valor1, form.CartaoId1, form.BandeiraCartaoId1, form.NomeCartao1, form.NumeroCartao1, form.Validade1, form.CVV1, usaCupom, 1);
-
-            if (!string.IsNullOrWhiteSpace(form.Metodo2)) {
-                ValidarPagamentoCartao(clienteId, form.Metodo2, valor2, form.CartaoId2, form.BandeiraCartaoId2, form.NomeCartao2, form.NumeroCartao2, form.Validade2, form.CVV2, usaCupom, 2);
+            var quantidadePagamentosCartao = pagamentosAtivos.Count(p => string.Equals(p.Metodo, "cartao", StringComparison.OrdinalIgnoreCase));
+            foreach (var pagamento in pagamentosAtivos) {
+                ValidarPagamentoCartao(
+                    clienteId,
+                    pagamento.Metodo,
+                    pagamento.Valor,
+                    pagamento.CartaoId,
+                    pagamento.BandeiraCartaoId,
+                    pagamento.NomeCartao,
+                    pagamento.NumeroCartao,
+                    pagamento.Validade,
+                    pagamento.CVV,
+                    quantidadePagamentosCartao >= 2,
+                    pagamento.Indice
+                );
             }
         }
 
         private void ValidarPagamentoCartao(int clienteId, string metodo, decimal valor, int? cartaoId, int? bandeiraCartaoId,
-            string? nome, string? numero, string? validade, string? cvv, bool usaCupom, int indice) {
+            string? nome, string? numero, string? validade, string? cvv, bool exigirValorMinimo, int indice) {
             if (!string.Equals(metodo, "cartao", StringComparison.OrdinalIgnoreCase)) {
                 return;
             }
 
-            if (!usaCupom && valor < 10) {
+            if (exigirValorMinimo && valor < 10) {
                 ModelState.AddModelError(string.Empty, $"O pagamento {indice} com cartao deve ter valor minimo de R$ 10,00.");
             }
 
@@ -1203,6 +1299,59 @@ namespace Livros.Web.Controllers {
                 Valor = valor.Value,
                 Status = "Pendente"
             });
+        }
+
+        private List<PagamentoCheckoutSlot> ObterPagamentosCheckout(CheckoutFormData form) {
+            return new List<PagamentoCheckoutSlot> {
+                new() {
+                    Indice = 1,
+                    Metodo = form.Metodo1?.Trim() ?? string.Empty,
+                    Valor = form.Valor1 ?? 0,
+                    CartaoId = form.CartaoId1,
+                    BandeiraCartaoId = form.BandeiraCartaoId1,
+                    SalvarNovoCartao = form.SalvarNovoCartao1,
+                    NomeCartao = form.NomeCartao1,
+                    NumeroCartao = form.NumeroCartao1,
+                    CVV = form.CVV1,
+                    Validade = form.Validade1
+                },
+                new() {
+                    Indice = 2,
+                    Metodo = form.Metodo2?.Trim() ?? string.Empty,
+                    Valor = form.Valor2 ?? 0,
+                    CartaoId = form.CartaoId2,
+                    BandeiraCartaoId = form.BandeiraCartaoId2,
+                    SalvarNovoCartao = form.SalvarNovoCartao2,
+                    NomeCartao = form.NomeCartao2,
+                    NumeroCartao = form.NumeroCartao2,
+                    CVV = form.CVV2,
+                    Validade = form.Validade2
+                },
+                new() {
+                    Indice = 3,
+                    Metodo = form.Metodo3?.Trim() ?? string.Empty,
+                    Valor = form.Valor3 ?? 0,
+                    CartaoId = form.CartaoId3,
+                    BandeiraCartaoId = form.BandeiraCartaoId3,
+                    SalvarNovoCartao = form.SalvarNovoCartao3,
+                    NomeCartao = form.NomeCartao3,
+                    NumeroCartao = form.NumeroCartao3,
+                    CVV = form.CVV3,
+                    Validade = form.Validade3
+                },
+                new() {
+                    Indice = 4,
+                    Metodo = form.Metodo4?.Trim() ?? string.Empty,
+                    Valor = form.Valor4 ?? 0,
+                    CartaoId = form.CartaoId4,
+                    BandeiraCartaoId = form.BandeiraCartaoId4,
+                    SalvarNovoCartao = form.SalvarNovoCartao4,
+                    NomeCartao = form.NomeCartao4,
+                    NumeroCartao = form.NumeroCartao4,
+                    CVV = form.CVV4,
+                    Validade = form.Validade4
+                }
+            };
         }
         private void MarcarCupomComoUtilizado(CupomDesconto cupomAplicado, Pedido pedido, decimal descontoAplicado) {
             var valorOriginal = cupomAplicado.Valor;
