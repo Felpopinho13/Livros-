@@ -10,6 +10,11 @@
         @TempData["Erro"]
     </div>
 }
+@if (TempData["Sucesso"] != null) {
+    <div class="alert-success">
+        @TempData["Sucesso"]
+    </div>
+}
 
 <div class="admin-page-header">
     <h2>Livros</h2>
@@ -30,13 +35,14 @@
                 <th>Categorias</th>
                 <th>ISBN</th>
                 <th>Status</th>
+                <th>Ações</th>
             </tr>
         </thead>
 
         <tbody>
             @if (!Model.Any()) {
                 <tr>
-                    <td colspan="6" style="text-align:center;">
+                    <td colspan="7" style="text-align:center;">
                         Nenhum livro cadastrado
                     </td>
                 </tr>
@@ -69,6 +75,13 @@
                                 <span class="status danger">Inativo</span>
                             }
                         </td>
+                        <td>
+                            <button type="button"
+                                    class="btn-secondary"
+                                    onclick="abrirModalEditarCategorias(@livro.Id)">
+                                Editar categorias
+                            </button>
+                        </td>
                     </tr>
                 }
             }
@@ -76,6 +89,58 @@
     </table>
 
 </div>
+
+@foreach (var livro in Model) {
+    var categoriasSelecionadas = livro.Categorias?.Select(c => c.Id).ToHashSet() ?? new HashSet<int>();
+
+    <div class="admin-modal-overlay" id="editarCategoriasModal-@livro.Id" style="display:none;">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <div>
+                    <span class="admin-modal-kicker">Catálogo</span>
+                    <h3>Editar categorias</h3>
+                </div>
+                <button class="modal-close" type="button" aria-label="Fechar modal" onclick="fecharModalEditarCategorias(@livro.Id)">×</button>
+            </div>
+
+            <form asp-action="EditarCategoriasLivro" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="livroId" value="@livro.Id" />
+
+                <div class="admin-modal-body">
+                    <div class="admin-form-group">
+                        <label>Livro</label>
+                        <input class="admin-input" value="@livro.Titulo" readonly>
+                    </div>
+
+                    <div class="admin-form-group">
+                        <label>Categorias</label>
+                        <select name="categoriasIds" class="admin-input admin-multiselect" multiple size="8" required>
+                            @foreach (var categoria in categoriasDisponiveis) {
+                                if (categoriasSelecionadas.Contains(categoria.Id)) {
+                                    <option value="@categoria.Id" selected>@categoria.Nome</option>
+                                }
+                                else {
+                                    <option value="@categoria.Id">@categoria.Nome</option>
+                                }
+                            }
+                        </select>
+                        <small class="quantity-help">Segure Ctrl para selecionar mais de uma categoria.</small>
+                    </div>
+                </div>
+
+                <div class="admin-modal-footer">
+                    <button type="button" class="btn-secondary" onclick="fecharModalEditarCategorias(@livro.Id)">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        Salvar categorias
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
 
 <!-- MODAL NOVO LIVRO -->
 <div class="admin-modal-overlay" id="novoLivroModal" style="display:none;">
@@ -258,6 +323,14 @@
 
     function fecharModalNovoLivro() {
         document.getElementById("novoLivroModal").style.display = "none";
+    }
+
+    function abrirModalEditarCategorias(livroId) {
+        document.getElementById(`editarCategoriasModal-${livroId}`).style.display = "flex";
+    }
+
+    function fecharModalEditarCategorias(livroId) {
+        document.getElementById(`editarCategoriasModal-${livroId}`).style.display = "none";
     }
 </script>
 

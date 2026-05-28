@@ -370,6 +370,43 @@ public class AdminController : Controller {
         return RedirectToAction("Livros");
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult EditarCategoriasLivro(int livroId, int[] categoriasIds) {
+        var livro = _context.Livros
+            .Include(l => l.Categorias)
+            .FirstOrDefault(l => l.Id == livroId);
+
+        if (livro == null) {
+            TempData["Erro"] = "Livro nao encontrado.";
+            return RedirectToAction("Livros");
+        }
+
+        var categoriasSelecionadas = (categoriasIds ?? Array.Empty<int>())
+            .Distinct()
+            .ToArray();
+
+        if (!categoriasSelecionadas.Any()) {
+            TempData["Erro"] = "Selecione pelo menos uma categoria para o livro.";
+            return RedirectToAction("Livros");
+        }
+
+        var categorias = _context.Categorias
+            .Where(c => categoriasSelecionadas.Contains(c.Id))
+            .ToList();
+
+        livro.Categorias ??= new List<Categoria>();
+        livro.Categorias.Clear();
+
+        foreach (var categoria in categorias) {
+            livro.Categorias.Add(categoria);
+        }
+
+        _context.SaveChanges();
+        TempData["Sucesso"] = $"Categorias do livro \"{livro.Titulo}\" atualizadas com sucesso!";
+        return RedirectToAction("Livros");
+    }
+
     public IActionResult Estoque(string? busca, string? status) {
         ViewBag.EstoqueBusca = busca ?? string.Empty;
         ViewBag.EstoqueStatus = string.IsNullOrWhiteSpace(status) ? "todos" : status;
