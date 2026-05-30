@@ -1,8 +1,11 @@
 ﻿using Livros.Domain;
 using Livros.Infrastructure.Data;
 using Livros.Infrastructure.Services;
+using Livros.Web.Configuration;
+using Livros.Web.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
+using System.Text;
 
 var culture = new CultureInfo("pt-BR");
 
@@ -12,6 +15,7 @@ CultureInfo.DefaultThreadCurrentUICulture = culture;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+builder.Services.Configure<OpenAiOptions>(builder.Configuration.GetSection("OpenAI"));
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer("Server=localhost;Database=LivrosDb;Trusted_Connection=True;TrustServerCertificate=True;"));
@@ -20,6 +24,9 @@ builder.Services.AddScoped<ClienteService>();
 builder.Services.AddScoped<LivroService>();
 builder.Services.AddScoped<EnderecoService>();
 builder.Services.AddScoped<EstoqueService>();
+builder.Services.AddHttpClient<LivroRecommendationChatService>(client => {
+    client.Timeout = TimeSpan.FromSeconds(25);
+});
 
 builder.Services.AddDistributedMemoryCache();
 
@@ -30,17 +37,28 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope()) {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    if (!context.Categorias.Any()) {
-        context.Categorias.AddRange(
-            new Categoria { Nome = "Romance" },
-            new Categoria { Nome = "Ficcao" },
-            new Categoria { Nome = "Fantasia" },
-            new Categoria { Nome = "Drama" },
-            new Categoria { Nome = "Biografia" },
-            new Categoria { Nome = "Negocios" },
-            new Categoria { Nome = "Tecnologia" },
-            new Categoria { Nome = "Classicos" }
-        );
+    var categoriasExistentes = context.Categorias.ToList();
+    var houveAtualizacaoCategorias = false;
+
+    foreach (var categoriaPadrao in CategoriaCatalogo.Itens) {
+        var categoriaExistente = categoriasExistentes.FirstOrDefault(c =>
+            NormalizarCategoria(c.Nome) == NormalizarCategoria(categoriaPadrao.Nome));
+
+        if (categoriaExistente == null) {
+            context.Categorias.Add(new Categoria {
+                Nome = categoriaPadrao.Nome
+            });
+            houveAtualizacaoCategorias = true;
+            continue;
+        }
+
+        if (!string.Equals(categoriaExistente.Nome, categoriaPadrao.Nome, StringComparison.Ordinal)) {
+            categoriaExistente.Nome = categoriaPadrao.Nome;
+            houveAtualizacaoCategorias = true;
+        }
+    }
+
+    if (houveAtualizacaoCategorias) {
         context.SaveChanges();
     }
 
@@ -77,3 +95,23 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
+
+static string NormalizarCategoria(string? nome) {
+    if (string.IsNullOrWhiteSpace(nome)) {
+        return string.Empty;
+    }
+
+    var textoNormalizado = nome.Trim().Normalize(NormalizationForm.FormD);
+    var builder = new StringBuilder();
+
+    foreach (var caractere in textoNormalizado) {
+        var categoriaUnicode = CharUnicodeInfo.GetUnicodeCategory(caractere);
+        if (categoriaUnicode != UnicodeCategory.NonSpacingMark) {
+            builder.Append(char.ToLowerInvariant(caractere));
+        }
+    }
+
+    return builder
+        .ToString()
+        .Normalize(NormalizationForm.FormC);
+}

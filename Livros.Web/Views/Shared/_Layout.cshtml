@@ -60,7 +60,45 @@
         </div>
     </footer>
 
+    @if (isAdmin != "True") {
+        <div class="chatbot-shell" data-chatbot-root data-endpoint="@Url.Action("Recommend", "Chatbot")">
+            <div class="chatbot-panel" data-chatbot-panel aria-hidden="true">
+                <div class="chatbot-header">
+                    <strong>Assistente de recomendacao</strong>
+                    <span>Eu sugiro livros do catalogo usando sua busca e, quando possivel, o historico de compras.</span>
+                </div>
+
+                <div class="chatbot-messages" data-chatbot-messages>
+                    <div class="chatbot-message assistant">
+                        <div class="chatbot-message-bubble">
+                            Ola! Me diga o que voce quer aprender, qual genero voce procura ou que tipo de leitura esta buscando.
+                        </div>
+                    </div>
+                </div>
+
+                <form class="chatbot-form" data-chatbot-form>
+                    <div class="chatbot-input-row">
+                        <textarea
+                            class="chatbot-input"
+                            data-chatbot-input
+                            placeholder="Ex.: Quero um livro para aprender Java"
+                            rows="3"></textarea>
+                        <button type="submit" class="chatbot-submit" data-chatbot-submit aria-label="Enviar">
+                            <i class="bx bx-send"></i>
+                        </button>
+                    </div>
+                    <div class="chatbot-helper">As sugestoes sempre partem do catalogo cadastrado no sistema.</div>
+                </form>
+            </div>
+
+            <button type="button" class="chatbot-toggle" data-chatbot-toggle aria-label="Abrir assistente">
+                <i class="bx bx-message-rounded-dots"></i>
+            </button>
+        </div>
+    }
+
     <script src="~/assets/js/main.js"></script>
+    <script src="~/assets/js/chatbot.js"></script>
     <script src="~/assets/js/cart.js"></script>
     <script src="~/assets/js/wishlist.js"></script>
     @RenderSection("Scripts", required: false)
