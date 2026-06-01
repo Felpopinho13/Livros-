@@ -28,25 +28,89 @@ namespace Livros.Web.Services {
             "sugestoes", "procuro", "procurando"
         };
 
-        private static readonly string[] SportsEventKeywords = {
-            "champions",
-            "champions league",
-            "futebol",
-            "jogo",
-            "partida",
-            "estadio",
-            "torcida"
-        };
-
-        private static readonly string[] IncompatibleReadingContextKeywords = {
+        private static readonly string[] ContextTriggerKeywords = {
             "durante",
             "enquanto",
             "assistindo",
             "vendo",
-            "ao vivo",
-            "na final",
-            "no jogo",
-            "na partida"
+            "para ler",
+            "ler no",
+            "ler na",
+            "ler num",
+            "ler numa",
+            "ler em",
+            "ler durante"
+        };
+
+        private static readonly ContextFamily[] IncompatibleReadingContexts = {
+            new(
+                "atividade fisica ou evento esportivo",
+                "Ler nesse momento talvez nao seja muito pratico.",
+                "Se a ideia for escolher uma leitura para antes ou depois, eu posso te sugerir estes livros do catalogo: ",
+                new[] {
+                    "champions",
+                    "champions league",
+                    "futebol",
+                    "volei",
+                    "vôlei",
+                    "basquete",
+                    "corrida",
+                    "maratona",
+                    "academia",
+                    "treino",
+                    "ciclismo",
+                    "pedal",
+                    "pedalando",
+                    "natação",
+                    "natacao",
+                    "jogo",
+                    "partida",
+                    "estadio",
+                    "torcida"
+                }),
+            new(
+                "deslocamento ou situacao de risco",
+                "Ler nessa situacao pode tirar a atencao do que realmente importa.",
+                "Se quiser escolher um livro para outro momento mais tranquilo, eu posso te sugerir estes titulos do catalogo: ",
+                new[] {
+                    "dirigindo",
+                    "dirigir",
+                    "volante",
+                    "moto",
+                    "pilotando",
+                    "bicicleta",
+                    "atravessando",
+                    "trânsito",
+                    "transito",
+                    "estrada"
+                }),
+            new(
+                "situacao solene",
+                "Esse nao parece um momento apropriado para leitura.",
+                "Se a intencao for separar um livro para antes ou depois, eu posso te sugerir estes titulos do catalogo: ",
+                new[] {
+                    "enterro",
+                    "velorio",
+                    "velório",
+                    "funeral",
+                    "missa",
+                    "casamento",
+                    "cerimonia",
+                    "cerimônia"
+                }),
+            new(
+                "situacao inviavel para leitura",
+                "Nesse contexto a leitura nao parece viavel.",
+                "Se a ideia for guardar uma leitura para um momento melhor, eu posso te sugerir estes livros do catalogo: ",
+                new[] {
+                    "dormindo",
+                    "sono",
+                    "banho",
+                    "chuveiro",
+                    "debaixo dagua",
+                    "debaixo d'agua",
+                    "nadando"
+                })
         };
 
         private readonly AppDbContext _context;
@@ -79,7 +143,8 @@ namespace Livros.Web.Services {
                 .Where(l => l.IsAtivo)
                 .ToListAsync(cancellationToken);
             var authorIntent = TryExtractAuthorIntent(message, books);
-            var candidateBooks = FilterBooksByIntent(books, message, authorIntent);
+            var categoryIntent = authorIntent == null ? TryExtractCategoryIntent(message, books) : null;
+            var candidateBooks = FilterBooksByIntent(books, authorIntent, categoryIntent);
 
             if (authorIntent != null && !candidateBooks.Any()) {
                 var authorReply = $"Nao encontrei livros do catalogo escritos por {authorIntent.DisplayText}.";
@@ -87,6 +152,17 @@ namespace Livros.Web.Services {
 
                 return new ChatbotResponse {
                     Reply = authorReply,
+                    UsedAi = false,
+                    Source = "fallback"
+                };
+            }
+
+            if (categoryIntent != null && !candidateBooks.Any()) {
+                var categoryReply = $"Nao encontrei livros ativos do catalogo na categoria {categoryIntent.DisplayText}.";
+                UpdateSessionState(sessionState, message, categoryReply, Array.Empty<int>());
+
+                return new ChatbotResponse {
+                    Reply = categoryReply,
                     UsedAi = false,
                     Source = "fallback"
                 };
@@ -254,13 +330,19 @@ namespace Livros.Web.Services {
 
         private List<Livro> FilterBooksByIntent(
             List<Livro> books,
-            string message,
-            AuthorIntent? authorIntent) {
+            AuthorIntent? authorIntent,
+            CategoryIntent? categoryIntent) {
             var filteredBooks = books;
 
             if (authorIntent != null) {
                 filteredBooks = filteredBooks
                     .Where(book => AuthorMatchesIntent(book.Autor, authorIntent))
+                    .ToList();
+            }
+
+            if (categoryIntent != null) {
+                filteredBooks = filteredBooks
+                    .Where(book => BookMatchesCategoryIntent(book, categoryIntent))
                     .ToList();
             }
 
@@ -350,6 +432,7 @@ namespace Livros.Web.Services {
             CustomerProfile customerProfile,
             IReadOnlyDictionary<int, int> popularityByBookId) {
             var tokens = Tokenize(message);
+            var normalizedMessage = NormalizeForMatch(message);
             var matchingCategories = (book.Categorias ?? new List<Categoria>())
                 .Select(c => c.Nome)
                 .Where(name => {
@@ -357,6 +440,8 @@ namespace Livros.Web.Services {
                     return tokens.Any(token => normalizedName.Contains(token, StringComparison.OrdinalIgnoreCase));
                 })
                 .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderByDescending(name => normalizedMessage.Contains(NormalizeForMatch(name), StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(name => NormalizeForMatch(name).Length)
                 .ToList();
 
             if (matchingCategories.Any()) {
@@ -419,11 +504,12 @@ namespace Livros.Web.Services {
             IReadOnlyList<ScoredBook> genericBooks,
             CustomerProfile customerProfile,
             IReadOnlyDictionary<int, int> popularityByBookId) {
-            var normalized = message.Trim().ToLowerInvariant();
-            var mentionsSportsEvent = ContainsAny(normalized, SportsEventKeywords);
-            var mentionsIncompatibleReadingMoment = ContainsAny(normalized, IncompatibleReadingContextKeywords);
+            var normalized = NormalizeForMatch(message);
+            var hasContextTrigger = ContainsAny(normalized, ContextTriggerKeywords);
+            var matchedContext = IncompatibleReadingContexts.FirstOrDefault(context =>
+                ContainsAny(normalized, context.NormalizedKeywords));
 
-            if (!mentionsSportsEvent || !mentionsIncompatibleReadingMoment) {
+            if (!hasContextTrigger || matchedContext == null) {
                 return null;
             }
 
@@ -444,15 +530,16 @@ namespace Livros.Web.Services {
                 .ToList();
 
             var replyBuilder = new StringBuilder();
-            replyBuilder.Append("Nao parece muito pratico ler durante um jogo de futebol ou outro evento esportivo ao vivo. ");
+            replyBuilder.Append(matchedContext.IntroReply);
+            replyBuilder.Append(' ');
 
             if (recommendedBooks.Any()) {
-                replyBuilder.Append("Se a ideia for escolher uma leitura para antes ou depois da partida, eu posso te sugerir estes livros do catalogo: ");
+                replyBuilder.Append(matchedContext.RedirectReply);
                 replyBuilder.Append(string.Join(", ", recommendedBooks.Select(x => x.Title)));
                 replyBuilder.Append('.');
             }
             else {
-                replyBuilder.Append("Se quiser, eu posso te indicar livros do catalogo para ler antes ou depois do jogo.");
+                replyBuilder.Append("Se quiser, eu posso te indicar livros do catalogo para um momento mais adequado.");
             }
 
             return new ChatbotResponse {
@@ -585,6 +672,8 @@ Escreva uma resposta curta recomendando entre 1 e 3 livros dessa lista e expliqu
                 new AuthorPattern(@"escrit(?:o|os|a|as)\s+por\s+(?<author>.+)$", false),
                 new AuthorPattern(@"livros?\s+do\s+autor\s+(?<author>.+)$", false),
                 new AuthorPattern(@"livros?\s+da\s+autora\s+(?<author>.+)$", false),
+                new AuthorPattern(@"livros?\s+do\s+(?<author>.+)$", true),
+                new AuthorPattern(@"livros?\s+da\s+(?<author>.+)$", true),
                 new AuthorPattern(@"autor(?:a)?\s+(?<author>.+)$", false),
                 new AuthorPattern(@"livros?\s+de\s+(?<author>.+)$", true)
             };
@@ -615,6 +704,55 @@ Escreva uma resposta curta recomendando entre 1 e 3 livros dessa lista e expliqu
             return null;
         }
 
+        private static CategoryIntent? TryExtractCategoryIntent(string message, IEnumerable<Livro> books) {
+            if (string.IsNullOrWhiteSpace(message)) {
+                return null;
+            }
+
+            var normalizedMessage = NormalizeForMatch(message);
+
+            var patterns = new[] {
+                @"categoria\s+(?<category>.+)$",
+                @"genero\s+(?<category>.+)$",
+                @"livros?\s+de\s+(?<category>.+)$",
+                @"algo\s+de\s+(?<category>.+)$"
+            };
+
+            foreach (var pattern in patterns) {
+                var match = Regex.Match(normalizedMessage, pattern, RegexOptions.IgnoreCase);
+                if (!match.Success) {
+                    continue;
+                }
+
+                var displayText = match.Groups["category"].Value.Trim(' ', '.', '!', '?', '"');
+                if (string.IsNullOrWhiteSpace(displayText)) {
+                    continue;
+                }
+
+                var resolvedCategory = ResolveCategoryFromCatalog(displayText, books);
+                if (resolvedCategory == null) {
+                    continue;
+                }
+
+                return new CategoryIntent {
+                    DisplayText = resolvedCategory,
+                    NormalizedText = NormalizeForMatch(resolvedCategory),
+                    Tokens = Tokenize(resolvedCategory).ToList()
+                };
+            }
+
+            var resolvedFromWholeMessage = ResolveCategoryFromCatalog(normalizedMessage, books);
+            if (resolvedFromWholeMessage != null) {
+                return new CategoryIntent {
+                    DisplayText = resolvedFromWholeMessage,
+                    NormalizedText = NormalizeForMatch(resolvedFromWholeMessage),
+                    Tokens = Tokenize(resolvedFromWholeMessage).ToList()
+                };
+            }
+
+            return null;
+        }
+
         private static bool AuthorMatchesIntent(string? authorName, AuthorIntent authorIntent) {
             if (string.IsNullOrWhiteSpace(authorName)) {
                 return false;
@@ -628,6 +766,25 @@ Escreva uma resposta curta recomendando entre 1 e 3 livros dessa lista e expliqu
 
             return authorIntent.Tokens.All(token =>
                 normalizedAuthor.Contains(token, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool BookMatchesCategoryIntent(Livro book, CategoryIntent categoryIntent) {
+            var normalizedCategories = (book.Categorias ?? new List<Categoria>())
+                .Select(category => NormalizeForMatch(category.Nome))
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .ToList();
+
+            if (!normalizedCategories.Any()) {
+                return false;
+            }
+
+            if (normalizedCategories.Any(name =>
+                name.Contains(categoryIntent.NormalizedText, StringComparison.OrdinalIgnoreCase))) {
+                return true;
+            }
+
+            return categoryIntent.Tokens.All(token =>
+                normalizedCategories.Any(name => name.Contains(token, StringComparison.OrdinalIgnoreCase)));
         }
 
         private static string NormalizeForMatch(string? text) {
@@ -685,6 +842,63 @@ Escreva uma resposta curta recomendando entre 1 e 3 livros dessa lista e expliqu
             return tokenMatch?.Original;
         }
 
+        private static string? ResolveCategoryFromCatalog(string candidateText, IEnumerable<Livro> books) {
+            var normalizedCandidate = NormalizeForMatch(candidateText);
+            var candidateTokens = Tokenize(candidateText).ToList();
+            if (string.IsNullOrWhiteSpace(normalizedCandidate)) {
+                return null;
+            }
+
+            var categories = books
+                .SelectMany(book => book.Categorias ?? new List<Categoria>())
+                .Select(category => category.Nome)
+                .Concat(CategoriaCatalogo.Itens.Select(item => item.Nome))
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(name => new {
+                    Original = name,
+                    Normalized = NormalizeForMatch(name)
+                })
+                .ToList();
+
+            var exactMatch = categories.FirstOrDefault(category =>
+                string.Equals(category.Normalized, normalizedCandidate, StringComparison.OrdinalIgnoreCase));
+            if (exactMatch != null) {
+                return exactMatch.Original;
+            }
+
+            var phraseMatch = categories
+                .Where(category => normalizedCandidate.Contains(category.Normalized, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(category => category.Normalized.Length)
+                .FirstOrDefault();
+
+            if (phraseMatch != null) {
+                return phraseMatch.Original;
+            }
+
+            if (!candidateTokens.Any()) {
+                return null;
+            }
+
+            var containedMatch = categories
+                .Where(category => category.Normalized.Contains(normalizedCandidate, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(category => category.Normalized.Length)
+                .FirstOrDefault();
+
+            if (containedMatch != null) {
+                return containedMatch.Original;
+            }
+
+            var tokenMatch = categories
+                .Where(category => candidateTokens.All(token =>
+                    category.Normalized.Contains(token, StringComparison.OrdinalIgnoreCase)))
+                .OrderByDescending(category => category.Normalized.Count(character => character == ' '))
+                .ThenByDescending(category => category.Normalized.Length)
+                .FirstOrDefault();
+
+            return tokenMatch?.Original;
+        }
+
         private sealed class ScoredBook {
             public required Livro Book { get; set; }
             public int DirectMatchScore { get; set; }
@@ -706,7 +920,19 @@ Escreva uma resposta curta recomendando entre 1 e 3 livros dessa lista e expliqu
             public List<string> Tokens { get; init; } = new();
         }
 
+        private sealed class CategoryIntent {
+            public string DisplayText { get; init; } = string.Empty;
+            public string NormalizedText { get; init; } = string.Empty;
+            public List<string> Tokens { get; init; } = new();
+        }
+
         private sealed record AuthorPattern(string Pattern, bool RequireCatalogMatch);
+        private sealed record ContextFamily(string DisplayName, string IntroReply, string RedirectReply, IReadOnlyList<string> Keywords) {
+            public IReadOnlyList<string> NormalizedKeywords { get; } = Keywords
+                .Select(NormalizeForMatch)
+                .Where(keyword => !string.IsNullOrWhiteSpace(keyword))
+                .ToList();
+        }
 
         private sealed class OpenAiResponsesRequest {
             [JsonPropertyName("model")]
