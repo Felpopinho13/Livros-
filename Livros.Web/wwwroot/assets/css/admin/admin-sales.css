@@ -4,7 +4,23 @@
 }
 
 .admin-sales-filters {
-    grid-template-columns: repeat(2, minmax(220px, 260px)) auto;
+    grid-template-columns: repeat(3, minmax(180px, 220px)) minmax(280px, 360px) auto;
+    align-items: end;
+}
+
+.admin-form-group-wide {
+    min-width: 280px;
+}
+
+.admin-multiselect {
+    min-height: 148px;
+}
+
+.admin-form-help {
+    display: block;
+    margin-top: 8px;
+    color: #64748b;
+    font-size: 12px;
 }
 
 .admin-sales-summary {
@@ -84,6 +100,11 @@
     gap: 8px;
 }
 
+.admin-sales-legend-dynamic {
+    max-width: 420px;
+    justify-content: flex-end;
+}
+
 .legend-line {
     width: 22px;
     height: 3px;
@@ -102,6 +123,16 @@
 .admin-sales-chart {
     width: 100%;
     overflow-x: auto;
+}
+
+.admin-sales-empty-state {
+    padding: 32px 18px;
+    text-align: center;
+    color: #64748b;
+    font-weight: 600;
+    border: 1px dashed #cbd5e1;
+    border-radius: 16px;
+    background: #f8fafc;
 }
 
 .sales-chart-svg {

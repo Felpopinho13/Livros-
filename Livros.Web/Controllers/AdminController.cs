@@ -416,13 +416,22 @@ public class AdminController : Controller {
     }
 
     [HttpGet]
-    public IActionResult AnaliseVendas(DateTime? dataInicio, DateTime? dataFim) {
-        var inicio = (dataInicio ?? DateTime.Today.AddDays(-29)).Date;
+    public IActionResult AnaliseVendas(DateTime? dataInicio, DateTime? dataFim, int[]? categoriasIds, string? agrupamento) {
+        var inicio = (dataInicio ?? DateTime.Today.AddMonths(-12).AddDays(1)).Date;
         var fim = (dataFim ?? DateTime.Today).Date;
 
         if (fim < inicio) {
             (inicio, fim) = (fim, inicio);
         }
+
+        var agrupamentoNormalizado = NormalizarAgrupamentoAnalise(agrupamento, inicio, fim);
+        var categoriasDisponiveis = _context.Categorias
+            .OrderBy(c => c.Nome)
+            .Select(c => new AdminAnaliseCategoriaOptionViewModel {
+                Id = c.Id,
+                Nome = c.Nome
+            })
+            .ToList();
 
         var statusElegiveis = new[] {
             "APROVADA",
@@ -454,18 +463,20 @@ public class AdminController : Controller {
             .OrderBy(p => p.Data)
             .ToList();
 
-        var evolucaoPeriodo = Enumerable
-            .Range(0, (fim - inicio).Days + 1)
-            .Select(offset => inicio.AddDays(offset))
-            .Select(data => {
-                var pedidosDoDia = pedidosFiltrados
-                    .Where(p => p.Data.Date == data)
-                    .ToList();
+        var periodos = GerarPeriodosAnalise(inicio, fim, agrupamentoNormalizado).ToList();
+        var pedidosPorPeriodo = pedidosFiltrados
+            .GroupBy(p => ObterInicioPeriodoAnalise(p.Data.Date, agrupamentoNormalizado))
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var evolucaoPeriodo = periodos
+            .Select(periodo => {
+                pedidosPorPeriodo.TryGetValue(periodo, out var pedidosDoPeriodo);
+                pedidosDoPeriodo ??= new List<Pedido>();
 
                 return new AdminAnalisePeriodoItemViewModel {
-                    Rotulo = data.ToString("dd/MM"),
-                    Receita = decimal.Round(pedidosDoDia.Sum(p => p.Total), 2),
-                    Pedidos = pedidosDoDia.Count
+                    Rotulo = FormatarRotuloPeriodoAnalise(periodo, agrupamentoNormalizado),
+                    Receita = decimal.Round(pedidosDoPeriodo.Sum(p => p.Total), 2),
+                    Pedidos = pedidosDoPeriodo.Count
                 };
             })
             .ToList();
@@ -482,19 +493,28 @@ public class AdminController : Controller {
             .ThenByDescending(x => x.UnidadesVendidas)
             .ToList();
 
-        var categorias = itensVendidos
-            .SelectMany(i => (i.Livro?.Categorias != null && i.Livro.Categorias.Any()
-                    ? i.Livro.Categorias.Select(c => c.Nome)
-                    : new[] { "Sem categoria" })
-                .Select(nomeCategoria => new {
-                    Nome = nomeCategoria,
+        var categoriaEventos = itensVendidos
+            .SelectMany(i => {
+                var categoriasLivro = i.Livro?.Categorias != null && i.Livro.Categorias.Any()
+                    ? i.Livro.Categorias.Select(c => new { c.Id, c.Nome })
+                    : new[] { new { Id = 0, Nome = "Sem categoria" } };
+
+                return categoriasLivro.Select(categoria => new {
+                    categoria.Id,
+                    categoria.Nome,
                     i.Quantidade,
                     i.PedidoId,
-                    Receita = i.PrecoUnitario * i.Quantidade
-                }))
-            .GroupBy(x => x.Nome)
+                    Receita = i.PrecoUnitario * i.Quantidade,
+                    Data = i.Pedido!.Data.Date
+                });
+            })
+            .ToList();
+
+        var categorias = categoriaEventos
+            .GroupBy(x => new { x.Id, x.Nome })
             .Select(g => new AdminAnaliseCategoriaItemViewModel {
-                Nome = g.Key,
+                CategoriaId = g.Key.Id,
+                Nome = g.Key.Nome,
                 UnidadesVendidas = g.Sum(x => x.Quantidade),
                 Pedidos = g.Select(x => x.PedidoId).Distinct().Count(),
                 Receita = decimal.Round(g.Sum(x => x.Receita), 2)
@@ -503,11 +523,59 @@ public class AdminController : Controller {
             .ThenByDescending(x => x.UnidadesVendidas)
             .ToList();
 
+        var categoriasSelecionadas = (categoriasIds ?? Array.Empty<int>())
+            .Distinct()
+            .Where(id => categoriasDisponiveis.Any(c => c.Id == id))
+            .ToList();
+
+        if (!categoriasSelecionadas.Any()) {
+            categoriasSelecionadas = categorias
+                .Where(c => c.CategoriaId > 0)
+                .Take(5)
+                .Select(c => c.CategoriaId)
+                .ToList();
+        }
+
+        var eventosPorCategoriaPeriodo = categoriaEventos
+            .Where(x => categoriasSelecionadas.Contains(x.Id))
+            .GroupBy(x => new {
+                x.Id,
+                x.Nome,
+                Periodo = ObterInicioPeriodoAnalise(x.Data, agrupamentoNormalizado)
+            })
+            .ToDictionary(
+                g => (g.Key.Id, g.Key.Periodo),
+                g => g.Sum(x => x.Quantidade));
+
+        var nomesCategoriasSelecionadas = categoriasDisponiveis
+            .Where(c => categoriasSelecionadas.Contains(c.Id))
+            .OrderBy(c => categoriasSelecionadas.IndexOf(c.Id))
+            .ToList();
+
+        var coresGrafico = new[] {
+            "#2563eb", "#f97316", "#7c3aed", "#16a34a", "#dc2626",
+            "#0891b2", "#ea580c", "#4f46e5", "#ca8a04", "#db2777"
+        };
+
+        var graficoCategorias = nomesCategoriasSelecionadas
+            .Select((categoria, index) => new AdminAnaliseCategoriaLinhaViewModel {
+                CategoriaId = categoria.Id,
+                Nome = categoria.Nome,
+                Cor = coresGrafico[index % coresGrafico.Length],
+                Valores = periodos
+                    .Select(periodo => eventosPorCategoriaPeriodo.TryGetValue((categoria.Id, periodo), out var total)
+                        ? total
+                        : 0)
+                    .ToList()
+            })
+            .ToList();
+
         var receitaTotal = decimal.Round(pedidosFiltrados.Sum(p => p.Total), 2);
 
         var vm = new AdminAnaliseVendasViewModel {
             DataInicio = inicio,
             DataFim = fim,
+            Agrupamento = agrupamentoNormalizado,
             TotalPedidos = pedidosFiltrados.Count,
             TotalItensVendidos = itensVendidos.Sum(i => i.Quantidade),
             ReceitaTotal = receitaTotal,
@@ -516,7 +584,10 @@ public class AdminController : Controller {
             QuantidadeCategoriasComparadas = categorias.Count,
             EvolucaoPeriodo = evolucaoPeriodo,
             Produtos = produtos,
-            Categorias = categorias
+            Categorias = categorias,
+            CategoriasSelecionadas = categoriasSelecionadas,
+            CategoriasDisponiveis = categoriasDisponiveis,
+            GraficoCategorias = graficoCategorias
         };
 
         return View(vm);
@@ -540,6 +611,54 @@ public class AdminController : Controller {
             busca,
             status
         });
+    }
+
+    private static string NormalizarAgrupamentoAnalise(string? agrupamento, DateTime inicio, DateTime fim) {
+        var valorInformado = (agrupamento ?? string.Empty).Trim().ToLowerInvariant();
+        if (valorInformado is "diario" or "semanal" or "mensal") {
+            return valorInformado;
+        }
+
+        var intervaloDias = (fim - inicio).TotalDays;
+        if (intervaloDias > 180) {
+            return "mensal";
+        }
+
+        if (intervaloDias > 45) {
+            return "semanal";
+        }
+
+        return "diario";
+    }
+
+    private static DateTime ObterInicioPeriodoAnalise(DateTime data, string agrupamento) {
+        return agrupamento switch {
+            "mensal" => new DateTime(data.Year, data.Month, 1),
+            "semanal" => data.Date.AddDays(-((7 + (int)data.DayOfWeek - (int)DayOfWeek.Monday) % 7)),
+            _ => data.Date
+        };
+    }
+
+    private static IEnumerable<DateTime> GerarPeriodosAnalise(DateTime inicio, DateTime fim, string agrupamento) {
+        var atual = ObterInicioPeriodoAnalise(inicio, agrupamento);
+        var ultimo = ObterInicioPeriodoAnalise(fim, agrupamento);
+
+        while (atual <= ultimo) {
+            yield return atual;
+            atual = agrupamento switch {
+                "mensal" => atual.AddMonths(1),
+                "semanal" => atual.AddDays(7),
+                _ => atual.AddDays(1)
+            };
+        }
+    }
+
+    private static string FormatarRotuloPeriodoAnalise(DateTime data, string agrupamento) {
+        return agrupamento switch {
+            "mensal" => data.ToString("MM/yyyy"),
+            "semanal" => $"{data:dd/MM} - {data.AddDays(6):dd/MM}",
+            _ => data.ToString("dd/MM")
+        };
     }
 
     [HttpGet]

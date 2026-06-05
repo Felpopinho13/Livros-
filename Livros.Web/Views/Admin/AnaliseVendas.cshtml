@@ -6,6 +6,15 @@
     ViewData["Title"] = "Analise de Vendas";
     var graficoReceitaJson = JsonSerializer.Serialize(Model.EvolucaoPeriodo.Select(p => new { label = p.Rotulo, value = p.Receita }));
     var graficoPedidosJson = JsonSerializer.Serialize(Model.EvolucaoPeriodo.Select(p => new { label = p.Rotulo, value = p.Pedidos }));
+    var graficoCategoriasJson = JsonSerializer.Serialize(Model.GraficoCategorias.Select(serie => new {
+        id = serie.CategoriaId,
+        name = serie.Nome,
+        color = serie.Cor,
+        values = serie.Valores
+    }));
+    var categoriasSelecionadasDescricao = Model.GraficoCategorias.Any()
+        ? string.Join(", ", Model.GraficoCategorias.Select(c => c.Nome))
+        : "Nenhuma categoria selecionada";
 }
 
 @section Styles {
@@ -17,7 +26,7 @@
 <div class="admin-page-header">
     <div>
         <h2>Analise de Vendas</h2>
-        <p class="admin-page-subtitle">Compare produtos e categorias vendidas por periodo e acompanhe a evolucao do faturamento.</p>
+        <p class="admin-page-subtitle">Compare produtos e categorias vendidas por periodo, acompanhe o faturamento e visualize o volume de livros vendidos por categoria.</p>
     </div>
 </div>
 
@@ -31,6 +40,25 @@
         <div class="admin-form-group">
             <label>Data final</label>
             <input type="date" name="dataFim" value="@Model.DataFim.ToString("yyyy-MM-dd")" class="admin-input" />
+        </div>
+
+        <div class="admin-form-group">
+            <label>Agrupamento</label>
+            <select name="agrupamento" class="admin-input">
+                <option value="diario" selected="@(Model.Agrupamento == "diario")">Diario</option>
+                <option value="semanal" selected="@(Model.Agrupamento == "semanal")">Semanal</option>
+                <option value="mensal" selected="@(Model.Agrupamento == "mensal")">Mensal</option>
+            </select>
+        </div>
+
+        <div class="admin-form-group admin-form-group-wide">
+            <label>Categorias para o grafico de linhas</label>
+            <select name="categoriasIds" multiple size="6" class="admin-input admin-multiselect">
+                @foreach (var categoria in Model.CategoriasDisponiveis) {
+                    <option value="@categoria.Id" selected="@(Model.CategoriasSelecionadas.Contains(categoria.Id))">@categoria.Nome</option>
+                }
+            </select>
+            <small class="admin-form-help">Segure Ctrl para selecionar mais de uma categoria.</small>
         </div>
 
         <button type="submit" class="btn-primary">Atualizar analise</button>
@@ -62,7 +90,7 @@
         <div class="admin-sales-chart-header">
             <div>
                 <h3>Evolucao por periodo</h3>
-                <p>Grafico de linhas com faturamento e quantidade de pedidos no intervalo selecionado.</p>
+                <p>Grafico de linhas com faturamento e quantidade de pedidos no intervalo selecionado, agrupado em modo @Model.Agrupamento.</p>
             </div>
             <div class="admin-sales-legend">
                 <span><i class="legend-line legend-line-revenue"></i> Receita</span>
@@ -71,6 +99,22 @@
         </div>
 
         <div id="salesChart" class="admin-sales-chart"></div>
+    </div>
+
+    <div class="admin-sales-chart-card">
+        <div class="admin-sales-chart-header">
+            <div>
+                <h3>Volume vendido por categoria</h3>
+                <p>Grafico de linhas com uma serie por categoria para acompanhar a quantidade de livros vendidos no periodo. Categorias atuais: @categoriasSelecionadasDescricao.</p>
+            </div>
+            <div class="admin-sales-legend admin-sales-legend-dynamic">
+                @foreach (var categoria in Model.GraficoCategorias) {
+                    <span><i class="legend-line" style="background:@categoria.Cor"></i> @categoria.Nome</span>
+                }
+            </div>
+        </div>
+
+        <div id="categorySalesChart" class="admin-sales-chart"></div>
     </div>
 
     <div class="admin-sales-comparison-grid">
@@ -155,7 +199,9 @@
         (function () {
             const revenueData = @Html.Raw(graficoReceitaJson);
             const ordersData = @Html.Raw(graficoPedidosJson);
+            const categorySeries = @Html.Raw(graficoCategoriasJson);
             const container = document.getElementById('salesChart');
+            const categoryContainer = document.getElementById('categorySalesChart');
 
             if (!container) return;
 
@@ -202,6 +248,62 @@
                     <polyline fill="none" points="${buildPoints(orderValues)}" class="chart-line chart-line-orders"></polyline>
                     ${xLabels}
                     ${yLabels}
+                </svg>
+            `;
+
+            if (!categoryContainer) return;
+
+            const categoryLabels = revenueData.map(item => item.label);
+            const categoryMax = Math.max(1, ...categorySeries.flatMap(series => series.values.map(value => Number(value))));
+
+            const buildCategoryPoints = (values) => values.map((value, index) => {
+                const x = categoryLabels.length === 1
+                    ? width / 2
+                    : padding + (index * (width - padding * 2)) / (categoryLabels.length - 1);
+                const y = height - padding - ((Number(value) / categoryMax) * (height - padding * 2));
+                return `${x},${y}`;
+            }).join(' ');
+
+            if (!categorySeries.length) {
+                categoryContainer.innerHTML = '<div class="admin-sales-empty-state">Selecione uma ou mais categorias para visualizar o grafico de volume vendido.</div>';
+                return;
+            }
+
+            const categoryGridLines = [0, 1, 2, 3, 4].map(step => {
+                const y = padding + ((height - padding * 2) / 4) * step;
+                return `<line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" class="chart-grid-line"></line>`;
+            }).join('');
+
+            const categoryXLabels = categoryLabels.map((label, index) => {
+                const x = categoryLabels.length === 1
+                    ? width / 2
+                    : padding + (index * (width - padding * 2)) / (categoryLabels.length - 1);
+                return `<text x="${x}" y="${height - 12}" text-anchor="middle" class="chart-axis-label">${label}</text>`;
+            }).join('');
+
+            const categoryYLabels = [0, 1, 2, 3, 4].map(step => {
+                const value = ((categoryMax / 4) * (4 - step));
+                const y = padding + ((height - padding * 2) / 4) * step + 4;
+                return `<text x="${padding - 10}" y="${y}" text-anchor="end" class="chart-axis-label">${value.toFixed(0)}</text>`;
+            }).join('');
+
+            const categoryLines = categorySeries.map(series => `
+                <polyline
+                    fill="none"
+                    points="${buildCategoryPoints(series.values)}"
+                    class="chart-line"
+                    style="stroke:${series.color}">
+                </polyline>
+            `).join('');
+
+            categoryContainer.innerHTML = `
+                <svg viewBox="0 0 ${width} ${height}" class="sales-chart-svg" role="img" aria-label="Grafico de linhas de volume vendido por categoria">
+                    ${categoryGridLines}
+                    <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" class="chart-axis-line"></line>
+                    <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" class="chart-axis-line"></line>
+                    ${categoryLines}
+                    ${categoryXLabels}
+                    ${categoryYLabels}
                 </svg>
             `;
         })();
