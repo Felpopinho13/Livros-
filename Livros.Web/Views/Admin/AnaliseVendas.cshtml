@@ -234,17 +234,27 @@
 
             const width = 920;
             const height = 320;
-            const padding = 42;
+            const paddingLeft = 64;
+            const paddingRight = 64;
+            const paddingTop = 28;
+            const paddingBottom = 42;
             const labels = revenueData.map(item => item.label);
             const revenueValues = revenueData.map(item => Number(item.value));
             const orderValues = ordersData.map(item => Number(item.value));
-            const combinedMax = Math.max(1, ...revenueValues, ...orderValues);
+            const revenueMax = Math.max(1, ...revenueValues);
+            const ordersMax = Math.max(1, ...orderValues);
+            const plotWidth = width - paddingLeft - paddingRight;
+            const plotHeight = height - paddingTop - paddingBottom;
             const currencyFormatter = new Intl.NumberFormat('pt-BR', {
                 style: 'currency',
                 currency: 'BRL'
             });
             const integerFormatter = new Intl.NumberFormat('pt-BR', {
                 maximumFractionDigits: 0
+            });
+            const compactFormatter = new Intl.NumberFormat('pt-BR', {
+                notation: 'compact',
+                maximumFractionDigits: 1
             });
 
             const escapeHtml = (value) => String(value ?? '')
@@ -310,19 +320,23 @@
                 targetContainer.addEventListener('mouseleave', hideTooltip);
             };
 
-            const buildPoints = (values) => values.map((value, index) => {
+            const formatRevenueAxis = (value) => value >= 1000
+                ? `R$ ${compactFormatter.format(value)}`
+                : `R$ ${integerFormatter.format(value)}`;
+
+            const buildPoints = (values, maxValue, axisLabels) => values.map((value, index) => {
                 const x = labels.length === 1
                     ? width / 2
-                    : padding + (index * (width - padding * 2)) / (labels.length - 1);
-                const y = height - padding - ((value / combinedMax) * (height - padding * 2));
+                    : paddingLeft + (index * plotWidth) / (axisLabels.length - 1);
+                const y = height - paddingBottom - ((Number(value) / maxValue) * plotHeight);
                 return `${x},${y}`;
             }).join(' ');
 
-            const buildInteractivePoints = (values, color, seriesName, formatter) => values.map((value, index) => {
-                const x = labels.length === 1
+            const buildInteractivePoints = (values, color, seriesName, formatter, maxValue, axisLabels) => values.map((value, index) => {
+                const x = axisLabels.length === 1
                     ? width / 2
-                    : padding + (index * (width - padding * 2)) / (labels.length - 1);
-                const y = height - padding - ((Number(value) / combinedMax) * (height - padding * 2));
+                    : paddingLeft + (index * plotWidth) / (axisLabels.length - 1);
+                const y = height - paddingBottom - ((Number(value) / maxValue) * plotHeight);
                 const formattedValue = formatter(Number(value));
                 return `
                     <circle
@@ -339,34 +353,50 @@
             }).join('');
 
             const gridLines = [0, 1, 2, 3, 4].map(step => {
-                const y = padding + ((height - padding * 2) / 4) * step;
-                return `<line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" class="chart-grid-line"></line>`;
+                const y = paddingTop + (plotHeight / 4) * step;
+                return `<line x1="${paddingLeft}" y1="${y}" x2="${width - paddingRight}" y2="${y}" class="chart-grid-line"></line>`;
             }).join('');
 
             const xLabels = labels.map((label, index) => {
                 const x = labels.length === 1
                     ? width / 2
-                    : padding + (index * (width - padding * 2)) / (labels.length - 1);
+                    : paddingLeft + (index * plotWidth) / (labels.length - 1);
                 return `<text x="${x}" y="${height - 12}" text-anchor="middle" class="chart-axis-label">${label}</text>`;
             }).join('');
 
-            const yLabels = [0, 1, 2, 3, 4].map(step => {
-                const value = ((combinedMax / 4) * (4 - step));
-                const y = padding + ((height - padding * 2) / 4) * step + 4;
-                return `<text x="${padding - 10}" y="${y}" text-anchor="end" class="chart-axis-label">${value.toFixed(0)}</text>`;
+            const revenueAxisLabels = [0, 1, 2, 3, 4].map(step => {
+                const value = (revenueMax / 4) * (4 - step);
+                const y = paddingTop + (plotHeight / 4) * step + 4;
+                return `<text x="${paddingLeft - 10}" y="${y}" text-anchor="end" class="chart-axis-label">${formatRevenueAxis(value)}</text>`;
             }).join('');
 
+            const orderAxisLabels = [0, 1, 2, 3, 4].map(step => {
+                const value = (ordersMax / 4) * (4 - step);
+                const y = paddingTop + (plotHeight / 4) * step + 4;
+                return `<text x="${width - paddingRight + 10}" y="${y}" text-anchor="start" class="chart-axis-label">${integerFormatter.format(Math.round(value))}</text>`;
+            }).join('');
+
+            const axisTitles = `
+                <text x="${paddingLeft}" y="16" text-anchor="start" class="chart-axis-caption">Receita (R$)</text>
+                <text x="${width - paddingRight}" y="16" text-anchor="end" class="chart-axis-caption">Pedidos</text>
+            `;
+
+            const salesAccessibleDescription = 'Grafico de linhas com eixo esquerdo para receita em reais e eixo direito para quantidade de pedidos.';
+
             container.innerHTML = `
-                <svg viewBox="0 0 ${width} ${height}" class="sales-chart-svg" role="img" aria-label="Grafico de linhas de vendas por periodo">
+                <svg viewBox="0 0 ${width} ${height}" class="sales-chart-svg" role="img" aria-label="${salesAccessibleDescription}">
                     ${gridLines}
-                    <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" class="chart-axis-line"></line>
-                    <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" class="chart-axis-line"></line>
-                    <polyline fill="none" points="${buildPoints(revenueValues)}" class="chart-line chart-line-revenue"></polyline>
-                    <polyline fill="none" points="${buildPoints(orderValues)}" class="chart-line chart-line-orders"></polyline>
-                    ${buildInteractivePoints(revenueValues, '#f97316', 'Receita', value => currencyFormatter.format(value))}
-                    ${buildInteractivePoints(orderValues, '#2563eb', 'Pedidos', value => `${integerFormatter.format(value)} pedido(s)`)}
+                    ${axisTitles}
+                    <line x1="${paddingLeft}" y1="${height - paddingBottom}" x2="${width - paddingRight}" y2="${height - paddingBottom}" class="chart-axis-line"></line>
+                    <line x1="${paddingLeft}" y1="${paddingTop}" x2="${paddingLeft}" y2="${height - paddingBottom}" class="chart-axis-line"></line>
+                    <line x1="${width - paddingRight}" y1="${paddingTop}" x2="${width - paddingRight}" y2="${height - paddingBottom}" class="chart-axis-line chart-axis-line-secondary"></line>
+                    <polyline fill="none" points="${buildPoints(revenueValues, revenueMax, labels)}" class="chart-line chart-line-revenue"></polyline>
+                    <polyline fill="none" points="${buildPoints(orderValues, ordersMax, labels)}" class="chart-line chart-line-orders"></polyline>
+                    ${buildInteractivePoints(revenueValues, '#f97316', 'Receita', value => currencyFormatter.format(value), revenueMax, labels)}
+                    ${buildInteractivePoints(orderValues, '#2563eb', 'Pedidos', value => `${integerFormatter.format(value)} pedido(s)`, ordersMax, labels)}
                     ${xLabels}
-                    ${yLabels}
+                    ${revenueAxisLabels}
+                    ${orderAxisLabels}
                 </svg>
             `;
             attachTooltip(container);
@@ -379,16 +409,16 @@
             const buildCategoryPoints = (values) => values.map((value, index) => {
                 const x = categoryLabels.length === 1
                     ? width / 2
-                    : padding + (index * (width - padding * 2)) / (categoryLabels.length - 1);
-                const y = height - padding - ((Number(value) / categoryMax) * (height - padding * 2));
+                    : paddingLeft + (index * plotWidth) / (categoryLabels.length - 1);
+                const y = height - paddingBottom - ((Number(value) / categoryMax) * plotHeight);
                 return `${x},${y}`;
             }).join(' ');
 
             const buildCategoryInteractivePoints = (series) => series.values.map((value, index) => {
                 const x = categoryLabels.length === 1
                     ? width / 2
-                    : padding + (index * (width - padding * 2)) / (categoryLabels.length - 1);
-                const y = height - padding - ((Number(value) / categoryMax) * (height - padding * 2));
+                    : paddingLeft + (index * plotWidth) / (categoryLabels.length - 1);
+                const y = height - paddingBottom - ((Number(value) / categoryMax) * plotHeight);
                 return `
                     <circle
                         class="chart-point"
@@ -409,21 +439,21 @@
             }
 
             const categoryGridLines = [0, 1, 2, 3, 4].map(step => {
-                const y = padding + ((height - padding * 2) / 4) * step;
-                return `<line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" class="chart-grid-line"></line>`;
+                const y = paddingTop + (plotHeight / 4) * step;
+                return `<line x1="${paddingLeft}" y1="${y}" x2="${width - paddingRight}" y2="${y}" class="chart-grid-line"></line>`;
             }).join('');
 
             const categoryXLabels = categoryLabels.map((label, index) => {
                 const x = categoryLabels.length === 1
                     ? width / 2
-                    : padding + (index * (width - padding * 2)) / (categoryLabels.length - 1);
+                    : paddingLeft + (index * plotWidth) / (categoryLabels.length - 1);
                 return `<text x="${x}" y="${height - 12}" text-anchor="middle" class="chart-axis-label">${label}</text>`;
             }).join('');
 
             const categoryYLabels = [0, 1, 2, 3, 4].map(step => {
                 const value = ((categoryMax / 4) * (4 - step));
-                const y = padding + ((height - padding * 2) / 4) * step + 4;
-                return `<text x="${padding - 10}" y="${y}" text-anchor="end" class="chart-axis-label">${value.toFixed(0)}</text>`;
+                const y = paddingTop + (plotHeight / 4) * step + 4;
+                return `<text x="${paddingLeft - 10}" y="${y}" text-anchor="end" class="chart-axis-label">${value.toFixed(0)}</text>`;
             }).join('');
 
             const categoryLines = categorySeries.map(series => `
@@ -439,8 +469,8 @@
             categoryContainer.innerHTML = `
                 <svg viewBox="0 0 ${width} ${height}" class="sales-chart-svg" role="img" aria-label="Grafico de linhas de volume vendido por categoria">
                     ${categoryGridLines}
-                    <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" class="chart-axis-line"></line>
-                    <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" class="chart-axis-line"></line>
+                    <line x1="${paddingLeft}" y1="${height - paddingBottom}" x2="${width - paddingRight}" y2="${height - paddingBottom}" class="chart-axis-line"></line>
+                    <line x1="${paddingLeft}" y1="${paddingTop}" x2="${paddingLeft}" y2="${height - paddingBottom}" class="chart-axis-line"></line>
                     ${categoryLines}
                     ${categoryXLabels}
                     ${categoryYLabels}

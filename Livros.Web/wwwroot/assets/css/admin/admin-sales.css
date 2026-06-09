@@ -244,6 +244,16 @@
     font-weight: 600;
 }
 
+.chart-axis-caption {
+    fill: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.chart-axis-line-secondary {
+    stroke: #d7deea;
+}
+
 .chart-line {
     stroke-width: 4;
     stroke-linecap: round;
