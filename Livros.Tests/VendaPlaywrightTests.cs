@@ -7,6 +7,10 @@ namespace Livros.Tests;
 public class VendaPlaywrightTests {
     private const string ClienteExistenteEmail = "voceconhecetudo@gmail.com";
     private const string ClienteExistenteSenha = "Fi2830pi@";
+    private const string ClienteChatbotEmail = "pereirafelipi13@gmail.com";
+    private const string ClienteChatbotSenha = "Fi2830pi@";
+    private const string AdminEmail = "admin@admin.com";
+    private const string AdminSenha = "123";
 
     [Fact]
     public async Task DeveRegistrarPedidoComSucessoNoFluxoVisualDeCompra() {
@@ -229,6 +233,100 @@ public class VendaPlaywrightTests {
         await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "EM TRANSPORTE", "ENTREGUE", "Aprovado");
     }
 
+    [Fact]
+    public async Task DeveTestarChatbotDeRecomendacaoEAnaliseDeVendasNoAdmin() {
+        var baseUrl = Environment.GetEnvironmentVariable("LIVROS_BASE_URL") ?? "https://localhost:44357";
+
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions {
+            Headless = false,
+            SlowMo = 1200
+        });
+
+        var artifactsDir = Path.Combine(AppContext.BaseDirectory, "playwright-artifacts");
+        Directory.CreateDirectory(artifactsDir);
+
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions {
+            IgnoreHTTPSErrors = true,
+            ViewportSize = new ViewportSize { Width = 1550, Height = 730 },
+            RecordVideoDir = artifactsDir,
+            RecordVideoSize = new RecordVideoSize { Width = 1550, Height = 730 }
+        });
+
+        var page = await context.NewPageAsync();
+
+        await FazerLoginAsync(page, baseUrl, ClienteChatbotEmail, ClienteChatbotSenha);
+        await AbrirChatbotAsync(page);
+
+        var respostaAutor = await EnviarPerguntaChatbotAsync(page, "Me recomenda livros de George Orwell");
+        Assert.True(await respostaAutor.Cards.CountAsync() > 0, "A recomendacao por autor nao retornou cards de livros.");
+        var autoresRespostaAutor = await respostaAutor.Cards.Locator(".chatbot-book-body span").AllInnerTextsAsync();
+        Assert.Contains(autoresRespostaAutor, autor => autor.Contains("George Orwell", StringComparison.OrdinalIgnoreCase));
+
+        var respostaCategoria = await EnviarPerguntaChatbotAsync(page, "Me recomenda livros de Ficcao");
+        Assert.True(await respostaCategoria.Cards.CountAsync() > 0, "A recomendacao por categoria nao retornou cards de livros.");
+        var categoriasResposta = await respostaCategoria.Cards.Locator(".chatbot-book-categories").AllInnerTextsAsync();
+        Assert.Contains(categoriasResposta, categoria => categoria.Contains("Fic", StringComparison.OrdinalIgnoreCase));
+
+        var respostaCombinada = await EnviarPerguntaChatbotAsync(page, "Me recomenda livros de George Orwell na categoria Ficcao");
+        Assert.True(await respostaCombinada.Cards.CountAsync() > 0, "A recomendacao combinando autor e categoria nao retornou cards de livros.");
+        var autoresRespostaCombinada = await respostaCombinada.Cards.Locator(".chatbot-book-body span").AllInnerTextsAsync();
+        var categoriasRespostaCombinada = await respostaCombinada.Cards.Locator(".chatbot-book-categories").AllInnerTextsAsync();
+        Assert.Contains(autoresRespostaCombinada, autor => autor.Contains("George Orwell", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(categoriasRespostaCombinada, categoria => categoria.Contains("Fic", StringComparison.OrdinalIgnoreCase));
+
+        var respostaInusitada = await EnviarPerguntaChatbotAsync(page, "Me recomenda um livro pra ler nadando");
+        var textoInusitado = await respostaInusitada.Bubble.InnerTextAsync();
+        Assert.True(
+            textoInusitado.Contains("nao parece viavel", StringComparison.OrdinalIgnoreCase)
+            || textoInusitado.Contains("momento melhor", StringComparison.OrdinalIgnoreCase)
+            || textoInusitado.Contains("momento mais adequado", StringComparison.OrdinalIgnoreCase),
+            $"A resposta para o contexto inusitado nao trouxe o desvio esperado. Resposta: {textoInusitado}");
+
+        await page.GotoAsync($"{baseUrl}/Auth/Logout", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+        await page.WaitForTimeoutAsync(1000);
+
+        await FazerLoginAsync(page, baseUrl, AdminEmail, AdminSenha);
+        await page.GotoAsync($"{baseUrl}/Admin/AnaliseVendas", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+
+        await ExpectAsync(page.Locator(".admin-page-header h2")).ToContainTextAsync("Analise de Vendas");
+
+        var dataInicio = DateTime.Today.AddMonths(-3).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var dataFim = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        await page.Locator("input[name='dataInicio']").FillAsync(dataInicio);
+        await page.Locator("input[name='dataFim']").FillAsync(dataFim);
+        await page.Locator("select[name='agrupamento']").SelectOptionAsync(new[] { "mensal" });
+        await page.GetByRole(AriaRole.Button, new() { Name = "Atualizar analise" }).ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await ExpectAsync(page.Locator("#salesChart")).ToBeVisibleAsync();
+        await ExpectAsync(page.Locator("#categorySalesChart")).ToBeVisibleAsync();
+        await ExpectAsync(page.Locator("input[name='dataInicio']")).ToHaveValueAsync(dataInicio);
+        await ExpectAsync(page.Locator("input[name='dataFim']")).ToHaveValueAsync(dataFim);
+
+        var seletorCategorias = page.Locator("select[name='categoriasIds']");
+        var valorFiccao = await ObterValorOpcaoPorTextoAsync(seletorCategorias, "Ficcao");
+        Assert.False(string.IsNullOrWhiteSpace(valorFiccao));
+
+        var valorClassicos = await ObterValorOpcaoPorTextoAsync(seletorCategorias, "Classicos")
+            ?? await ObterPrimeiroValorOpcaoDiferenteAsync(seletorCategorias, valorFiccao!);
+        Assert.False(string.IsNullOrWhiteSpace(valorClassicos));
+
+        await seletorCategorias.SelectOptionAsync(new[] {
+            valorFiccao!,
+            valorClassicos!
+        });
+        await page.GetByRole(AriaRole.Button, new() { Name = "Atualizar analise" }).ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await ExpectAsync(page.Locator("select[name='categoriasIds'] option:checked")).ToHaveCountAsync(2);
+        await ExpectAsync(page.Locator(".admin-sales-chart-card").Nth(1)).ToContainTextAsync("Fic");
+    }
+
     private static async Task<ResultadoCompraVisual> ExecutarFluxoCompraVisualAsync(CenarioCompraVisual cenario) {
         var baseUrl = Environment.GetEnvironmentVariable("LIVROS_BASE_URL") ?? "https://localhost:44357";
 
@@ -428,6 +526,58 @@ public class VendaPlaywrightTests {
         await page.WaitForTimeoutAsync(1200);
     }
 
+    private static async Task AbrirChatbotAsync(IPage page) {
+        var toggle = page.Locator("[data-chatbot-toggle]");
+        await ExpectAsync(toggle).ToBeVisibleAsync();
+        await toggle.ClickAsync();
+        await ExpectAsync(page.Locator("[data-chatbot-panel]")).ToHaveAttributeAsync("aria-hidden", "false");
+        await ExpectAsync(page.Locator("[data-chatbot-input]")).ToBeVisibleAsync();
+    }
+
+    private static async Task<ChatbotInteractionResult> EnviarPerguntaChatbotAsync(IPage page, string pergunta) {
+        var messages = page.Locator("[data-chatbot-messages]");
+        var userCountAntes = await page.Locator(".chatbot-message.user").CountAsync();
+        var assistantCountAntes = await page.Locator(".chatbot-message.assistant").CountAsync();
+        var input = page.Locator("[data-chatbot-input]");
+
+        await input.FillAsync(pergunta);
+        var response = await page.RunAndWaitForResponseAsync(
+            async () => {
+                await input.PressAsync("Enter");
+            },
+            response => response.Url.Contains("/Chatbot/Recommend", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(response.Request.Method, "POST", StringComparison.OrdinalIgnoreCase),
+            new() {
+                Timeout = 30000
+            });
+
+        Assert.True(response.Ok, $"A chamada do chatbot falhou com status HTTP {(int)response.Status}.");
+
+        await Assertions.Expect(page.Locator(".chatbot-message.user")).ToHaveCountAsync(userCountAntes + 1, new() {
+            Timeout = 10000
+        });
+        await Assertions.Expect(page.Locator(".chatbot-message.assistant")).ToHaveCountAsync(assistantCountAntes + 1, new() {
+            Timeout = 10000
+        });
+
+        var userMessage = page.Locator(".chatbot-message.user").Nth(userCountAntes);
+        var assistantMessage = page.Locator(".chatbot-message.assistant").Nth(assistantCountAntes);
+        await ExpectAsync(userMessage).ToContainTextAsync(pergunta);
+        await ExpectAsync(assistantMessage).ToBeVisibleAsync();
+        await ExpectAsync(assistantMessage.Locator(".chatbot-message-bubble")).Not.ToContainTextAsync("Estou analisando o catalogo", new() {
+            Timeout = 10000
+        });
+
+        var recommendationCards = assistantMessage.Locator(".chatbot-book-card");
+        await messages.EvaluateAsync("element => { element.scrollTop = element.scrollHeight; }");
+        await page.WaitForTimeoutAsync(800);
+
+        return new ChatbotInteractionResult {
+            Bubble = assistantMessage.Locator(".chatbot-message-bubble"),
+            Cards = recommendationCards
+        };
+    }
+
     private static async Task AtualizarStatusPedidoNoAdminAsync(IPage page, ILocator linhaPedido, string statusAtualEsperado, string novoStatus, string statusPagamentoEsperado) {
         await ExpectAsync(linhaPedido).ToBeVisibleAsync();
         await linhaPedido.ScrollIntoViewIfNeededAsync();
@@ -610,6 +760,36 @@ public class VendaPlaywrightTests {
         }
 
         return match.Groups["codigo"].Value.Trim().TrimEnd('.', ',');
+    }
+
+    private static async Task<string?> ObterValorOpcaoPorTextoAsync(ILocator selectLocator, string textoOpcao) {
+        return await selectLocator.EvaluateAsync<string?>(
+            @"(select, texto) => {
+                const normalize = (value) => (value || '')
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .trim()
+                    .toLowerCase();
+                const option = Array.from(select.options)
+                    .find(item => item.textContent && normalize(item.textContent) === normalize(texto));
+                return option ? option.value : null;
+            }",
+            textoOpcao);
+    }
+
+    private static async Task<string?> ObterPrimeiroValorOpcaoDiferenteAsync(ILocator selectLocator, string valorIgnorado) {
+        return await selectLocator.EvaluateAsync<string?>(
+            @"(select, valor) => {
+                const option = Array.from(select.options)
+                    .find(item => item.value !== valor);
+                return option ? option.value : null;
+            }",
+            valorIgnorado);
+    }
+
+    private sealed class ChatbotInteractionResult {
+        public required ILocator Bubble { get; init; }
+        public required ILocator Cards { get; init; }
     }
 
     private static ILocatorAssertions ExpectAsync(ILocator locator) => Assertions.Expect(locator);

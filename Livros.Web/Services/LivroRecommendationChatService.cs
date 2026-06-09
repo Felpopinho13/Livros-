@@ -143,8 +143,19 @@ namespace Livros.Web.Services {
                 .Where(l => l.IsAtivo)
                 .ToListAsync(cancellationToken);
             var authorIntent = TryExtractAuthorIntent(message, books);
-            var categoryIntent = authorIntent == null ? TryExtractCategoryIntent(message, books) : null;
+            var categoryIntent = TryExtractCategoryIntent(message, books);
             var candidateBooks = FilterBooksByIntent(books, authorIntent, categoryIntent);
+
+            if (authorIntent != null && categoryIntent != null && !candidateBooks.Any()) {
+                var combinedReply = $"Nao encontrei livros ativos do catalogo escritos por {authorIntent.DisplayText} na categoria {categoryIntent.DisplayText}.";
+                UpdateSessionState(sessionState, message, combinedReply, Array.Empty<int>());
+
+                return new ChatbotResponse {
+                    Reply = combinedReply,
+                    UsedAi = false,
+                    Source = "fallback"
+                };
+            }
 
             if (authorIntent != null && !candidateBooks.Any()) {
                 var authorReply = $"Nao encontrei livros do catalogo escritos por {authorIntent.DisplayText}.";
@@ -685,6 +696,7 @@ Escreva uma resposta curta recomendando entre 1 e 3 livros dessa lista e expliqu
                 }
 
                 var displayText = match.Groups["author"].Value.Trim(' ', '.', '!', '?', '"');
+                displayText = SanitizeAuthorCandidate(displayText);
                 if (string.IsNullOrWhiteSpace(displayText)) {
                     continue;
                 }
@@ -802,6 +814,20 @@ Escreva uma resposta curta recomendando entre 1 e 3 livros dessa lista e expliqu
             }
 
             return builder.ToString().Normalize(NormalizationForm.FormC);
+        }
+
+        private static string SanitizeAuthorCandidate(string text) {
+            if (string.IsNullOrWhiteSpace(text)) {
+                return string.Empty;
+            }
+
+            var sanitized = Regex.Replace(
+                text,
+                @"\s+(?:na\s+categoria|no\s+genero|na\s+area|em\s+categoria|categoria|genero)\s+.+$",
+                string.Empty,
+                RegexOptions.IgnoreCase);
+
+            return sanitized.Trim(' ', '.', '!', '?', '"');
         }
 
         private static string? ResolveAuthorFromCatalog(string candidateText, IEnumerable<Livro> books) {
