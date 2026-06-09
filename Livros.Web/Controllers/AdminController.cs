@@ -3,6 +3,7 @@ using Livros.Infrastructure.Data;
 using Livros.Infrastructure.Services;
 using Livros.Web.Helpers;
 using Livros.Web.Models.ViewModels;
+using Livros.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
@@ -11,11 +12,13 @@ public class AdminController : Controller {
     private readonly AppDbContext _context;
     private readonly LivroService _livroService;
     private readonly EstoqueService _estoqueService;
+    private readonly AdminSalesHistorySeedService _adminSalesHistorySeedService;
 
-    public AdminController(AppDbContext context, LivroService livroService, EstoqueService estoqueService) {
+    public AdminController(AppDbContext context, LivroService livroService, EstoqueService estoqueService, AdminSalesHistorySeedService adminSalesHistorySeedService) {
         _context = context;
         _livroService = livroService;
         _estoqueService = estoqueService;
+        _adminSalesHistorySeedService = adminSalesHistorySeedService;
     }
 
     public IActionResult Dashboard() {
@@ -413,6 +416,21 @@ public class AdminController : Controller {
 
         var estoques = _estoqueService.Listar();
         return View(estoques);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GerarHistoricoAnaliseVendas(int meses = 13, CancellationToken cancellationToken = default) {
+        var resultado = await _adminSalesHistorySeedService.GenerateAsync(meses, cancellationToken);
+
+        if (resultado.Succeeded) {
+            TempData["Sucesso"] = resultado.Message;
+        }
+        else {
+            TempData["Erro"] = resultado.Message;
+        }
+
+        return RedirectToAction(nameof(AnaliseVendas));
     }
 
     [HttpGet]

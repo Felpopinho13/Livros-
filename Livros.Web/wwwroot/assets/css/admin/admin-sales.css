@@ -3,6 +3,65 @@
     color: #6b7280;
 }
 
+.admin-sales-feedback {
+    margin: 24px 26px 0;
+    padding: 14px 18px;
+    border-radius: 14px;
+    border: 1px solid;
+    font-weight: 600;
+}
+
+.admin-sales-feedback-success {
+    background: #ecfdf3;
+    border-color: #86efac;
+    color: #166534;
+}
+
+.admin-sales-feedback-error {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #991b1b;
+}
+
+.admin-sales-tools {
+    margin: 24px 26px 0;
+}
+
+.admin-sales-seed-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 18px;
+    padding: 24px;
+    border-radius: 22px;
+    background: #fff;
+    border: 1px solid #e8eef7;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+}
+
+.admin-sales-seed-card h3 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    color: #0f172a;
+}
+
+.admin-sales-seed-card p {
+    margin: 0;
+    max-width: 760px;
+    color: #6b7280;
+}
+
+.admin-sales-seed-form {
+    display: flex;
+    align-items: end;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.admin-sales-seed-input {
+    width: 120px;
+}
+
 .admin-sales-filters {
     grid-template-columns: repeat(3, minmax(180px, 220px)) minmax(280px, 360px) auto;
     align-items: end;
@@ -122,7 +181,35 @@
 
 .admin-sales-chart {
     width: 100%;
+    position: relative;
     overflow-x: auto;
+}
+
+.admin-sales-tooltip {
+    position: absolute;
+    z-index: 3;
+    display: none;
+    min-width: 150px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.96);
+    color: #f8fafc;
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.18);
+    pointer-events: none;
+}
+
+.admin-sales-tooltip.is-visible {
+    display: grid;
+    gap: 2px;
+}
+
+.admin-sales-tooltip strong {
+    font-size: 13px;
+}
+
+.admin-sales-tooltip span {
+    font-size: 12px;
+    color: #cbd5e1;
 }
 
 .admin-sales-empty-state {
@@ -163,6 +250,18 @@
     stroke-linejoin: round;
 }
 
+.chart-point {
+    fill: #ffffff;
+    stroke: var(--point-color, #2563eb);
+    stroke-width: 3;
+    cursor: pointer;
+    transition: transform 0.15s ease, r 0.15s ease;
+}
+
+.chart-point:hover {
+    r: 8.5;
+}
+
 .chart-line-revenue {
     stroke: #f97316;
 }
@@ -199,6 +298,12 @@
 @media (max-width: 860px) {
     .admin-sales-filters {
         grid-template-columns: 1fr;
+    }
+
+    .admin-sales-seed-card,
+    .admin-sales-seed-form {
+        flex-direction: column;
+        align-items: stretch;
     }
 
     .admin-sales-summary {

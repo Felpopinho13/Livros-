@@ -24,6 +24,7 @@ builder.Services.AddScoped<ClienteService>();
 builder.Services.AddScoped<LivroService>();
 builder.Services.AddScoped<EnderecoService>();
 builder.Services.AddScoped<EstoqueService>();
+builder.Services.AddScoped<AdminSalesHistorySeedService>();
 builder.Services.AddHttpClient<LivroRecommendationChatService>(client => {
     client.Timeout = TimeSpan.FromSeconds(25);
 });

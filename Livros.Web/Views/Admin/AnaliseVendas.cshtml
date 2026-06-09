@@ -31,6 +31,33 @@
 </div>
 
 <div class="admin-table-wrapper">
+    @if (TempData["Sucesso"] is string sucesso && !string.IsNullOrWhiteSpace(sucesso)) {
+        <div class="admin-sales-feedback admin-sales-feedback-success">@sucesso</div>
+    }
+
+    @if (TempData["Erro"] is string erro && !string.IsNullOrWhiteSpace(erro)) {
+        <div class="admin-sales-feedback admin-sales-feedback-error">@erro</div>
+    }
+
+    <div class="admin-sales-tools">
+        <section class="admin-sales-seed-card">
+            <div>
+                <h3>Gerar historico para apresentacao</h3>
+                <p>Cria pedidos distribuidos pelos ultimos meses, usa clientes ativos ou clientes demo e reforca o estoque automaticamente antes de registrar as vendas.</p>
+            </div>
+
+            <form asp-action="GerarHistoricoAnaliseVendas" method="post" class="admin-sales-seed-form">
+                @Html.AntiForgeryToken()
+                <div class="admin-form-group">
+                    <label for="meses">Meses para popular</label>
+                    <input id="meses" name="meses" type="number" min="13" max="36" value="13" class="admin-input admin-sales-seed-input" />
+                </div>
+
+                <button type="submit" class="btn-primary">Gerar vendas historicas</button>
+            </form>
+        </section>
+    </div>
+
     <form method="get" class="admin-filters-card admin-sales-filters">
         <div class="admin-form-group">
             <label>Data inicial</label>
@@ -212,6 +239,76 @@
             const revenueValues = revenueData.map(item => Number(item.value));
             const orderValues = ordersData.map(item => Number(item.value));
             const combinedMax = Math.max(1, ...revenueValues, ...orderValues);
+            const currencyFormatter = new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
+            const integerFormatter = new Intl.NumberFormat('pt-BR', {
+                maximumFractionDigits: 0
+            });
+
+            const escapeHtml = (value) => String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+
+            const ensureTooltip = (targetContainer) => {
+                let tooltip = targetContainer.querySelector('.admin-sales-tooltip');
+                if (!tooltip) {
+                    tooltip = document.createElement('div');
+                    tooltip.className = 'admin-sales-tooltip';
+                    targetContainer.appendChild(tooltip);
+                }
+
+                return tooltip;
+            };
+
+            const positionTooltip = (event, targetContainer, tooltip) => {
+                const bounds = targetContainer.getBoundingClientRect();
+                const offsetX = event.clientX - bounds.left + targetContainer.scrollLeft;
+                const offsetY = event.clientY - bounds.top + targetContainer.scrollTop;
+                const tooltipWidth = tooltip.offsetWidth;
+                const tooltipHeight = tooltip.offsetHeight;
+                const maxLeft = targetContainer.scrollWidth - tooltipWidth - 12;
+                const left = Math.min(Math.max(12, offsetX + 16), Math.max(12, maxLeft));
+                const top = Math.max(12, offsetY - tooltipHeight - 14);
+
+                tooltip.style.left = `${left}px`;
+                tooltip.style.top = `${top}px`;
+            };
+
+            const attachTooltip = (targetContainer) => {
+                const tooltip = ensureTooltip(targetContainer);
+                const points = targetContainer.querySelectorAll('.chart-point');
+
+                const hideTooltip = () => {
+                    tooltip.classList.remove('is-visible');
+                };
+
+                points.forEach(point => {
+                    const showTooltip = (event) => {
+                        const series = point.getAttribute('data-series');
+                        const label = point.getAttribute('data-label');
+                        const value = point.getAttribute('data-value');
+
+                        tooltip.innerHTML = `
+                            <strong>${escapeHtml(series)}</strong>
+                            <span>${escapeHtml(label)}</span>
+                            <span>${escapeHtml(value)}</span>
+                        `;
+                        tooltip.classList.add('is-visible');
+                        positionTooltip(event, targetContainer, tooltip);
+                    };
+
+                    point.addEventListener('mouseenter', showTooltip);
+                    point.addEventListener('mousemove', showTooltip);
+                    point.addEventListener('mouseleave', hideTooltip);
+                });
+
+                targetContainer.addEventListener('mouseleave', hideTooltip);
+            };
 
             const buildPoints = (values) => values.map((value, index) => {
                 const x = labels.length === 1
@@ -220,6 +317,26 @@
                 const y = height - padding - ((value / combinedMax) * (height - padding * 2));
                 return `${x},${y}`;
             }).join(' ');
+
+            const buildInteractivePoints = (values, color, seriesName, formatter) => values.map((value, index) => {
+                const x = labels.length === 1
+                    ? width / 2
+                    : padding + (index * (width - padding * 2)) / (labels.length - 1);
+                const y = height - padding - ((Number(value) / combinedMax) * (height - padding * 2));
+                const formattedValue = formatter(Number(value));
+                return `
+                    <circle
+                        class="chart-point"
+                        cx="${x}"
+                        cy="${y}"
+                        r="7"
+                        style="--point-color:${color}"
+                        data-series="${escapeHtml(seriesName)}"
+                        data-label="${escapeHtml(labels[index])}"
+                        data-value="${escapeHtml(formattedValue)}">
+                    </circle>
+                `;
+            }).join('');
 
             const gridLines = [0, 1, 2, 3, 4].map(step => {
                 const y = padding + ((height - padding * 2) / 4) * step;
@@ -246,10 +363,13 @@
                     <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" class="chart-axis-line"></line>
                     <polyline fill="none" points="${buildPoints(revenueValues)}" class="chart-line chart-line-revenue"></polyline>
                     <polyline fill="none" points="${buildPoints(orderValues)}" class="chart-line chart-line-orders"></polyline>
+                    ${buildInteractivePoints(revenueValues, '#f97316', 'Receita', value => currencyFormatter.format(value))}
+                    ${buildInteractivePoints(orderValues, '#2563eb', 'Pedidos', value => `${integerFormatter.format(value)} pedido(s)`)}
                     ${xLabels}
                     ${yLabels}
                 </svg>
             `;
+            attachTooltip(container);
 
             if (!categoryContainer) return;
 
@@ -263,6 +383,25 @@
                 const y = height - padding - ((Number(value) / categoryMax) * (height - padding * 2));
                 return `${x},${y}`;
             }).join(' ');
+
+            const buildCategoryInteractivePoints = (series) => series.values.map((value, index) => {
+                const x = categoryLabels.length === 1
+                    ? width / 2
+                    : padding + (index * (width - padding * 2)) / (categoryLabels.length - 1);
+                const y = height - padding - ((Number(value) / categoryMax) * (height - padding * 2));
+                return `
+                    <circle
+                        class="chart-point"
+                        cx="${x}"
+                        cy="${y}"
+                        r="7"
+                        style="--point-color:${series.color}"
+                        data-series="${escapeHtml(series.name)}"
+                        data-label="${escapeHtml(categoryLabels[index])}"
+                        data-value="${escapeHtml(`${integerFormatter.format(Number(value))} livro(s)`)}">
+                    </circle>
+                `;
+            }).join('');
 
             if (!categorySeries.length) {
                 categoryContainer.innerHTML = '<div class="admin-sales-empty-state">Selecione uma ou mais categorias para visualizar o grafico de volume vendido.</div>';
@@ -294,6 +433,7 @@
                     class="chart-line"
                     style="stroke:${series.color}">
                 </polyline>
+                ${buildCategoryInteractivePoints(series)}
             `).join('');
 
             categoryContainer.innerHTML = `
@@ -306,6 +446,7 @@
                     ${categoryYLabels}
                 </svg>
             `;
+            attachTooltip(categoryContainer);
         })();
     </script>
 }
