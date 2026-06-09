@@ -42,6 +42,35 @@ namespace Livros.Web.Services {
             "ler durante"
         };
 
+        private static readonly string[] LearningTriggerKeywords = {
+            "ensine",
+            "ensinar",
+            "ensina",
+            "aprender",
+            "aprenda",
+            "como",
+            "curso",
+            "treinar",
+            "treino"
+        };
+
+        private static readonly HashSet<string> NarrativeCategoryKeywords = new(StringComparer.OrdinalIgnoreCase) {
+            "aventura",
+            "classicos",
+            "contos",
+            "drama",
+            "fantasia",
+            "ficcao",
+            "ficcao cientifica",
+            "infantil",
+            "juvenil",
+            "misterio",
+            "romance",
+            "suspense",
+            "terror",
+            "hqs e mangas"
+        };
+
         private static readonly ContextFamily[] IncompatibleReadingContexts = {
             new(
                 "atividade fisica ou evento esportivo",
@@ -110,6 +139,76 @@ namespace Livros.Web.Services {
                     "debaixo dagua",
                     "debaixo d'agua",
                     "nadando"
+                })
+        };
+
+        private static readonly PurposeMismatchFamily[] IncompatibleLearningPurposes = {
+            new(
+                "nadar",
+                "Um livro de ficcao nao seria a melhor forma de aprender a nadar.",
+                "Se a ideia for manter um clima de ficcao ou narrativa, eu posso te sugerir estes livros do catalogo: ",
+                false,
+                new[] {
+                    "nadar",
+                    "nadando",
+                    "natacao",
+                    "piscina",
+                    "mergulho",
+                    "surfe"
+                }),
+            new(
+                "dirigir ou pilotar",
+                "Um livro de ficcao nao seria a melhor forma de aprender a dirigir ou pilotar com seguranca.",
+                "Se quiser manter o genero pedido para outro momento, eu posso te sugerir estes livros do catalogo: ",
+                false,
+                new[] {
+                    "dirigir",
+                    "dirigindo",
+                    "volante",
+                    "pilotar",
+                    "moto",
+                    "caminhao",
+                    "aviao",
+                    "voar"
+                }),
+            new(
+                "cirurgia ou procedimento tecnico",
+                "Esse tipo de aprendizado exige material tecnico especifico, nao um livro de ficcao ou narrativa.",
+                "Se a ideia for escolher uma leitura do catalogo para outro objetivo, eu posso te sugerir estes livros: ",
+                false,
+                new[] {
+                    "cirurgia",
+                    "operar",
+                    "suturar",
+                    "medicina",
+                    "procedimento"
+                }),
+            new(
+                "conserto ou manutencao pratica",
+                "Um livro de ficcao nao seria a melhor referencia para conserto ou manutencao pratica.",
+                "Se quiser, eu posso te redirecionar para livros do catalogo que combinem melhor com o seu gosto de leitura: ",
+                false,
+                new[] {
+                    "consertar",
+                    "geladeira",
+                    "encanamento",
+                    "eletrica",
+                    "eletrico",
+                    "manutencao",
+                    "reparo"
+                }),
+            new(
+                "resultado irreal ou fora do escopo",
+                "Esse pedido foge do que um livro do catalogo realmente pode entregar.",
+                "Se quiser, eu posso sugerir livros do catalogo que combinem com o genero ou autor que voce pediu: ",
+                true,
+                new[] {
+                    "loteria",
+                    "ganhar na loteria",
+                    "voar",
+                    "teletransporte",
+                    "curar tudo",
+                    "resolver depressao em 1 dia"
                 })
         };
 
@@ -195,6 +294,19 @@ namespace Livros.Web.Services {
             if (activityContextReply != null) {
                 UpdateSessionState(sessionState, message, activityContextReply.Reply, activityContextReply.Recommendations.Select(x => x.Id));
                 return activityContextReply;
+            }
+
+            var purposeMismatchReply = TryBuildPurposeMismatchReply(
+                message,
+                authorIntent,
+                categoryIntent,
+                genericBooks,
+                customerProfile,
+                popularityByBookId);
+
+            if (purposeMismatchReply != null) {
+                UpdateSessionState(sessionState, message, purposeMismatchReply.Reply, purposeMismatchReply.Recommendations.Select(x => x.Id));
+                return purposeMismatchReply;
             }
 
             if (hasSpecificIntent && scoredBooks.All(x => x.DirectMatchScore <= 0)) {
@@ -561,6 +673,73 @@ namespace Livros.Web.Services {
             };
         }
 
+        private ChatbotResponse? TryBuildPurposeMismatchReply(
+            string message,
+            AuthorIntent? authorIntent,
+            CategoryIntent? categoryIntent,
+            IReadOnlyList<ScoredBook> genericBooks,
+            CustomerProfile customerProfile,
+            IReadOnlyDictionary<int, int> popularityByBookId) {
+            var normalized = NormalizeForMatch(message);
+            var matchedPurpose = IncompatibleLearningPurposes.FirstOrDefault(context =>
+                ContainsAny(normalized, context.NormalizedKeywords));
+            if (matchedPurpose == null) {
+                return null;
+            }
+
+            var hasLearningTrigger = ContainsAny(normalized, LearningTriggerKeywords);
+            var hasNarrativeIntent = authorIntent != null
+                || (categoryIntent != null && IsNarrativeCategoryIntent(categoryIntent));
+
+            if (matchedPurpose.AllowWithoutLearningTrigger) {
+                hasNarrativeIntent = true;
+            }
+
+            if (!hasNarrativeIntent) {
+                return null;
+            }
+
+            if (!hasLearningTrigger && !matchedPurpose.AllowWithoutLearningTrigger) {
+                return null;
+            }
+
+            var recommendedBooks = genericBooks
+                .Select(x => new RecommendedBookDto {
+                    Id = x.Book.Id,
+                    Title = x.Book.Titulo,
+                    Author = x.Book.Autor,
+                    Price = $"R$ {x.Book.Preco:N2}",
+                    ImageUrl = x.Book.ImagemUrl,
+                    DetailsUrl = $"/Home/Detalhes/{x.Book.Id}",
+                    Reason = BuildReason(x.Book, string.Empty, customerProfile, popularityByBookId),
+                    Categories = x.Book.Categorias?
+                        .OrderBy(c => c.Nome)
+                        .Select(c => c.Nome)
+                        .ToList() ?? new List<string>()
+                })
+                .ToList();
+
+            var replyBuilder = new StringBuilder();
+            replyBuilder.Append(matchedPurpose.IntroReply);
+            replyBuilder.Append(' ');
+
+            if (recommendedBooks.Any()) {
+                replyBuilder.Append(matchedPurpose.RedirectReply);
+                replyBuilder.Append(string.Join(", ", recommendedBooks.Select(x => x.Title)));
+                replyBuilder.Append('.');
+            }
+            else {
+                replyBuilder.Append("Se quiser, eu posso tentar uma recomendacao mais alinhada ao genero, autor ou tema de leitura que voce procura.");
+            }
+
+            return new ChatbotResponse {
+                Reply = replyBuilder.ToString(),
+                UsedAi = false,
+                Source = "fallback",
+                Recommendations = recommendedBooks
+            };
+        }
+
         private async Task<string?> GenerateAiReplyAsync(
             string message,
             IReadOnlyList<RecommendedBookDto> books,
@@ -799,6 +978,14 @@ Escreva uma resposta curta recomendando entre 1 e 3 livros dessa lista e expliqu
                 normalizedCategories.Any(name => name.Contains(token, StringComparison.OrdinalIgnoreCase)));
         }
 
+        private static bool IsNarrativeCategoryIntent(CategoryIntent categoryIntent) {
+            if (NarrativeCategoryKeywords.Contains(categoryIntent.NormalizedText)) {
+                return true;
+            }
+
+            return categoryIntent.Tokens.Any(token => NarrativeCategoryKeywords.Contains(token));
+        }
+
         private static string NormalizeForMatch(string? text) {
             if (string.IsNullOrWhiteSpace(text)) {
                 return string.Empty;
@@ -824,6 +1011,12 @@ Escreva uma resposta curta recomendando entre 1 e 3 livros dessa lista e expliqu
             var sanitized = Regex.Replace(
                 text,
                 @"\s+(?:na\s+categoria|no\s+genero|na\s+area|em\s+categoria|categoria|genero)\s+.+$",
+                string.Empty,
+                RegexOptions.IgnoreCase);
+
+            sanitized = Regex.Replace(
+                sanitized,
+                @"\s+(?:para\s+aprender|pra\s+aprender|para\s+ganhar|pra\s+ganhar|para\s+ensinar|pra\s+ensinar|que\s+ensine|que\s+ensina|para\s+consertar|pra\s+consertar|para\s+dirigir|pra\s+dirigir|para\s+pilotar|pra\s+pilotar|para\s+nadar|pra\s+nadar)\s+.+$",
                 string.Empty,
                 RegexOptions.IgnoreCase);
 
@@ -954,6 +1147,12 @@ Escreva uma resposta curta recomendando entre 1 e 3 livros dessa lista e expliqu
 
         private sealed record AuthorPattern(string Pattern, bool RequireCatalogMatch);
         private sealed record ContextFamily(string DisplayName, string IntroReply, string RedirectReply, IReadOnlyList<string> Keywords) {
+            public IReadOnlyList<string> NormalizedKeywords { get; } = Keywords
+                .Select(NormalizeForMatch)
+                .Where(keyword => !string.IsNullOrWhiteSpace(keyword))
+                .ToList();
+        }
+        private sealed record PurposeMismatchFamily(string DisplayName, string IntroReply, string RedirectReply, bool AllowWithoutLearningTrigger, IReadOnlyList<string> Keywords) {
             public IReadOnlyList<string> NormalizedKeywords { get; } = Keywords
                 .Select(NormalizeForMatch)
                 .Where(keyword => !string.IsNullOrWhiteSpace(keyword))
