@@ -1,6 +1,11 @@
 ﻿using Livros.Domain;
+using Livros.Application.AdminExchanges;
+using Livros.Application.AdminCustomers;
+using Livros.Application.AdminOrders;
+using Livros.Application.SalesAnalysis;
 using Livros.Infrastructure.Data;
 using Livros.Infrastructure.Services;
+using Livros.Application.Recommendations;
 using Livros.Web.Configuration;
 using Livros.Web.Services;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +28,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<ClienteService>();
 builder.Services.AddScoped<LivroService>();
 builder.Services.AddScoped<EnderecoService>();
+builder.Services.AddScoped<IAdminCustomersDataProvider, AdminCustomersDataProvider>();
+builder.Services.AddScoped<AdminCustomersService>();
+builder.Services.AddScoped<IAdminExchangesDataProvider, AdminExchangesDataProvider>();
+builder.Services.AddScoped<AdminExchangesService>();
+builder.Services.AddScoped<IAdminOrdersDataProvider, AdminOrdersDataProvider>();
+builder.Services.AddScoped<AdminOrdersService>();
 builder.Services.AddScoped<EstoqueService>();
+builder.Services.AddScoped<ILivroRecommendationDataProvider, LivroRecommendationDataProvider>();
+builder.Services.AddScoped<ISalesAnalysisDataProvider, SalesAnalysisDataProvider>();
+builder.Services.AddScoped<SalesAnalysisService>();
 builder.Services.AddScoped<AdminSalesHistorySeedService>();
 builder.Services.AddHttpClient<LivroRecommendationChatService>(client => {
     client.Timeout = TimeSpan.FromSeconds(25);
@@ -116,3 +130,7 @@ static string NormalizarCategoria(string? nome) {
         .ToString()
         .Normalize(NormalizationForm.FormC);
 }
+
+
+
+

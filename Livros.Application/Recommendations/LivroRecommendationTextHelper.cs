@@ -3,8 +3,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Livros.Domain;
 
-namespace Livros.Web.Services {
-    internal static class LivroRecommendationTextHelper {
+namespace Livros.Application.Recommendations {
+    public static class LivroRecommendationTextHelper {
         private static readonly HashSet<string> StopWords = new(StringComparer.OrdinalIgnoreCase) {
             "a", "as", "o", "os", "de", "da", "do", "das", "dos", "para", "por", "com", "sem",
             "um", "uma", "uns", "umas", "e", "ou", "que", "me", "tem", "tenho", "quero",

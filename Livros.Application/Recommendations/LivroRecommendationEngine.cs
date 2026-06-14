@@ -1,9 +1,8 @@
 using System.Text;
 using Livros.Domain;
-using Livros.Web.Models.Chatbot;
 
-namespace Livros.Web.Services {
-    internal static class LivroRecommendationCatalogEngine {
+namespace Livros.Application.Recommendations {
+    public static class LivroRecommendationEngine {
         public static List<Livro> FilterCandidateBooks(IEnumerable<Livro> books, LivroRecommendationSearchIntent intent) {
             var filtered = books;
 
@@ -27,9 +26,9 @@ namespace Livros.Web.Services {
             string message,
             LivroRecommendationCustomerProfile customerProfile,
             IReadOnlyDictionary<int, int> popularityByBookId,
-            ChatbotSessionState sessionState) {
+            IReadOnlyCollection<int> lastRecommendedBookIds) {
             var tokens = LivroRecommendationTextHelper.Tokenize(message);
-            var lastRecommendedBookIds = sessionState.LastRecommendedBookIds.ToHashSet();
+            var lastRecommended = lastRecommendedBookIds.ToHashSet();
 
             return books
                 .Select(book => {
@@ -54,7 +53,7 @@ namespace Livros.Web.Services {
                         score -= 120;
                     }
 
-                    if (lastRecommendedBookIds.Contains(book.Id)) {
+                    if (lastRecommended.Contains(book.Id)) {
                         score -= 30;
                     }
 
@@ -96,29 +95,6 @@ namespace Livros.Web.Services {
                 : candidates.Take(3).ToList();
         }
 
-        public static List<RecommendedBookDto> MapRecommendations(
-            IReadOnlyList<LivroRecommendationScoredBook> selectedBooks,
-            string message,
-            LivroRecommendationCustomerProfile customerProfile,
-            IReadOnlyDictionary<int, int> popularityByBookId) {
-            return selectedBooks
-                .Take(3)
-                .Select(item => new RecommendedBookDto {
-                    Id = item.Book.Id,
-                    Title = item.Book.Titulo,
-                    Author = item.Book.Autor,
-                    Price = $"R$ {item.Book.Preco:N2}",
-                    ImageUrl = item.Book.ImagemUrl,
-                    DetailsUrl = $"/Home/Detalhes/{item.Book.Id}",
-                    Reason = BuildReason(item.Book, message, customerProfile, popularityByBookId),
-                    Categories = (item.Book.Categorias ?? new List<Categoria>())
-                        .OrderBy(category => category.Nome)
-                        .Select(category => category.Nome)
-                        .ToList()
-                })
-                .ToList();
-        }
-
         public static bool IsFallbackRecommendationSafe(
             string message,
             IReadOnlyList<LivroRecommendationScoredBook> selectedBooks,
@@ -147,13 +123,31 @@ namespace Livros.Web.Services {
             return !intent.HasCatalogConstraint && matchedTokens == tokens.Count;
         }
 
+        public static List<LivroRecommendationSuggestion> BuildSuggestions(
+            IReadOnlyList<LivroRecommendationScoredBook> selectedBooks,
+            string message,
+            LivroRecommendationCustomerProfile customerProfile,
+            IReadOnlyDictionary<int, int> popularityByBookId) {
+            return selectedBooks
+                .Take(3)
+                .Select(item => new LivroRecommendationSuggestion {
+                    Book = item.Book,
+                    Reason = BuildReason(item.Book, message, customerProfile, popularityByBookId),
+                    Categories = (item.Book.Categorias ?? new List<Categoria>())
+                        .OrderBy(category => category.Nome)
+                        .Select(category => category.Nome)
+                        .ToList()
+                })
+                .ToList();
+        }
+
         public static string BuildFallbackReply(
             string message,
-            IReadOnlyList<RecommendedBookDto> recommendations,
+            IReadOnlyList<LivroRecommendationSuggestion> suggestions,
             LivroRecommendationSearchIntent intent,
             LivroRecommendationCustomerProfile customerProfile) {
             var builder = new StringBuilder();
-            builder.Append($"Encontrei {recommendations.Count} livro(s) do catalogo relacionados aos termos da sua busca");
+            builder.Append($"Encontrei {suggestions.Count} livro(s) do catalogo relacionados aos termos da sua busca");
 
             if (!string.IsNullOrWhiteSpace(message)) {
                 builder.Append($" sobre \"{message}\"");
@@ -166,7 +160,7 @@ namespace Livros.Web.Services {
             }
 
             builder.Append(" Minhas principais sugestoes sao: ");
-            builder.Append(string.Join(", ", recommendations.Select(book => book.Title)));
+            builder.Append(string.Join(", ", suggestions.Select(item => item.Book.Titulo)));
             builder.Append('.');
 
             if (intent.WantsMoreOptions) {

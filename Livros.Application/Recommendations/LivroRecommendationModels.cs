@@ -1,7 +1,7 @@
 using Livros.Domain;
 
-namespace Livros.Web.Services {
-    internal sealed class LivroRecommendationCustomerProfile {
+namespace Livros.Application.Recommendations {
+    public sealed class LivroRecommendationCustomerProfile {
         public static LivroRecommendationCustomerProfile Empty { get; } = new();
 
         public bool HasHistory => PurchasedBookIds.Count > 0;
@@ -10,7 +10,7 @@ namespace Livros.Web.Services {
         public Dictionary<string, int> AuthorWeights { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    internal sealed class LivroRecommendationSearchIntent {
+    public sealed class LivroRecommendationSearchIntent {
         public string? Author { get; init; }
         public string? Category { get; init; }
         public string? Title { get; init; }
@@ -22,9 +22,15 @@ namespace Livros.Web.Services {
             || !string.IsNullOrWhiteSpace(Title);
     }
 
-    internal sealed class LivroRecommendationScoredBook {
+    public sealed class LivroRecommendationScoredBook {
         public required Livro Book { get; init; }
         public int DirectMatchScore { get; init; }
         public int Score { get; init; }
+    }
+
+    public sealed class LivroRecommendationSuggestion {
+        public required Livro Book { get; init; }
+        public string Reason { get; init; } = string.Empty;
+        public List<string> Categories { get; init; } = new();
     }
 }

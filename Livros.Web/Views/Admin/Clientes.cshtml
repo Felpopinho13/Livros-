@@ -1,10 +1,9 @@
-﻿@model List<Livros.Domain.Cliente>
+﻿@model Livros.Web.Models.ViewModels.AdminClientesViewModel
 
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Clientes";
-    var rankingsPorCliente = ViewBag.RankingsPorCliente as Dictionary<int, Livros.Web.Helpers.ClienteRankingInfo>
-        ?? new Dictionary<int, Livros.Web.Helpers.ClienteRankingInfo>();
+    var rankingsPorCliente = Model.RankingsPorCliente;
 }
 
 <div class="admin-page-header">
@@ -95,7 +94,7 @@
             </tr>
         </thead>
         <tbody>
-            @if (!Model.Any()) {
+            @if (!Model.Clientes.Any()) {
                 <tr>
                     <td colspan="6" style="text-align:center; color:red; font-weight:600;">
                         Cliente não encontrado
@@ -104,7 +103,7 @@
             }
             else {
 
-                @foreach (var c in Model) {
+                @foreach (var c in Model.Clientes) {
                     <tr>
                         <td>@c.Id</td>
                         <td>@c.Nome</td>
@@ -201,7 +200,7 @@
     </table>
     <div class="admin-pagination">
 
-        @for (int i = 1; i <= ViewBag.TotalPaginas; i++) {
+        @for (int i = 1; i <= Model.TotalPaginas; i++) {
             <a asp-action="Clientes"
                asp-route-pagina="@i"
                asp-route-busca="@Context.Request.Query["busca"]"
@@ -213,7 +212,7 @@
                asp-route-dataNascimento="@Context.Request.Query["dataNascimento"]"
                asp-route-status="@Context.Request.Query["status"]"
                asp-route-admin="@Context.Request.Query["admin"]"
-               class="page-number @(i == ViewBag.PaginaAtual ? "active" : "")">
+               class="page-number @(i == Model.PaginaAtual ? "active" : "")">
                 @i
             </a>
         }
