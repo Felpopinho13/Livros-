@@ -8,6 +8,7 @@ using Livros.Infrastructure.Data;
 using Livros.Infrastructure.Services;
 using Livros.Web.Controllers;
 using Livros.Web.Models.ViewModels;
+using Livros.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -316,7 +317,9 @@ public class PedidoControllerTests {
             cartService,
             checkoutService,
             orderPlacementService,
-            new CustomerOrdersService(new CustomerOrdersDataProvider(context)));
+            new CustomerOrdersService(new CustomerOrdersDataProvider(context)),
+            new CartSessionService(),
+            new UserSessionService());
 
         var httpContext = new DefaultHttpContext();
         var session = new TestSession();

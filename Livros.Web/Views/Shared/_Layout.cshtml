@@ -1,15 +1,9 @@
-﻿@using System.Text.Json
-@using Livros.Web.Models.ViewModels
+@inject Livros.Web.Services.UserSessionService UserSessionService
+@inject Livros.Web.Services.CartSessionService CartSessionService
 @{
-    var usuario = Context.Session.GetString("Usuario");
-    var isAdmin = Context.Session.GetString("IsAdmin");
-    var carrinhoCount = 0;
-    var carrinhoJson = Context.Session.GetString("Carrinho");
-
-    if (!string.IsNullOrWhiteSpace(carrinhoJson)) {
-        var itensCarrinho = JsonSerializer.Deserialize<List<CarrinhoSessionItem>>(carrinhoJson) ?? new List<CarrinhoSessionItem>();
-        carrinhoCount = itensCarrinho.Sum(i => i.Quantidade);
-    }
+    var usuario = UserSessionService.GetUserEmail(Context.Session);
+    var isAdmin = UserSessionService.IsAdmin(Context.Session);
+    var carrinhoCount = CartSessionService.LoadCart(Context.Session).Sum(item => item.Quantidade);
 }
 
 <!DOCTYPE html>
@@ -41,7 +35,7 @@
                 <a href="#" aria-label="Favoritos"><i class="bx bx-heart"></i></a>
                 <a asp-controller="Cliente" asp-action="AreaCliente" aria-label="Área do cliente"><i class="bx bx-user"></i></a>
 
-                @if (isAdmin == "True") {
+                @if (isAdmin) {
                     <a asp-controller="Admin" asp-action="Dashboard" aria-label="Admin"><i class="bx bx-cog"></i></a>
                 }
 
@@ -60,7 +54,7 @@
         </div>
     </footer>
 
-    @if (isAdmin != "True") {
+    @if (!isAdmin) {
         <div class="chatbot-shell" data-chatbot-root data-endpoint="@Url.Action("Recommend", "Chatbot")">
             <div class="chatbot-panel" data-chatbot-panel aria-hidden="true">
                 <div class="chatbot-header">
@@ -104,5 +98,3 @@
     @RenderSection("Scripts", required: false)
 </body>
 </html>
-
-

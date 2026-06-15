@@ -120,6 +120,10 @@ namespace Livros.Infrastructure.Services {
             _context.Cartoes.RemoveRange(cartoes);
         }
 
+        public string HashPassword(string plainTextPassword) {
+            return BCrypt.Net.BCrypt.HashPassword(plainTextPassword);
+        }
+
         public void SaveChanges() {
             _context.SaveChanges();
         }

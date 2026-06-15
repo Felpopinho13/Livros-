@@ -28,21 +28,41 @@ public class VendaPlaywrightTests {
     }
 
     [Fact]
-    public async Task DeveRegistrarPedidoComSucessoNoFluxoVisualDeCompraComDoisCartoes() {
-        await ExecutarFluxoCompraVisualAsync(new CenarioCompraVisual {
-            TipoEntrega = "PADRAO",
-            UsarDoisCartoes = true
-        });
-    }
-
-    [Fact]
     public async Task DeveRegistrarPedidoComDoisCartoesEValidarFluxoAdministrativo() {
-        await ExecutarFluxoCompraVisualAsync(new CenarioCompraVisual {
+        var baseUrl = Environment.GetEnvironmentVariable("LIVROS_BASE_URL") ?? "https://localhost:44357";
+
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions {
+            Headless = false,
+            SlowMo = 850
+        });
+
+        var artifactsDir = Path.Combine(AppContext.BaseDirectory, "playwright-artifacts");
+        Directory.CreateDirectory(artifactsDir);
+
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions {
+            IgnoreHTTPSErrors = true,
+            ViewportSize = new ViewportSize { Width = 1550, Height = 730 },
+            RecordVideoDir = artifactsDir,
+            RecordVideoSize = new RecordVideoSize { Width = 1550, Height = 730 }
+        });
+
+        var page = await context.NewPageAsync();
+
+        var compra = await ExecutarFluxoCompraVisualNaPaginaAsync(page, baseUrl, new CenarioCompraVisual {
             TipoEntrega = "PADRAO",
             UsarDoisCartoes = true,
             EmailLoginExistente = ClienteExistenteEmail,
             SenhaLoginExistente = ClienteExistenteSenha
         });
+
+        await page.GotoAsync($"{baseUrl}/Auth/Logout", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+        await page.WaitForTimeoutAsync(1200);
+
+        await FazerLoginAsync(page, baseUrl, AdminEmail, AdminSenha);
+        await ValidarPedidoNoAdminAteEntregueAsync(page, baseUrl, compra.PedidoId);
     }
 
     [Fact]
@@ -53,15 +73,6 @@ public class VendaPlaywrightTests {
             UsarCartao = true,
             EmailLoginExistente = ClienteExistenteEmail,
             SenhaLoginExistente = ClienteExistenteSenha
-        });
-    }
-
-    [Fact]
-    public async Task DeveRegistrarPedidoComSucessoNoFluxoVisualDeCompraComCupomECartao() {
-        await ExecutarFluxoCompraVisualAsync(new CenarioCompraVisual {
-            TipoEntrega = "PADRAO",
-            UsarCartao = true,
-            CupomPromocional = "DESCONTO10"
         });
     }
 
@@ -108,21 +119,7 @@ public class VendaPlaywrightTests {
         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await page.WaitForTimeoutAsync(1500);
 
-        await page.GotoAsync($"{baseUrl}/Admin/Pedidos?busca={compra.PedidoId}", new PageGotoOptions {
-            WaitUntil = WaitUntilState.NetworkIdle
-        });
-
-        await ExpectAsync(page.Locator(".admin-page-header h2")).ToContainTextAsync("Pedidos");
-
-        var linhaPedido = page.Locator("tbody tr").Filter(new() { HasText = $"#{compra.PedidoId}" }).First;
-        await ExpectAsync(linhaPedido).ToBeVisibleAsync();
-        await linhaPedido.ScrollIntoViewIfNeededAsync();
-        await ExpectAsync(linhaPedido.Locator(".admin-order-status")).ToContainTextAsync("APROVADA");
-        await page.WaitForTimeoutAsync(1500);
-
-        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "APROVADA", "EM SEPARACAO", "Aprovado");
-        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "EM SEPARACAO", "EM TRANSPORTE", "Aprovado");
-        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "EM TRANSPORTE", "ENTREGUE", "Aprovado");
+        await ValidarPedidoNoAdminAteEntregueAsync(page, baseUrl, compra.PedidoId);
 
         await page.GotoAsync($"{baseUrl}/Auth/Logout", new PageGotoOptions {
             WaitUntil = WaitUntilState.NetworkIdle
@@ -178,59 +175,6 @@ public class VendaPlaywrightTests {
         await FazerLoginAsync(page, baseUrl, compra.Email, compra.Senha);
         await RealizarCompraComCupomGeradoAsync(page, baseUrl, cupomTrocaGerado);
         await page.WaitForTimeoutAsync(2000);
-    }
-
-    [Fact]
-    public async Task DevePermitirFluxoAdministrativoDoPedidoAteEntregue() {
-        var baseUrl = Environment.GetEnvironmentVariable("LIVROS_BASE_URL") ?? "https://localhost:44357";
-
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions {
-            Headless = false,
-            SlowMo = 850
-        });
-
-        var artifactsDir = Path.Combine(AppContext.BaseDirectory, "playwright-artifacts");
-        Directory.CreateDirectory(artifactsDir);
-
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions {
-            IgnoreHTTPSErrors = true,
-            ViewportSize = new ViewportSize { Width = 1550, Height = 730 },
-            RecordVideoDir = artifactsDir,
-            RecordVideoSize = new RecordVideoSize { Width = 1550, Height = 730 }
-        });
-
-        var page = await context.NewPageAsync();
-
-        await page.GotoAsync($"{baseUrl}/Auth/Login", new PageGotoOptions {
-            WaitUntil = WaitUntilState.NetworkIdle
-        });
-
-        await page.Locator("input[name='Email']").FillAsync("admin@admin.com");
-        await page.Locator("input[name='Senha']").FillAsync("123");
-        await page.GetByRole(AriaRole.Button, new() { Name = "Entrar" }).ClickAsync();
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        await page.WaitForTimeoutAsync(1500);
-
-        await page.GotoAsync($"{baseUrl}/Admin/Pedidos", new PageGotoOptions {
-            WaitUntil = WaitUntilState.NetworkIdle
-        });
-
-        await ExpectAsync(page.Locator(".admin-page-header h2")).ToContainTextAsync("Pedidos");
-
-        var linhaPedido = page.Locator("tbody tr").First;
-        await ExpectAsync(linhaPedido).ToBeVisibleAsync();
-        await linhaPedido.ScrollIntoViewIfNeededAsync();
-        var numeroPedido = (await linhaPedido.Locator("td").First.InnerTextAsync()).Trim();
-        if (string.IsNullOrWhiteSpace(numeroPedido)) {
-            throw new InvalidOperationException("Nao foi possivel identificar o numero do ultimo pedido na tabela administrativa.");
-        }
-        await ExpectAsync(linhaPedido.Locator(".admin-order-status")).ToContainTextAsync("APROVADA");
-        await page.WaitForTimeoutAsync(1500);
-
-        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "APROVADA", "EM SEPARACAO", "Aprovado");
-        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "EM SEPARACAO", "EM TRANSPORTE", "Aprovado");
-        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "EM TRANSPORTE", "ENTREGUE", "Aprovado");
     }
 
     [Fact]
@@ -602,6 +546,24 @@ public class VendaPlaywrightTests {
         await ExpectAsync(linhaPedido.Locator(".admin-order-payment")).ToContainTextAsync(statusPagamentoEsperado);
         await ExpectAsync(linhaPedido.Locator(".admin-order-status")).ToContainTextAsync(novoStatus);
         await page.WaitForTimeoutAsync(1500);
+    }
+
+    private static async Task ValidarPedidoNoAdminAteEntregueAsync(IPage page, string baseUrl, string pedidoId) {
+        await page.GotoAsync($"{baseUrl}/Admin/Pedidos?busca={pedidoId}", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+
+        await ExpectAsync(page.Locator(".admin-page-header h2")).ToContainTextAsync("Pedidos");
+
+        var linhaPedido = page.Locator("tbody tr").Filter(new() { HasText = $"#{pedidoId}" }).First;
+        await ExpectAsync(linhaPedido).ToBeVisibleAsync();
+        await linhaPedido.ScrollIntoViewIfNeededAsync();
+        await ExpectAsync(linhaPedido.Locator(".admin-order-status")).ToContainTextAsync("APROVADA");
+        await page.WaitForTimeoutAsync(1500);
+
+        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "APROVADA", "EM SEPARACAO", "Aprovado");
+        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "EM SEPARACAO", "EM TRANSPORTE", "Aprovado");
+        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "EM TRANSPORTE", "ENTREGUE", "Aprovado");
     }
 
     private static async Task AprovarTrocaNoAdminAsync(IPage page, ILocator linhaTroca) {

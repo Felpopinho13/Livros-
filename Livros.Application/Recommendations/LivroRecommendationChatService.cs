@@ -1,24 +1,13 @@
-using Livros.Application.Recommendations;
-using Livros.Web.Configuration;
-using Livros.Web.Models.Chatbot;
-using Microsoft.Extensions.Options;
-
-namespace Livros.Web.Services {
+namespace Livros.Application.Recommendations {
     public sealed class LivroRecommendationChatService {
         private readonly ILivroRecommendationDataProvider _dataProvider;
-        private readonly HttpClient _httpClient;
-        private readonly OpenAiOptions _openAiOptions;
-        private readonly ILogger<LivroRecommendationChatService> _logger;
+        private readonly ILivroRecommendationAiClient _aiClient;
 
         public LivroRecommendationChatService(
             ILivroRecommendationDataProvider dataProvider,
-            HttpClient httpClient,
-            IOptions<OpenAiOptions> openAiOptions,
-            ILogger<LivroRecommendationChatService> logger) {
+            ILivroRecommendationAiClient aiClient) {
             _dataProvider = dataProvider;
-            _httpClient = httpClient;
-            _openAiOptions = openAiOptions.Value;
-            _logger = logger;
+            _aiClient = aiClient;
         }
 
         public async Task<ChatbotResponse> RecommendAsync(
@@ -63,7 +52,7 @@ namespace Livros.Web.Services {
                 trimmedMessage,
                 customerProfile,
                 popularityByBookId);
-            var recommendations = LivroRecommendationResponseBuilder.MapRecommendations(suggestions);
+            var recommendations = MapRecommendations(suggestions);
 
             var fallbackSafe = LivroRecommendationEngine.IsFallbackRecommendationSafe(
                 trimmedMessage,
@@ -81,26 +70,18 @@ namespace Livros.Web.Services {
             var usedAi = false;
             var source = "fallback";
 
-            if (LivroRecommendationOpenAiClient.CanUse(_openAiOptions)) {
-                try {
-                    var aiReply = await LivroRecommendationOpenAiClient.GenerateReplyAsync(
-                        _httpClient,
-                        _openAiOptions,
-                        _logger,
-                        trimmedMessage,
-                        recommendations,
-                        customerProfile,
-                        sessionState,
-                        cancellationToken);
+            if (responseRecommendations.Any()) {
+                var aiReply = await _aiClient.GenerateReplyAsync(
+                    trimmedMessage,
+                    recommendations,
+                    customerProfile,
+                    sessionState,
+                    cancellationToken);
 
-                    if (!string.IsNullOrWhiteSpace(aiReply)) {
-                        reply = aiReply.Trim();
-                        usedAi = true;
-                        source = "openai";
-                    }
-                }
-                catch (Exception ex) {
-                    _logger.LogWarning(ex, "Falha ao gerar resposta do chatbot com OpenAI. Usando fallback local.");
+                if (!string.IsNullOrWhiteSpace(aiReply)) {
+                    reply = aiReply.Trim();
+                    usedAi = true;
+                    source = "openai";
                 }
             }
 
@@ -112,6 +93,21 @@ namespace Livros.Web.Services {
                 Source = source,
                 Recommendations = responseRecommendations
             };
+        }
+
+        private static List<RecommendedBookDto> MapRecommendations(
+            IReadOnlyList<LivroRecommendationSuggestion> suggestions) {
+            return suggestions
+                .Select(item => new RecommendedBookDto {
+                    Id = item.Book.Id,
+                    Title = item.Book.Titulo,
+                    Author = item.Book.Autor,
+                    Price = item.Book.Preco,
+                    ImageUrl = item.Book.ImagemUrl,
+                    Reason = item.Reason,
+                    Categories = item.Categories
+                })
+                .ToList();
         }
 
         private static ChatbotResponse BuildSimpleResponse(string reply) {

@@ -1,26 +1,25 @@
-﻿using Livros.Domain;
-using Livros.Infrastructure.Services;
+using Livros.Application.Catalog;
 using Microsoft.AspNetCore.Mvc;
 
 public class HomeController : Controller {
-    private readonly LivroService _livroService;
+    private readonly CatalogService _catalogService;
 
-    public HomeController(LivroService livroService) {
-        _livroService = livroService;
+    public HomeController(CatalogService catalogService) {
+        _catalogService = catalogService;
     }
 
     public IActionResult Index() {
-        var livros = _livroService.Listar();
+        var livros = _catalogService.ListActiveBooks();
         return View(livros);
     }
 
     public IActionResult Detalhes(int id) {
-        var livro = _livroService.ObterPorId(id);
+        var livro = _catalogService.GetBookDetails(id);
 
-        if (livro == null)
+        if (livro == null) {
             return NotFound();
+        }
 
         return View(livro);
     }
-
 }

@@ -1,37 +1,43 @@
 using Livros.Application.CustomerAccounts;
 using Livros.Application.CustomerAddresses;
 using Livros.Application.CustomerCards;
+using Livros.Application.CustomerIdentity;
 using Livros.Domain;
-using Livros.Infrastructure.Services;
 using Livros.Web.Models.ViewModels;
+using Livros.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
 
 public class ClienteController : Controller {
-    private readonly ClienteService _service;
+    private readonly CustomerIdentityService _customerIdentityService;
     private readonly CustomerAddressService _customerAddressService;
     private readonly CustomerAccountService _customerAccountService;
     private readonly CustomerCardService _customerCardService;
+    private readonly UserSessionService _userSessionService;
+    private readonly CartSessionService _cartSessionService;
 
     public ClienteController(
-        ClienteService service,
+        CustomerIdentityService customerIdentityService,
         CustomerAddressService customerAddressService,
         CustomerAccountService customerAccountService,
-        CustomerCardService customerCardService) {
-        _service = service;
+        CustomerCardService customerCardService,
+        UserSessionService userSessionService,
+        CartSessionService cartSessionService) {
+        _customerIdentityService = customerIdentityService;
         _customerAddressService = customerAddressService;
         _customerAccountService = customerAccountService;
         _customerCardService = customerCardService;
+        _userSessionService = userSessionService;
+        _cartSessionService = cartSessionService;
     }
 
     public IActionResult Index() {
-        var clientes = _service.Listar();
+        var clientes = _customerIdentityService.ListActiveCustomers();
         return View(clientes);
     }
 
     public IActionResult AreaCliente() {
-        var usuario = HttpContext.Session.GetString("Usuario");
+        var usuario = _userSessionService.GetUserEmail(HttpContext.Session);
 
         if (usuario == null) {
             return RedirectToAction("Login", "Auth");
@@ -43,7 +49,7 @@ public class ClienteController : Controller {
         });
 
         if (!result.CustomerFound) {
-            HttpContext.Session.Clear();
+            _userSessionService.Clear(HttpContext.Session);
             return RedirectToAction("Login", "Auth");
         }
 
@@ -82,7 +88,7 @@ public class ClienteController : Controller {
     }
 
     public IActionResult Cupons() {
-        var usuario = HttpContext.Session.GetString("Usuario");
+        var usuario = _userSessionService.GetUserEmail(HttpContext.Session);
 
         if (usuario == null) {
             return RedirectToAction("Login", "Auth");
@@ -93,7 +99,7 @@ public class ClienteController : Controller {
         });
 
         if (!result.CustomerFound) {
-            HttpContext.Session.Clear();
+            _userSessionService.Clear(HttpContext.Session);
             return RedirectToAction("Login", "Auth");
         }
 
@@ -118,7 +124,7 @@ public class ClienteController : Controller {
     }
 
     public IActionResult Editar() {
-        var email = HttpContext.Session.GetString("Usuario");
+        var email = _userSessionService.GetUserEmail(HttpContext.Session);
 
         if (email == null) {
             return RedirectToAction("Login", "Auth");
@@ -137,7 +143,7 @@ public class ClienteController : Controller {
 
     [HttpGet]
     public IActionResult AlterarSenha() {
-        var email = HttpContext.Session.GetString("Usuario");
+        var email = _userSessionService.GetUserEmail(HttpContext.Session);
 
         if (email == null) {
             return RedirectToAction("Login", "Auth");
@@ -173,7 +179,7 @@ public class ClienteController : Controller {
             return View(cliente);
         }
 
-        HttpContext.Session.SetString("Usuario", result.UpdatedEmail ?? cliente.Email);
+        _userSessionService.UpdateEmail(HttpContext.Session, result.UpdatedEmail ?? cliente.Email);
 
         TempData["Sucesso"] = "Dados atualizados com sucesso!";
 
@@ -182,7 +188,7 @@ public class ClienteController : Controller {
 
     [HttpPost]
     public IActionResult ExcluirConta() {
-        var email = HttpContext.Session.GetString("Usuario");
+        var email = _userSessionService.GetUserEmail(HttpContext.Session);
 
         if (email == null) {
             return RedirectToAction("Login", "Auth");
@@ -193,13 +199,13 @@ public class ClienteController : Controller {
             return NotFound();
         }
 
-        HttpContext.Session.Clear();
+        _userSessionService.Clear(HttpContext.Session);
 
         return RedirectToAction("Index", "Home");
     }
 
     public IActionResult EditarEndereco(int id) {
-        var email = HttpContext.Session.GetString("Usuario");
+        var email = _userSessionService.GetUserEmail(HttpContext.Session);
 
         if (email == null)
             return RedirectToAction("Login", "Auth");
@@ -234,7 +240,7 @@ public class ClienteController : Controller {
 
     [HttpPost]
     public IActionResult EditarEndereco(EnderecoViewModel vm) {
-        var email = HttpContext.Session.GetString("Usuario");
+        var email = _userSessionService.GetUserEmail(HttpContext.Session);
 
         if (email == null)
             return RedirectToAction("Login", "Auth");
@@ -271,7 +277,7 @@ public class ClienteController : Controller {
     }
 
     public IActionResult Enderecos() {
-        var email = HttpContext.Session.GetString("Usuario");
+        var email = _userSessionService.GetUserEmail(HttpContext.Session);
 
         if (email == null)
             return RedirectToAction("Login", "Auth");
@@ -301,15 +307,13 @@ public class ClienteController : Controller {
     string bairro,
     string cidade,
     string estado) {
-        var idStr = HttpContext.Session.GetString("ClienteId");
+        var id = _userSessionService.GetCustomerId(HttpContext.Session);
 
-        if (idStr == null)
+        if (!id.HasValue)
             return RedirectToAction("Login", "Auth");
 
-        var id = int.Parse(idStr);
-
         var result = _customerAddressService.Create(new CustomerAddressCreateCommand {
-            ClienteId = id,
+            ClienteId = id.Value,
             NomeEndereco = nomeEndereco,
             CEP = cep,
             TipoLogradouro = tipoLogradouro,
@@ -339,7 +343,7 @@ public class ClienteController : Controller {
     }
 
     public IActionResult TornarPadrao(int id) {
-        var email = HttpContext.Session.GetString("Usuario");
+        var email = _userSessionService.GetUserEmail(HttpContext.Session);
 
         if (email == null)
             return RedirectToAction("Login", "Auth");
@@ -362,7 +366,7 @@ public class ClienteController : Controller {
 
     [HttpPost]
     public IActionResult ExcluirEndereco(int id) {
-        var email = HttpContext.Session.GetString("Usuario");
+        var email = _userSessionService.GetUserEmail(HttpContext.Session);
 
         if (email == null)
             return RedirectToAction("Login", "Auth");
@@ -388,7 +392,7 @@ public class ClienteController : Controller {
     }
 
     public IActionResult Cartoes() {
-        var email = HttpContext.Session.GetString("Usuario");
+        var email = _userSessionService.GetUserEmail(HttpContext.Session);
 
         if (email == null)
             return RedirectToAction("Login", "Auth");
@@ -415,15 +419,13 @@ public class ClienteController : Controller {
     int bandeiraCartaoId,
     string validade,
     string cvv) {
-        var idStr = HttpContext.Session.GetString("ClienteId");
+        var id = _userSessionService.GetCustomerId(HttpContext.Session);
 
-        if (idStr == null)
+        if (!id.HasValue)
             return RedirectToAction("Login", "Auth");
 
-        var id = int.Parse(idStr);
-
         var result = _customerCardService.Create(new CustomerCardCreateCommand {
-            ClienteId = id,
+            ClienteId = id.Value,
             Nome = nome,
             Numero = numero,
             BandeiraCartaoId = bandeiraCartaoId,
@@ -445,7 +447,7 @@ public class ClienteController : Controller {
     }
 
     public IActionResult TornarCartaoPadrao(int id) {
-        var email = HttpContext.Session.GetString("Usuario");
+        var email = _userSessionService.GetUserEmail(HttpContext.Session);
 
         if (email == null)
             return RedirectToAction("Login", "Auth");
@@ -470,7 +472,7 @@ public class ClienteController : Controller {
 
     [HttpPost]
     public IActionResult ExcluirCartao(int id) {
-        var email = HttpContext.Session.GetString("Usuario");
+        var email = _userSessionService.GetUserEmail(HttpContext.Session);
 
         if (email == null)
             return RedirectToAction("Login", "Auth");
@@ -495,15 +497,13 @@ public class ClienteController : Controller {
 
     [HttpPost]
     public IActionResult AlterarSenha(string senhaAtual, string novaSenha, string confirmarSenha) {
-        var idStr = HttpContext.Session.GetString("ClienteId");
+        var id = _userSessionService.GetCustomerId(HttpContext.Session);
 
-        if (idStr == null)
+        if (!id.HasValue)
             return RedirectToAction("Login", "Auth");
 
-        var id = int.Parse(idStr);
-
         var result = _customerAccountService.ChangePassword(new CustomerPasswordChangeCommand {
-            CustomerId = id,
+            CustomerId = id.Value,
             CurrentPassword = senhaAtual,
             NewPassword = novaSenha,
             ConfirmPassword = confirmarSenha
@@ -523,19 +523,6 @@ public class ClienteController : Controller {
     }
 
     private int GetCartItemCount() {
-        var carrinhoJson = HttpContext.Session.GetString("Carrinho");
-        if (string.IsNullOrWhiteSpace(carrinhoJson)) {
-            return 0;
-        }
-
-        var itensCarrinho = JsonSerializer.Deserialize<List<CarrinhoResumoSessionItem>>(carrinhoJson)
-            ?? new List<CarrinhoResumoSessionItem>();
-
-        return itensCarrinho.Sum(i => i.Quantidade);
-    }
-
-    private sealed class CarrinhoResumoSessionItem {
-        public int LivroId { get; set; }
-        public int Quantidade { get; set; }
+        return _cartSessionService.LoadCart(HttpContext.Session).Sum(item => item.Quantidade);
     }
 }

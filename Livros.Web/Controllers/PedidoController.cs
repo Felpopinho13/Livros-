@@ -5,26 +5,29 @@ using Livros.Application.CustomerCart;
 using Livros.Application.CustomerCheckout;
 using Livros.Application.CustomerOrders;
 using Livros.Web.Models.ViewModels;
+using Livros.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 using System.Text.Json;
 
 namespace Livros.Web.Controllers {
     public class PedidoController : Controller {
-        private const string CarrinhoSessionKey = "Carrinho";
-
         private readonly CheckoutPricingService _checkoutPricingService;
         private readonly CustomerCartService _customerCartService;
         private readonly CustomerCheckoutService _customerCheckoutService;
         private readonly CustomerOrderPlacementService _customerOrderPlacementService;
         private readonly CustomerOrdersService _customerOrdersService;
+        private readonly CartSessionService _cartSessionService;
+        private readonly UserSessionService _userSessionService;
 
-        public PedidoController(CheckoutPricingService checkoutPricingService, CustomerCartService customerCartService, CustomerCheckoutService customerCheckoutService, CustomerOrderPlacementService customerOrderPlacementService, CustomerOrdersService customerOrdersService) {
+        public PedidoController(CheckoutPricingService checkoutPricingService, CustomerCartService customerCartService, CustomerCheckoutService customerCheckoutService, CustomerOrderPlacementService customerOrderPlacementService, CustomerOrdersService customerOrdersService, CartSessionService cartSessionService, UserSessionService userSessionService) {
             _checkoutPricingService = checkoutPricingService;
             _customerCartService = customerCartService;
             _customerCheckoutService = customerCheckoutService;
             _customerOrderPlacementService = customerOrderPlacementService;
             _customerOrdersService = customerOrdersService;
+            _cartSessionService = cartSessionService;
+            _userSessionService = userSessionService;
         }
 
         [HttpGet]
@@ -280,7 +283,7 @@ namespace Livros.Web.Controllers {
             }
 
             if (form.UsarCarrinho) {
-                HttpContext.Session.Remove(CarrinhoSessionKey);
+                _cartSessionService.ClearCart(HttpContext.Session);
             }
 
             return RedirectToAction(nameof(PedidoConfirmado), new { id = placement.OrderId!.Value });
@@ -483,9 +486,9 @@ namespace Livros.Web.Controllers {
         }
 
         private List<CustomerCartItemEntry> ObterCarrinhoDaSessao() {
-            var carrinhoJson = HttpContext.Session.GetString(CarrinhoSessionKey);
-            if (!string.IsNullOrWhiteSpace(carrinhoJson)) {
-                return JsonSerializer.Deserialize<List<CustomerCartItemEntry>>(carrinhoJson) ?? new List<CustomerCartItemEntry>();
+            var itensSessao = _cartSessionService.LoadCart(HttpContext.Session);
+            if (itensSessao.Any()) {
+                return itensSessao;
             }
 
             var clienteId = ObterClienteId();
@@ -495,20 +498,14 @@ namespace Livros.Web.Controllers {
 
             var itens = _customerCartService.LoadStoredCart(clienteId.Value);
             if (itens.Any()) {
-                HttpContext.Session.SetString(CarrinhoSessionKey, JsonSerializer.Serialize(itens));
+                _cartSessionService.SaveCart(HttpContext.Session, itens);
             }
 
             return itens;
         }
 
         private void SalvarCarrinhoNaSessao(List<CustomerCartItemEntry> itens) {
-            if (itens == null || !itens.Any()) {
-                HttpContext.Session.Remove(CarrinhoSessionKey);
-                return;
-            }
-
-            var carrinhoJson = JsonSerializer.Serialize(itens);
-            HttpContext.Session.SetString(CarrinhoSessionKey, carrinhoJson);
+            _cartSessionService.SaveCart(HttpContext.Session, itens);
         }
 
         private CheckoutViewModel MontarCheckoutViewModel(int clienteId, CheckoutFormData form, CustomerCartSyncResult? sincronizacaoCarrinho = null) {
@@ -582,8 +579,7 @@ namespace Livros.Web.Controllers {
         }
 
         private string ObterSessionKeyReserva() {
-            _ = HttpContext.Session.Id;
-            return HttpContext.Session.Id;
+            return _cartSessionService.EnsureReservationSessionKey(HttpContext.Session);
         }
 
         private List<CheckoutPaymentSlot> ObterPagamentosCheckout(CheckoutFormData form) {
@@ -638,81 +634,6 @@ namespace Livros.Web.Controllers {
                 }
             };
         }
-        private string GerarCodigoTroca() {
-            return $"SOL-{DateTime.Now:yyyyMMddHHmmss}";
-        }
-
-        private string FormatarMetodoPagamento(string? metodo) {
-            if (string.IsNullOrWhiteSpace(metodo)) {
-                return "Nao informado";
-            }
-
-            return metodo.Trim().ToLower() switch {
-                "cartao" => "Cartao",
-                "pix" => "Pix",
-                "boleto" => "Boleto",
-                _ => metodo
-            };
-        }
-
-        private string FormatarStatusPedido(string? statusAtual, IEnumerable<Troca>? trocas = null) {
-            if (trocas != null && trocas.Any(TrocaConcluidaParaCliente)) {
-                return "Troca efetuada";
-            }
-
-            return OrderStatusHelper.NormalizeDisplayStatus(statusAtual, "Nao informado");
-        }
-
-        private static bool TrocaConcluidaParaCliente(Troca troca) {
-            if (troca == null) {
-                return false;
-            }
-
-            if (string.Equals(troca.Status, "TROCADO", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(troca.Status, "Recebida", StringComparison.OrdinalIgnoreCase)) {
-                return true;
-            }
-
-            return string.Equals(troca.Status, "Aprovado", StringComparison.OrdinalIgnoreCase)
-                && troca.CupomDescontoId.HasValue;
-        }
-
-        private static string? NormalizarStatusTrocaExibicao(Troca? troca) {
-            if (troca == null) {
-                return null;
-            }
-
-            if (string.Equals(troca.Status, "TROCADO", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(troca.Status, "Recebida", StringComparison.OrdinalIgnoreCase)
-                || (string.Equals(troca.Status, "Aprovado", StringComparison.OrdinalIgnoreCase) && troca.CupomDescontoId.HasValue)) {
-                return "TROCADO";
-            }
-
-            if (string.Equals(troca.Status, "TROCA AUTORIZADA", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(troca.Status, "Autorizada", StringComparison.OrdinalIgnoreCase)
-                || (string.Equals(troca.Status, "Aprovado", StringComparison.OrdinalIgnoreCase) && !troca.CupomDescontoId.HasValue)) {
-                return "TROCA AUTORIZADA";
-            }
-
-            if (string.Equals(troca.Status, "TROCA RECUSADA", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(troca.Status, "Recusado", StringComparison.OrdinalIgnoreCase)) {
-                return "TROCA RECUSADA";
-            }
-
-            if (string.Equals(troca.Status, "EM TROCA", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(troca.Status, "Solicitado", StringComparison.OrdinalIgnoreCase)) {
-                return "EM TROCA";
-            }
-
-            return troca.Status;
-        }
-
-        private static string FormatarTipoEntrega(string? tipoEntrega) {
-            return string.Equals(tipoEntrega, "PROGRAMADA", StringComparison.OrdinalIgnoreCase)
-                ? "Entrega programada"
-                : "Entrega padrão";
-        }
-
         private decimal ObterValorPagamento(string campo, decimal? valorPadrao) {
             if (Request?.Form == null || !Request.Form.ContainsKey(campo)) {
                 return valorPadrao ?? 0;
@@ -741,12 +662,7 @@ namespace Livros.Web.Controllers {
         }
 
         private int? ObterClienteId() {
-            var clienteIdStr = HttpContext.Session.GetString("ClienteId");
-            if (string.IsNullOrWhiteSpace(clienteIdStr)) {
-                return null;
-            }
-
-            return int.Parse(clienteIdStr);
+            return _userSessionService.GetCustomerId(HttpContext.Session);
         }
     }
 }

@@ -1,17 +1,24 @@
 using Livros.Application.Authentication;
-using Livros.Infrastructure.Services;
+using Livros.Application.CustomerIdentity;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Livros.Web.Services;
 
 public class AuthController : Controller {
-    private const string CarrinhoSessionKey = "Carrinho";
-
-    private readonly ClienteService _service;
+    private readonly CustomerIdentityService _customerIdentityService;
     private readonly AuthWorkflowService _authWorkflowService;
+    private readonly CartSessionService _cartSessionService;
+    private readonly UserSessionService _userSessionService;
 
-    public AuthController(ClienteService service, AuthWorkflowService authWorkflowService) {
-        _service = service;
+    public AuthController(
+        CustomerIdentityService customerIdentityService,
+        AuthWorkflowService authWorkflowService,
+        CartSessionService cartSessionService,
+        UserSessionService userSessionService) {
+        _customerIdentityService = customerIdentityService;
         _authWorkflowService = authWorkflowService;
+        _cartSessionService = cartSessionService;
+        _userSessionService = userSessionService;
     }
 
     public IActionResult Cadastro() {
@@ -78,29 +85,28 @@ public class AuthController : Controller {
             return View();
         }
 
-        var cliente = _service.BuscarPorEmailESenha(email, senha);
-        if (cliente == null) {
-            ViewBag.Erro = "Email ou senha inválidos";
+        var loginResult = _customerIdentityService.Authenticate(email, senha);
+        if (!loginResult.Authenticated || loginResult.Customer == null) {
+            ViewBag.Erro = "Email ou senha invÃ¡lidos";
             return View();
         }
 
+        var cliente = loginResult.Customer;
         var mergeResult = _authWorkflowService.MergeCartOnLogin(new CustomerLoginCartMergeCommand {
             CustomerId = cliente.Id,
             PersistedCartJson = cliente.CarrinhoPersistidoJson,
-            CurrentSessionCartJson = HttpContext.Session.GetString(CarrinhoSessionKey),
-            SessionKey = HttpContext.Session.Id
+            CurrentSessionCartJson = _cartSessionService.LoadCartJson(HttpContext.Session),
+            SessionKey = _cartSessionService.EnsureReservationSessionKey(HttpContext.Session)
         });
 
-        HttpContext.Session.SetString("Usuario", cliente.Email);
-        HttpContext.Session.SetString("IsAdmin", cliente.IsAdmin.ToString());
-        HttpContext.Session.SetString("ClienteId", cliente.Id.ToString());
+        _userSessionService.SignIn(HttpContext.Session, cliente.Email, cliente.IsAdmin, cliente.Id);
 
         if (mergeResult.HasItems && !string.IsNullOrWhiteSpace(mergeResult.MergedCartJson)) {
-            HttpContext.Session.SetString(CarrinhoSessionKey, mergeResult.MergedCartJson);
+            _cartSessionService.SaveCartJson(HttpContext.Session, mergeResult.MergedCartJson);
             cliente.CarrinhoPersistidoJson = mergeResult.MergedCartJson;
         }
         else {
-            HttpContext.Session.Remove(CarrinhoSessionKey);
+            _cartSessionService.ClearCart(HttpContext.Session);
         }
 
         if (!string.IsNullOrEmpty(returnUrl)) {
@@ -111,7 +117,7 @@ public class AuthController : Controller {
     }
 
     public IActionResult Logout() {
-        HttpContext.Session.Clear();
+        _userSessionService.Clear(HttpContext.Session);
         return RedirectToAction("Index", "Home");
     }
 }

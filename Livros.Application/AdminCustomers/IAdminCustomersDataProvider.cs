@@ -11,6 +11,7 @@ namespace Livros.Application.AdminCustomers {
         void RemoveCustomer(Cliente cliente);
         void RemoveAddresses(IEnumerable<Endereco> enderecos);
         void RemoveCards(IEnumerable<Cartao> cartoes);
+        string HashPassword(string plainTextPassword);
         void SaveChanges();
     }
 }

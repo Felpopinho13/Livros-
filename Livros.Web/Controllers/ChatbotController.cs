@@ -1,14 +1,18 @@
-using System.Text.Json;
+using Livros.Application.Recommendations;
 using Livros.Web.Models.Chatbot;
-using Livros.Web.Services;
 using Microsoft.AspNetCore.Mvc;
+using Livros.Web.Services;
+using WebChatbotResponse = Livros.Web.Models.Chatbot.ChatbotResponse;
 
 public class ChatbotController : Controller {
-    private const string SessionKey = "ChatbotState";
     private readonly LivroRecommendationChatService _chatService;
+    private readonly ChatbotSessionService _chatbotSessionService;
+    private readonly UserSessionService _userSessionService;
 
-    public ChatbotController(LivroRecommendationChatService chatService) {
+    public ChatbotController(LivroRecommendationChatService chatService, ChatbotSessionService chatbotSessionService, UserSessionService userSessionService) {
         _chatService = chatService;
+        _chatbotSessionService = chatbotSessionService;
+        _userSessionService = userSessionService;
     }
 
     [HttpPost]
@@ -22,24 +26,38 @@ public class ChatbotController : Controller {
         var response = await _chatService.RecommendAsync(request.Message, clienteId, state, cancellationToken);
         SaveState(state);
 
-        return Json(response);
+        return Json(MapResponse(response));
     }
 
     private int? GetClienteId() {
-        var clienteId = HttpContext.Session.GetString("ClienteId");
-        return int.TryParse(clienteId, out var value) ? value : null;
+        return _userSessionService.GetCustomerId(HttpContext.Session);
     }
 
     private ChatbotSessionState LoadState() {
-        var json = HttpContext.Session.GetString(SessionKey);
-        if (string.IsNullOrWhiteSpace(json)) {
-            return new ChatbotSessionState();
-        }
-
-        return JsonSerializer.Deserialize<ChatbotSessionState>(json) ?? new ChatbotSessionState();
+        return _chatbotSessionService.LoadState(HttpContext.Session);
     }
 
     private void SaveState(ChatbotSessionState state) {
-        HttpContext.Session.SetString(SessionKey, JsonSerializer.Serialize(state));
+        _chatbotSessionService.SaveState(HttpContext.Session, state);
+    }
+
+    private static WebChatbotResponse MapResponse(Livros.Application.Recommendations.ChatbotResponse response) {
+        return new WebChatbotResponse {
+            Reply = response.Reply,
+            UsedAi = response.UsedAi,
+            Source = response.Source,
+            Recommendations = response.Recommendations
+                .Select(book => new ChatbotRecommendationItem {
+                    Id = book.Id,
+                    Title = book.Title,
+                    Author = book.Author,
+                    Price = $"R$ {book.Price:N2}",
+                    ImageUrl = book.ImageUrl,
+                    DetailsUrl = $"/Home/Detalhes/{book.Id}",
+                    Reason = book.Reason,
+                    Categories = book.Categories
+                })
+                .ToList()
+        };
     }
 }

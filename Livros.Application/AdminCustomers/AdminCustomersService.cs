@@ -87,6 +87,7 @@ namespace Livros.Application.AdminCustomers {
                 command.Cliente.CPF = command.Cliente.CPF.Replace(".", "").Replace("-", "");
             }
 
+            command.Cliente.Senha = _dataProvider.HashPassword(command.Cliente.Senha);
             command.Cliente.IsAtivo = true;
 
             _dataProvider.AddCustomer(command.Cliente);

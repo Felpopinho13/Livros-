@@ -1,10 +1,11 @@
 using Livros.Application.AdminBooks;
 using Livros.Application.AdminCustomers;
 using Livros.Application.AdminExchanges;
+using Livros.Application.AdminInventory;
 using Livros.Application.AdminOrders;
+using Livros.Application.AdminSalesHistory;
 using Livros.Application.SalesAnalysis;
 using Livros.Domain;
-using Livros.Infrastructure.Services;
 using Livros.Web.Helpers;
 using Livros.Web.Models.ViewModels;
 using Livros.Web.Services;
@@ -15,26 +16,29 @@ public class AdminController : Controller {
     private readonly AdminCustomersService _adminCustomersService;
     private readonly AdminBooksService _adminBooksService;
     private readonly AdminExchangesService _adminExchangesService;
+    private readonly AdminInventoryService _adminInventoryService;
     private readonly AdminOrdersService _adminOrdersService;
     private readonly SalesAnalysisService _salesAnalysisService;
-    private readonly EstoqueService _estoqueService;
     private readonly AdminSalesHistorySeedService _adminSalesHistorySeedService;
+    private readonly BookImageStorageService _bookImageStorageService;
 
     public AdminController(
         AdminCustomersService adminCustomersService,
         AdminBooksService adminBooksService,
         AdminExchangesService adminExchangesService,
+        AdminInventoryService adminInventoryService,
         AdminOrdersService adminOrdersService,
         SalesAnalysisService salesAnalysisService,
-        EstoqueService estoqueService,
-        AdminSalesHistorySeedService adminSalesHistorySeedService) {
+        AdminSalesHistorySeedService adminSalesHistorySeedService,
+        BookImageStorageService bookImageStorageService) {
         _adminCustomersService = adminCustomersService;
         _adminBooksService = adminBooksService;
         _adminExchangesService = adminExchangesService;
+        _adminInventoryService = adminInventoryService;
         _adminOrdersService = adminOrdersService;
         _salesAnalysisService = salesAnalysisService;
-        _estoqueService = estoqueService;
         _adminSalesHistorySeedService = adminSalesHistorySeedService;
+        _bookImageStorageService = bookImageStorageService;
     }
 
     public IActionResult Dashboard() {
@@ -87,10 +91,6 @@ public class AdminController : Controller {
     public IActionResult CriarClienteAdmin(Cliente cliente) {
         if (cliente == null) {
             return RedirectToAction("Clientes");
-        }
-
-        if (!string.IsNullOrWhiteSpace(cliente.Senha)) {
-            cliente.Senha = BCrypt.Net.BCrypt.HashPassword(cliente.Senha);
         }
 
         var result = _adminCustomersService.Create(new AdminCustomerCreateCommand {
@@ -166,20 +166,7 @@ public class AdminController : Controller {
         livro.Profundidade = ObterDecimalFormulario("Profundidade", livro.Profundidade);
 
         if (ImagemArquivo != null && ImagemArquivo.Length > 0) {
-            var nomeArquivo = Guid.NewGuid() + Path.GetExtension(ImagemArquivo.FileName);
-            var pasta = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/assets/img");
-
-            if (!Directory.Exists(pasta)) {
-                Directory.CreateDirectory(pasta);
-            }
-
-            var caminho = Path.Combine(pasta, nomeArquivo);
-
-            using (var stream = new FileStream(caminho, FileMode.Create)) {
-                ImagemArquivo.CopyTo(stream);
-            }
-
-            livro.ImagemUrl = "/assets/img/" + nomeArquivo;
+            livro.ImagemUrl = _bookImageStorageService.Save(ImagemArquivo);
             ModelState.Remove("ImagemUrl");
         }
 
@@ -222,8 +209,24 @@ public class AdminController : Controller {
         ViewBag.EstoqueBusca = busca ?? string.Empty;
         ViewBag.EstoqueStatus = string.IsNullOrWhiteSpace(status) ? "todos" : status;
 
-        var estoques = _estoqueService.Listar();
+        var estoques = _adminInventoryService.ListActiveInventory();
         return View(estoques);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AdicionarEstoque(int livroId, int quantidade) {
+        var result = _adminInventoryService.AddStock(livroId, quantidade);
+        TempData[result.Succeeded ? "Sucesso" : "Erro"] = result.Message;
+        return RedirectToAction(nameof(Estoque));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AjustarEstoque(int livroId, int novoValor) {
+        var result = _adminInventoryService.AdjustStock(livroId, novoValor);
+        TempData[result.Succeeded ? "Sucesso" : "Erro"] = result.Message;
+        return RedirectToAction(nameof(Estoque));
     }
 
     [HttpPost]
@@ -253,54 +256,6 @@ public class AdminController : Controller {
             cancellationToken);
 
         return View(AdminAnaliseVendasViewModelMapper.Map(analysis));
-    }
-
-    private static string NormalizarAgrupamentoAnalise(string? agrupamento, DateTime inicio, DateTime fim) {
-        var valorInformado = (agrupamento ?? string.Empty).Trim().ToLowerInvariant();
-        if (valorInformado is "diario" or "semanal" or "mensal") {
-            return valorInformado;
-        }
-
-        var intervaloDias = (fim - inicio).TotalDays;
-        if (intervaloDias > 180) {
-            return "mensal";
-        }
-
-        if (intervaloDias > 45) {
-            return "semanal";
-        }
-
-        return "diario";
-    }
-
-    private static DateTime ObterInicioPeriodoAnalise(DateTime data, string agrupamento) {
-        return agrupamento switch {
-            "mensal" => new DateTime(data.Year, data.Month, 1),
-            "semanal" => data.Date.AddDays(-((7 + (int)data.DayOfWeek - (int)DayOfWeek.Monday) % 7)),
-            _ => data.Date
-        };
-    }
-
-    private static IEnumerable<DateTime> GerarPeriodosAnalise(DateTime inicio, DateTime fim, string agrupamento) {
-        var atual = ObterInicioPeriodoAnalise(inicio, agrupamento);
-        var ultimo = ObterInicioPeriodoAnalise(fim, agrupamento);
-
-        while (atual <= ultimo) {
-            yield return atual;
-            atual = agrupamento switch {
-                "mensal" => atual.AddMonths(1),
-                "semanal" => atual.AddDays(7),
-                _ => atual.AddDays(1)
-            };
-        }
-    }
-
-    private static string FormatarRotuloPeriodoAnalise(DateTime data, string agrupamento) {
-        return agrupamento switch {
-            "mensal" => data.ToString("MM/yyyy"),
-            "semanal" => $"{data:dd/MM} - {data.AddDays(6):dd/MM}",
-            _ => data.ToString("dd/MM")
-        };
     }
 
     [HttpGet]

@@ -3,26 +3,32 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Livros.Application.Recommendations;
-using Livros.Web.Configuration;
-using Livros.Web.Models.Chatbot;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
-namespace Livros.Web.Services {
-    internal static class LivroRecommendationOpenAiClient {
-        public static bool CanUse(OpenAiOptions options) {
-            return !string.IsNullOrWhiteSpace(options.ApiKey);
+namespace Livros.Infrastructure.Services {
+    public sealed class LivroRecommendationOpenAiClient : ILivroRecommendationAiClient {
+        private readonly HttpClient _httpClient;
+        private readonly LivroRecommendationAiOptions _options;
+        private readonly ILogger<LivroRecommendationOpenAiClient> _logger;
+
+        public LivroRecommendationOpenAiClient(
+            HttpClient httpClient,
+            IOptions<LivroRecommendationAiOptions> options,
+            ILogger<LivroRecommendationOpenAiClient> logger) {
+            _httpClient = httpClient;
+            _options = options.Value;
+            _logger = logger;
         }
 
-        public static async Task<string?> GenerateReplyAsync(
-            HttpClient httpClient,
-            OpenAiOptions options,
-            ILogger logger,
+        public async Task<string?> GenerateReplyAsync(
             string message,
             IReadOnlyList<RecommendedBookDto> books,
             LivroRecommendationCustomerProfile customerProfile,
             ChatbotSessionState sessionState,
-            CancellationToken cancellationToken) {
-            var apiKey = options.ApiKey.Trim();
-            if (string.IsNullOrWhiteSpace(apiKey)) {
+            CancellationToken cancellationToken = default) {
+            var apiKey = _options.ApiKey?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(apiKey) || books.Count == 0) {
                 return null;
             }
 
@@ -35,7 +41,7 @@ namespace Livros.Web.Services {
             var recommendationLines = string.Join(
                 Environment.NewLine,
                 books.Select(book =>
-                    $"- Id {book.Id} | Titulo: {book.Title} | Autor: {book.Author} | Categorias: {(book.Categories.Any() ? string.Join(", ", book.Categories) : "Sem categoria")} | Preco: {book.Price} | Motivo: {book.Reason}"));
+                    $"- Id {book.Id} | Titulo: {book.Title} | Autor: {book.Author} | Categorias: {(book.Categories.Any() ? string.Join(", ", book.Categories) : "Sem categoria")} | Preco: R$ {book.Price:N2} | Motivo: {book.Reason}"));
 
             var historySummary = customerProfile.HasHistory
                 ? $"Categorias mais compradas: {string.Join(", ", customerProfile.CategoryWeights.OrderByDescending(item => item.Value).Take(3).Select(item => item.Key))}. Autores recorrentes: {string.Join(", ", customerProfile.AuthorWeights.OrderByDescending(item => item.Value).Take(3).Select(item => item.Key))}."
@@ -99,38 +105,44 @@ Antes de responder, siga esta ordem mental:
 Gere apenas a resposta final do assistente.
 """;
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/responses");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            try {
+                using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/responses");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            var payload = new OpenAiResponsesRequest {
-                Model = options.Model,
-                Input = new List<OpenAiInputMessage> {
-                    OpenAiInputMessage.Create("system", systemPrompt),
-                    OpenAiInputMessage.Create("user", userPrompt)
+                var payload = new OpenAiResponsesRequest {
+                    Model = _options.Model,
+                    Input = new List<OpenAiInputMessage> {
+                        OpenAiInputMessage.Create("system", systemPrompt),
+                        OpenAiInputMessage.Create("user", userPrompt)
+                    }
+                };
+
+                request.Content = new StringContent(
+                    JsonSerializer.Serialize(payload),
+                    Encoding.UTF8,
+                    "application/json");
+
+                using var response = await _httpClient.SendAsync(request, cancellationToken);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (!response.IsSuccessStatusCode) {
+                    _logger.LogWarning("OpenAI retornou status {StatusCode}: {Body}", response.StatusCode, content);
+                    return null;
                 }
-            };
 
-            request.Content = new StringContent(
-                JsonSerializer.Serialize(payload),
-                Encoding.UTF8,
-                "application/json");
-
-            using var response = await httpClient.SendAsync(request, cancellationToken);
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
-
-            if (!response.IsSuccessStatusCode) {
-                logger.LogWarning("OpenAI retornou status {StatusCode}: {Body}", response.StatusCode, content);
+                var responseBody = JsonSerializer.Deserialize<OpenAiResponsesResponse>(content);
+                return responseBody?.Output?
+                    .SelectMany(item => item.Content ?? new List<OpenAiOutputContent>())
+                    .Where(item => string.Equals(item.Type, "output_text", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(item.Type, "text", StringComparison.OrdinalIgnoreCase))
+                    .Select(item => item.Text)
+                    .FirstOrDefault(text => !string.IsNullOrWhiteSpace(text));
+            }
+            catch (Exception ex) {
+                _logger.LogWarning(ex, "Falha ao gerar resposta do chatbot com OpenAI. Usando fallback local.");
                 return null;
             }
-
-            var responseBody = JsonSerializer.Deserialize<OpenAiResponsesResponse>(content);
-            return responseBody?.Output?
-                .SelectMany(item => item.Content ?? new List<OpenAiOutputContent>())
-                .Where(item => string.Equals(item.Type, "output_text", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(item.Type, "text", StringComparison.OrdinalIgnoreCase))
-                .Select(item => item.Text)
-                .FirstOrDefault(text => !string.IsNullOrWhiteSpace(text));
         }
 
         private sealed class OpenAiResponsesRequest {
