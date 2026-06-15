@@ -156,14 +156,19 @@ public class AdminController : Controller {
         return RedirectToAction("Clientes");
     }
 
-    public IActionResult Livros() {
-        var catalog = _adminBooksService.BuildCatalog();
-        ViewBag.CategoriasDisponiveis = catalog.CategoriasDisponiveis;
-        return View(catalog.Livros);
+    public IActionResult Livros(string? busca, int? categoriaId, string? status) {
+        var catalog = _adminBooksService.BuildCatalog(new AdminBooksCatalogQuery {
+            Busca = busca,
+            CategoriaId = categoriaId,
+            Status = status
+        });
+
+        return View(AdminLivrosViewModelMapper.Map(catalog));
     }
 
     [HttpPost]
-    public IActionResult CriarLivro(Livro livro, IFormFile ImagemArquivo, int[] categoriasIds) {
+    [ValidateAntiForgeryToken]
+    public IActionResult CriarLivro(Livro livro, IFormFile ImagemArquivo, int[] categoriasIds, string? busca, int? categoriaId, string? status) {
         livro.Preco = ObterDecimalFormulario("Preco", livro.Preco);
         livro.Altura = ObterDecimalFormulario("Altura", livro.Altura);
         livro.Largura = ObterDecimalFormulario("Largura", livro.Largura);
@@ -186,7 +191,7 @@ public class AdminController : Controller {
             TempData["Erro"] = erros.Any()
                 ? $"Dados inválidos em: {string.Join(" | ", erros)}"
                 : "Dados inválidos!";
-            return RedirectToAction("Livros");
+            return RedirectToAction("Livros", new { busca, categoriaId, status });
         }
 
         var result = _adminBooksService.Create(new AdminBookCreateCommand {
@@ -195,19 +200,19 @@ public class AdminController : Controller {
         });
 
         TempData[result.Succeeded ? "Sucesso" : "Erro"] = result.Message;
-        return RedirectToAction("Livros");
+        return RedirectToAction("Livros", new { busca, categoriaId, status });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult EditarCategoriasLivro(int livroId, int[] categoriasIds) {
+    public IActionResult EditarCategoriasLivro(int livroId, int[] categoriasIds, string? busca, int? categoriaId, string? status) {
         var result = _adminBooksService.UpdateCategories(new AdminBookCategoryUpdateCommand {
             LivroId = livroId,
             CategoriasIds = categoriasIds ?? Array.Empty<int>()
         });
 
         TempData[result.Succeeded ? "Sucesso" : "Erro"] = result.Message;
-        return RedirectToAction("Livros");
+        return RedirectToAction("Livros", new { busca, categoriaId, status });
     }
 
     public IActionResult Estoque(string? busca, string? status) {

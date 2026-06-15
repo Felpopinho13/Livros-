@@ -1,4 +1,4 @@
-@model List<Livros.Domain.Livro>
+@model Livros.Web.Models.ViewModels.CatalogoViewModel
 
 <section class="banner">
     <div class="container">
@@ -9,7 +9,13 @@
 
 <section class="products">
     <div class="container">
-        <h2>Destaques</h2>
+        <h2>@(Model.PossuiBusca ? "Resultado da busca" : "Destaques")</h2>
+
+        @if (Model.PossuiBusca) {
+            <p class="catalog-search-feedback">
+                Exibindo resultados para "@Model.Busca".
+            </p>
+        }
 
         @if (TempData["SucessoCarrinho"] != null) {
             <div class="checkout-feedback success">@TempData["SucessoCarrinho"]</div>
@@ -19,41 +25,48 @@
             <div class="checkout-feedback error">@TempData["ErroCarrinho"]</div>
         }
 
-        <div class="product-grid">
-            @foreach (var livro in Model) {
-                <div class="card product-card">
-                    <a asp-controller="Home" asp-action="Detalhes" asp-route-id="@livro.Id" class="product-image-link">
-                        <img src="@livro.ImagemUrl" alt="@livro.Titulo">
-                    </a>
+        @if (!Model.Livros.Any()) {
+            <div class="catalog-empty-state">
+                Nenhum livro encontrado para essa busca.
+            </div>
+        }
+        else {
+            <div class="product-grid">
+                @foreach (var livro in Model.Livros) {
+                    <div class="card product-card">
+                        <a asp-controller="Home" asp-action="Detalhes" asp-route-id="@livro.Id" class="product-image-link">
+                            <img src="@livro.ImagemUrl" alt="@livro.Titulo">
+                        </a>
 
-                    <a asp-controller="Home" asp-action="Detalhes" asp-route-id="@livro.Id">
-                        <h3>@livro.Titulo</h3>
-                    </a>
+                        <a asp-controller="Home" asp-action="Detalhes" asp-route-id="@livro.Id">
+                            <h3>@livro.Titulo</h3>
+                        </a>
 
-                    @if (livro.Categorias != null && livro.Categorias.Any()) {
-                        <div class="product-categories">
-                            @foreach (var categoria in livro.Categorias.OrderBy(c => c.Nome).Take(2)) {
-                                <span class="product-category-tag">@categoria.Nome</span>
-                            }
-                        </div>
-                    }
+                        @if (livro.Categorias != null && livro.Categorias.Any()) {
+                            <div class="product-categories">
+                                @foreach (var categoria in livro.Categorias.OrderBy(c => c.Nome).Take(2)) {
+                                    <span class="product-category-tag">@categoria.Nome</span>
+                                }
+                            </div>
+                        }
 
-                    <p class="price">
-                        R$ @livro.Preco.ToString("N2")
-                    </p>
+                        <p class="price">
+                            R$ @livro.Preco.ToString("N2")
+                        </p>
 
-                    <button class="btn-wishlist">❤</button>
+                        <button class="btn-wishlist">&#10084;</button>
 
-                    <form asp-controller="Pedido" asp-action="AdicionarAoCarrinho" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="livroId" value="@livro.Id" />
-                        <input type="hidden" name="quantidade" value="1" />
-                        <button type="submit" class="btn btn-primary btn-block">
-                            Adicionar ao carrinho
-                        </button>
-                    </form>
-                </div>
-            }
-        </div>
+                        <form asp-controller="Pedido" asp-action="AdicionarAoCarrinho" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="livroId" value="@livro.Id" />
+                            <input type="hidden" name="quantidade" value="1" />
+                            <button type="submit" class="btn btn-primary btn-block">
+                                Adicionar ao carrinho
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+        }
     </div>
 </section>

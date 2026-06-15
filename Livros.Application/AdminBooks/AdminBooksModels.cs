@@ -1,7 +1,16 @@
 using Livros.Domain;
 
 namespace Livros.Application.AdminBooks {
+    public sealed class AdminBooksCatalogQuery {
+        public string? Busca { get; init; }
+        public int? CategoriaId { get; init; }
+        public string? Status { get; init; }
+    }
+
     public sealed class AdminBooksCatalogResult {
+        public string Busca { get; init; } = string.Empty;
+        public int? CategoriaId { get; init; }
+        public string Status { get; init; } = "ativos";
         public List<Categoria> CategoriasDisponiveis { get; init; } = new();
         public List<Livro> Livros { get; init; } = new();
     }

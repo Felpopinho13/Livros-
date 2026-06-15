@@ -5,6 +5,7 @@ using Livros.Application.AdminExchanges;
 using Livros.Application.AdminInventory;
 using Livros.Application.AdminOrders;
 using Livros.Application.AdminSalesHistory;
+using Livros.Application.Common.Logging;
 using Livros.Application.Authentication;
 using Livros.Application.Catalog;
 using Livros.Application.Checkout;
@@ -18,6 +19,7 @@ using Livros.Application.CustomerOrders;
 using Livros.Application.Recommendations;
 using Livros.Application.SalesAnalysis;
 using Livros.Infrastructure.Data;
+using Livros.Infrastructure.Logging;
 using Livros.Infrastructure.Services;
 using Livros.Web.Services;
 using Microsoft.EntityFrameworkCore;
@@ -45,6 +47,7 @@ public static class DependencyInjectionExtensions {
 
     public static IServiceCollection AddLivrosFeatureServices(this IServiceCollection services, IConfiguration configuration) {
         services.Configure<LivroRecommendationAiOptions>(configuration.GetSection("OpenAI"));
+        services.AddScoped(typeof(IAppLogger<>), typeof(AppLogger<>));
 
         services.AddScoped<IAuthWorkflowDataProvider, AuthWorkflowDataProvider>();
         services.AddScoped<AuthWorkflowService>();

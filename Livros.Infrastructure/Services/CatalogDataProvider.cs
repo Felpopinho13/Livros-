@@ -11,11 +11,24 @@ namespace Livros.Infrastructure.Services {
             _context = context;
         }
 
-        public List<Livro> LoadActiveBooksWithStockAndCategories() {
-            return _context.Livros
+        public List<Livro> LoadActiveBooksWithStockAndCategories(CatalogListQuery query) {
+            var livros = _context.Livros
                 .Include(l => l.Estoque)
                 .Include(l => l.Categorias)
                 .Where(l => l.IsAtivo)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(query.Busca)) {
+                var busca = query.Busca.Trim().ToLower();
+                livros = livros.Where(l =>
+                    l.Titulo.ToLower().Contains(busca) ||
+                    (l.Autor != null && l.Autor.ToLower().Contains(busca)) ||
+                    (l.ISBN != null && l.ISBN.Contains(query.Busca)) ||
+                    l.Categorias.Any(c => c.Nome.ToLower().Contains(busca)));
+            }
+
+            return livros
+                .OrderBy(l => l.Titulo)
                 .ToList();
         }
 

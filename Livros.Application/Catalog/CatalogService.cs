@@ -9,9 +9,17 @@ namespace Livros.Application.Catalog {
             _dataProvider = dataProvider;
         }
 
-        public List<Livro> ListActiveBooks() {
+        public CatalogListResult ListActiveBooks(CatalogListQuery? query = null) {
             ApplyAutomaticInactivationWithoutStock();
-            return _dataProvider.LoadActiveBooksWithStockAndCategories();
+
+            var normalizedQuery = new CatalogListQuery {
+                Busca = query?.Busca?.Trim()
+            };
+
+            return new CatalogListResult {
+                Busca = normalizedQuery.Busca ?? string.Empty,
+                Livros = _dataProvider.LoadActiveBooksWithStockAndCategories(normalizedQuery)
+            };
         }
 
         public Livro? GetBookDetails(int id) {

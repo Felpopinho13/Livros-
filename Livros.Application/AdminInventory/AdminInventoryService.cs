@@ -1,11 +1,14 @@
+using Livros.Application.Common.Logging;
 using Livros.Domain;
 
 namespace Livros.Application.AdminInventory {
     public sealed class AdminInventoryService {
         private readonly IAdminInventoryDataProvider _dataProvider;
+        private readonly IAppLogger<AdminInventoryService> _logger;
 
-        public AdminInventoryService(IAdminInventoryDataProvider dataProvider) {
+        public AdminInventoryService(IAdminInventoryDataProvider dataProvider, IAppLogger<AdminInventoryService> logger) {
             _dataProvider = dataProvider;
+            _logger = logger;
         }
 
         public List<Estoque> ListActiveInventory() {
@@ -15,6 +18,7 @@ namespace Livros.Application.AdminInventory {
 
         public AdminInventoryOperationResult AddStock(int livroId, int quantidade) {
             if (quantidade <= 0) {
+                _logger.LogWarning("Tentativa de adicionar estoque com quantidade invalida. LivroId: {LivroId}, Quantidade: {Quantidade}", livroId, quantidade);
                 return new AdminInventoryOperationResult {
                     Succeeded = false,
                     Message = "Informe uma quantidade valida para adicionar ao estoque."
@@ -23,6 +27,7 @@ namespace Livros.Application.AdminInventory {
 
             var stock = _dataProvider.LoadStockByBookId(livroId);
             if (stock == null) {
+                _logger.LogWarning("Estoque nao encontrado ao adicionar saldo. LivroId: {LivroId}", livroId);
                 return new AdminInventoryOperationResult {
                     Succeeded = false,
                     Message = "Estoque nao encontrado para o livro informado."
@@ -31,6 +36,7 @@ namespace Livros.Application.AdminInventory {
 
             stock.Quantidade += quantidade;
             _dataProvider.SaveChanges();
+            _logger.LogInformation("Estoque adicionado. LivroId: {LivroId}, QuantidadeAdicionada: {Quantidade}, NovoSaldo: {NovoSaldo}", livroId, quantidade, stock.Quantidade);
 
             return new AdminInventoryOperationResult {
                 Succeeded = true,
@@ -40,6 +46,7 @@ namespace Livros.Application.AdminInventory {
 
         public AdminInventoryOperationResult AdjustStock(int livroId, int novoValor) {
             if (novoValor < 0) {
+                _logger.LogWarning("Tentativa de ajustar estoque com valor negativo. LivroId: {LivroId}, NovoValor: {NovoValor}", livroId, novoValor);
                 return new AdminInventoryOperationResult {
                     Succeeded = false,
                     Message = "O valor do estoque nao pode ser negativo."
@@ -48,6 +55,7 @@ namespace Livros.Application.AdminInventory {
 
             var stock = _dataProvider.LoadStockByBookId(livroId);
             if (stock == null) {
+                _logger.LogWarning("Estoque nao encontrado ao ajustar saldo. LivroId: {LivroId}", livroId);
                 return new AdminInventoryOperationResult {
                     Succeeded = false,
                     Message = "Estoque nao encontrado para o livro informado."
@@ -56,6 +64,7 @@ namespace Livros.Application.AdminInventory {
 
             stock.Quantidade = novoValor;
             _dataProvider.SaveChanges();
+            _logger.LogInformation("Estoque ajustado. LivroId: {LivroId}, NovoSaldo: {NovoSaldo}", livroId, stock.Quantidade);
 
             return new AdminInventoryOperationResult {
                 Succeeded = true,
@@ -76,6 +85,7 @@ namespace Livros.Application.AdminInventory {
 
             _dataProvider.AddStocks(newStocks);
             _dataProvider.SaveChanges();
+            _logger.LogInformation("Registros de estoque criados automaticamente para {QuantidadeLivros} livro(s) sem estoque.", booksWithoutStock.Count);
         }
     }
 }

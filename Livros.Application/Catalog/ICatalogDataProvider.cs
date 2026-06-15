@@ -2,7 +2,7 @@ using Livros.Domain;
 
 namespace Livros.Application.Catalog {
     public interface ICatalogDataProvider {
-        List<Livro> LoadActiveBooksWithStockAndCategories();
+        List<Livro> LoadActiveBooksWithStockAndCategories(CatalogListQuery query);
         Livro? LoadActiveBookByIdWithStockAndCategories(int id);
         List<Livro> LoadActiveBooksWithoutStock();
         Dictionary<int, decimal> LoadSalesTotalsByBookIds(IReadOnlyCollection<int> livroIds);

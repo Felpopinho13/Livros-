@@ -1,9 +1,8 @@
-﻿@model List<Livros.Domain.Livro>
+@model Livros.Web.Models.ViewModels.AdminLivrosViewModel
 
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Livros";
-    var categoriasDisponiveis = ViewBag.CategoriasDisponiveis as List<Livros.Domain.Categoria> ?? new List<Livros.Domain.Categoria>();
 }
 @if (TempData["Erro"] != null) {
     <div class="alert-error">
@@ -24,31 +23,76 @@
     </button>
 </div>
 
-<div class="admin-table-wrapper">
+<form asp-action="Livros" method="get" class="admin-filters-card">
+    <input type="text"
+           name="busca"
+           value="@Model.Busca"
+           class="admin-input"
+           placeholder="Buscar por titulo, autor, ISBN ou categoria..." />
 
+    <select name="categoriaId" class="admin-select">
+        <option value="">Todas categorias</option>
+        @foreach (var categoria in Model.CategoriasDisponiveis) {
+            if (Model.CategoriaId == categoria.Id) {
+                <option value="@categoria.Id" selected>@categoria.Nome</option>
+            }
+            else {
+                <option value="@categoria.Id">@categoria.Nome</option>
+            }
+        }
+    </select>
+
+    <select name="status" class="admin-select">
+        @if (Model.Status == "ativos") {
+            <option value="ativos" selected>Ativos</option>
+        }
+        else {
+            <option value="ativos">Ativos</option>
+        }
+
+        @if (Model.Status == "inativos") {
+            <option value="inativos" selected>Inativos</option>
+        }
+        else {
+            <option value="inativos">Inativos</option>
+        }
+
+        @if (Model.Status == "todos") {
+            <option value="todos" selected>Todos</option>
+        }
+        else {
+            <option value="todos">Todos</option>
+        }
+    </select>
+
+    <button type="submit" class="btn-primary">Filtrar</button>
+    <a asp-action="Livros" class="btn-secondary">Limpar</a>
+</form>
+
+<div class="admin-table-wrapper">
     <table class="admin-table">
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Título</th>
+                <th>Titulo</th>
                 <th>Autor</th>
                 <th>Categorias</th>
                 <th>ISBN</th>
                 <th>Status</th>
-                <th>Ações</th>
+                <th>Acoes</th>
             </tr>
         </thead>
 
         <tbody>
-            @if (!Model.Any()) {
+            @if (!Model.Livros.Any()) {
                 <tr>
                     <td colspan="7" style="text-align:center;">
-                        Nenhum livro cadastrado
+                        Nenhum livro encontrado para os filtros informados.
                     </td>
                 </tr>
             }
             else {
-                @foreach (var livro in Model) {
+                @foreach (var livro in Model.Livros) {
                     <tr>
                         <td>@livro.Id</td>
                         <td>@livro.Titulo</td>
@@ -66,7 +110,6 @@
                             }
                         </td>
                         <td>@livro.ISBN</td>
-
                         <td>
                             @if (livro.IsAtivo) {
                                 <span class="status success">Ativo</span>
@@ -87,17 +130,16 @@
             }
         </tbody>
     </table>
-
 </div>
 
-@foreach (var livro in Model) {
+@foreach (var livro in Model.Livros) {
     var categoriasSelecionadas = livro.Categorias?.Select(c => c.Id).ToHashSet() ?? new HashSet<int>();
 
     <div class="admin-modal-overlay" id="editarCategoriasModal-@livro.Id" style="display:none;">
         <div class="admin-modal">
             <div class="admin-modal-header">
                 <div>
-                    <span class="admin-modal-kicker">Catálogo</span>
+                    <span class="admin-modal-kicker">Catalogo</span>
                     <h3>Editar categorias</h3>
                 </div>
                 <button class="modal-close" type="button" aria-label="Fechar modal" onclick="fecharModalEditarCategorias(@livro.Id)">×</button>
@@ -106,6 +148,9 @@
             <form asp-action="EditarCategoriasLivro" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="livroId" value="@livro.Id" />
+                <input type="hidden" name="busca" value="@Model.Busca" />
+                <input type="hidden" name="categoriaId" value="@Model.CategoriaId" />
+                <input type="hidden" name="status" value="@Model.Status" />
 
                 <div class="admin-modal-body">
                     <div class="admin-form-group">
@@ -116,7 +161,7 @@
                     <div class="admin-form-group">
                         <label>Categorias</label>
                         <select name="categoriasIds" class="admin-input admin-multiselect" multiple size="8" required>
-                            @foreach (var categoria in categoriasDisponiveis) {
+                            @foreach (var categoria in Model.CategoriasDisponiveis) {
                                 if (categoriasSelecionadas.Contains(categoria.Id)) {
                                     <option value="@categoria.Id" selected>@categoria.Nome</option>
                                 }
@@ -142,31 +187,32 @@
     </div>
 }
 
-<!-- MODAL NOVO LIVRO -->
 <div class="admin-modal-overlay" id="novoLivroModal" style="display:none;">
     <div class="admin-modal large admin-book-modal">
-
         <div class="admin-modal-header admin-book-modal-header">
             <div>
-                <span class="admin-modal-kicker">Catálogo</span>
+                <span class="admin-modal-kicker">Catalogo</span>
                 <h3>Novo Livro</h3>
             </div>
             <button class="modal-close" type="button" aria-label="Fechar modal" onclick="fecharModalNovoLivro()">×</button>
         </div>
 
         <form asp-action="CriarLivro" method="post" enctype="multipart/form-data">
-            <div class="admin-modal-body admin-book-modal-body">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="busca" value="@Model.Busca" />
+            <input type="hidden" name="categoriaId" value="@Model.CategoriaId" />
+            <input type="hidden" name="status" value="@Model.Status" />
 
+            <div class="admin-modal-body admin-book-modal-body">
                 <section class="admin-book-section">
                     <div class="admin-book-section-header">
-                        <h4>Informações Básicas</h4>
-                        <p>Os dados principais que identificam o livro no catálogo.</p>
+                        <h4>Informacoes basicas</h4>
+                        <p>Os dados principais que identificam o livro no catalogo.</p>
                     </div>
 
                     <div class="admin-grid-2">
-
                         <div class="admin-form-group">
-                            <label>Título</label>
+                            <label>Titulo</label>
                             <input name="Titulo" class="admin-input" required>
                         </div>
 
@@ -177,11 +223,7 @@
 
                         <div class="admin-form-group">
                             <label>Ano</label>
-                            <input type="number"
-                                   name="Ano"
-                                   class="admin-input"
-                                   min="1000"
-                                   max="2100">
+                            <input type="number" name="Ano" class="admin-input" min="1000" max="2100">
                         </div>
 
                         <div class="admin-form-group">
@@ -190,14 +232,14 @@
                         </div>
 
                         <div class="admin-form-group">
-                            <label>Edição</label>
+                            <label>Edicao</label>
                             <input name="Edicao" class="admin-input">
                         </div>
 
                         <div class="admin-form-group admin-form-group-full">
                             <label>Categorias</label>
                             <select name="categoriasIds" class="admin-input admin-multiselect" multiple size="6" required>
-                                @foreach (var categoria in categoriasDisponiveis) {
+                                @foreach (var categoria in Model.CategoriasDisponiveis) {
                                     <option value="@categoria.Id">@categoria.Nome</option>
                                 }
                             </select>
@@ -208,35 +250,27 @@
 
                 <section class="admin-book-section">
                     <div class="admin-book-section-header">
-                        <h4>Identificação</h4>
-                        <p>Códigos usados para consulta, venda e controle do exemplar.</p>
+                        <h4>Identificacao</h4>
+                        <p>Codigos usados para consulta, venda e controle do exemplar.</p>
                     </div>
 
                     <div class="admin-grid-2">
                         <div class="admin-form-group">
                             <label>ISBN</label>
-                            <input name="ISBN"
-                                   class="admin-input"
-                                   maxlength="13"
-                                   pattern="\d{13}"
-                                   title="ISBN deve ter 13 números">
+                            <input name="ISBN" class="admin-input" maxlength="13" pattern="\d{13}" title="ISBN deve ter 13 numeros">
                         </div>
 
                         <div class="admin-form-group">
-                            <label>Código de Barras</label>
-                            <input name="CodigoBarras"
-                                   class="admin-input"
-                                   maxlength="13"
-                                   pattern="\d{13}"
-                                   title="Código de barras deve ter 13 números">
+                            <label>Codigo de Barras</label>
+                            <input name="CodigoBarras" class="admin-input" maxlength="13" pattern="\d{13}" title="Codigo de barras deve ter 13 numeros">
                         </div>
                     </div>
                 </section>
 
                 <section class="admin-book-section">
                     <div class="admin-book-section-header">
-                        <h4>Dimensões</h4>
-                        <p>Medidas físicas do livro para logística e apresentação.</p>
+                        <h4>Dimensoes</h4>
+                        <p>Medidas fisicas do livro para logistica e apresentacao.</p>
                     </div>
 
                     <div class="admin-grid-4">
@@ -265,26 +299,18 @@
                 <section class="admin-book-section">
                     <div class="admin-book-section-header">
                         <h4>Detalhes</h4>
-                        <p>Informações comerciais e de conteúdo que aparecem na loja.</p>
+                        <p>Informacoes comerciais e de conteudo que aparecem na loja.</p>
                     </div>
 
                     <div class="admin-grid-2">
                         <div class="admin-form-group">
-                            <label>Páginas</label>
-                            <input type="number"
-                                   name="NumeroPaginas"
-                                   class="admin-input"
-                                   min="1"
-                                   max="10000">
+                            <label>Paginas</label>
+                            <input type="number" name="NumeroPaginas" class="admin-input" min="1" max="10000">
                         </div>
 
                         <div class="admin-form-group">
-                            <label>Preço</label>
-                            <input type="text"
-                                   inputmode="decimal"
-                                   name="Preco"
-                                   class="admin-input"
-                                   placeholder="Ex.: 29,90">
+                            <label>Preco</label>
+                            <input type="text" inputmode="decimal" name="Preco" class="admin-input" placeholder="Ex.: 29,90">
                         </div>
 
                         <div class="admin-form-group admin-form-group-full">
@@ -295,10 +321,9 @@
 
                     <div class="admin-form-group admin-book-textarea">
                         <label>Sinopse</label>
-                        <textarea name="Sinopse" class="admin-input" placeholder="Descreva o livro de forma objetiva para a vitrine e a página de detalhes."></textarea>
+                        <textarea name="Sinopse" class="admin-input" placeholder="Descreva o livro de forma objetiva para a vitrine e a pagina de detalhes."></textarea>
                     </div>
                 </section>
-
             </div>
 
             <div class="admin-modal-footer">
@@ -310,9 +335,7 @@
                     Salvar
                 </button>
             </div>
-
         </form>
-
     </div>
 </div>
 
@@ -333,4 +356,3 @@
         document.getElementById(`editarCategoriasModal-${livroId}`).style.display = "none";
     }
 </script>
-

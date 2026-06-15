@@ -27,11 +27,33 @@ namespace Livros.Infrastructure.Services {
                 .ToList();
         }
 
-        public List<Livro> LoadActiveBooksWithStockAndCategories() {
-            return _context.Livros
+        public List<Livro> LoadBooksWithStockAndCategories(AdminBooksCatalogQuery query) {
+            var livros = _context.Livros
                 .Include(l => l.Estoque)
                 .Include(l => l.Categorias)
-                .Where(l => l.IsAtivo)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(query.Busca)) {
+                var busca = query.Busca.Trim().ToLower();
+                livros = livros.Where(l =>
+                    l.Titulo.ToLower().Contains(busca) ||
+                    (l.Autor != null && l.Autor.ToLower().Contains(busca)) ||
+                    (l.ISBN != null && l.ISBN.Contains(query.Busca)) ||
+                    l.Categorias.Any(c => c.Nome.ToLower().Contains(busca)));
+            }
+
+            if (query.CategoriaId.HasValue && query.CategoriaId.Value > 0) {
+                livros = livros.Where(l => l.Categorias.Any(c => c.Id == query.CategoriaId.Value));
+            }
+
+            livros = (query.Status ?? "ativos") switch {
+                "todos" => livros,
+                "inativos" => livros.Where(l => !l.IsAtivo),
+                _ => livros.Where(l => l.IsAtivo)
+            };
+
+            return livros
+                .OrderBy(l => l.Titulo)
                 .ToList();
         }
 

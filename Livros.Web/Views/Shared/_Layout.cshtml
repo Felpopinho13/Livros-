@@ -4,6 +4,7 @@
     var usuario = UserSessionService.GetUserEmail(Context.Session);
     var isAdmin = UserSessionService.IsAdmin(Context.Session);
     var carrinhoCount = CartSessionService.LoadCart(Context.Session).Sum(item => item.Quantidade);
+    var buscaAtual = Context.Request.Query["busca"].ToString();
 }
 
 <!DOCTYPE html>
@@ -24,8 +25,8 @@
                 BookStore
             </a>
 
-            <form class="search-box">
-                <input type="text" placeholder="Buscar livros..." class="input">
+            <form asp-controller="Home" asp-action="Index" method="get" class="search-box">
+                <input type="text" name="busca" value="@buscaAtual" placeholder="Buscar livros..." class="input">
                 <button type="submit"><i class="bx bx-search"></i></button>
             </form>
 
@@ -33,7 +34,7 @@
                 <a asp-controller="Home" asp-action="Index" aria-label="Home"><i class="bx bx-home"></i></a>
                 <a asp-controller="Pedido" asp-action="Carrinho" aria-label="Carrinho"><i class="bx bx-cart"></i> <span id="cart-count">@carrinhoCount</span></a>
                 <a href="#" aria-label="Favoritos"><i class="bx bx-heart"></i></a>
-                <a asp-controller="Cliente" asp-action="AreaCliente" aria-label="Área do cliente"><i class="bx bx-user"></i></a>
+                <a asp-controller="Cliente" asp-action="AreaCliente" aria-label="Area do cliente"><i class="bx bx-user"></i></a>
 
                 @if (isAdmin) {
                     <a asp-controller="Admin" asp-action="Dashboard" aria-label="Admin"><i class="bx bx-cog"></i></a>

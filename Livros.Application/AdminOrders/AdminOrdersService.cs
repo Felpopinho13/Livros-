@@ -1,12 +1,15 @@
-﻿using Livros.Domain;
+using Livros.Application.Common.Logging;
+using Livros.Domain;
 
 namespace Livros.Application.AdminOrders {
     public sealed class AdminOrdersService {
         private const int PageSize = 10;
         private readonly IAdminOrdersDataProvider _dataProvider;
+        private readonly IAppLogger<AdminOrdersService> _logger;
 
-        public AdminOrdersService(IAdminOrdersDataProvider dataProvider) {
+        public AdminOrdersService(IAdminOrdersDataProvider dataProvider, IAppLogger<AdminOrdersService> logger) {
             _dataProvider = dataProvider;
+            _logger = logger;
         }
 
         public async Task<AdminOrdersResult> BuildAsync(AdminOrdersQuery query, CancellationToken cancellationToken = default) {
@@ -33,6 +36,7 @@ namespace Livros.Application.AdminOrders {
         public async Task<AdminOrderStatusUpdateResult> UpdateStatusAsync(AdminOrderStatusUpdateCommand command, CancellationToken cancellationToken = default) {
             var pedido = await _dataProvider.LoadForStatusUpdateAsync(command.PedidoId, cancellationToken);
             if (pedido == null) {
+                _logger.LogWarning("Pedido nao encontrado para atualizacao de status. PedidoId: {PedidoId}", command.PedidoId);
                 return new AdminOrderStatusUpdateResult {
                     Succeeded = false,
                     Message = "Pedido nao encontrado."
@@ -40,6 +44,7 @@ namespace Livros.Application.AdminOrders {
             }
 
             if (string.IsNullOrWhiteSpace(command.NovoStatus)) {
+                _logger.LogWarning("Novo status vazio em atualizacao de pedido. PedidoId: {PedidoId}", command.PedidoId);
                 return new AdminOrderStatusUpdateResult {
                     Succeeded = false,
                     Message = "Selecione um novo status para o pedido."
@@ -50,6 +55,7 @@ namespace Livros.Application.AdminOrders {
             var novoStatus = command.NovoStatus.Trim();
             var proximosStatus = OrderStatusHelper.GetNextStatuses(statusAtual).ToList();
             if (!proximosStatus.Contains(novoStatus)) {
+                _logger.LogWarning("Transicao de status invalida. PedidoId: {PedidoId}, StatusAtual: {StatusAtual}, NovoStatus: {NovoStatus}", pedido.Id, statusAtual, novoStatus);
                 return new AdminOrderStatusUpdateResult {
                     Succeeded = false,
                     Message = "A transicao de status informada nao e valida para este pedido."
@@ -65,6 +71,7 @@ namespace Livros.Application.AdminOrders {
             if (!estoqueEstaBaixado && estoqueDeveFicarBaixado) {
                 var erroBaixa = TryDecreaseStock(pedido, estoquesPorLivro);
                 if (!string.IsNullOrWhiteSpace(erroBaixa)) {
+                    _logger.LogWarning("Falha ao baixar estoque para o pedido {PedidoId}: {Mensagem}", pedido.Id, erroBaixa);
                     return new AdminOrderStatusUpdateResult {
                         Succeeded = false,
                         Message = erroBaixa
@@ -78,6 +85,7 @@ namespace Livros.Application.AdminOrders {
             pedido.Status = novoStatus;
             UpdatePaymentsStatus(pedido, novoStatus);
             await _dataProvider.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("Status do pedido atualizado. PedidoId: {PedidoId}, StatusAnterior: {StatusAnterior}, NovoStatus: {NovoStatus}", pedido.Id, statusAtual, novoStatus);
 
             return new AdminOrderStatusUpdateResult {
                 Succeeded = true,
