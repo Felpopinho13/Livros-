@@ -15,9 +15,12 @@
             <div class="book-title-row">
                 <h1>@Model.Titulo</h1>
 
-                <button class="btn-wishlist">
-                    ❤
-                </button>
+                <button
+                    type="button"
+                    class="btn-wishlist"
+                    data-id="@Model.Id"
+                    aria-label="Adicionar a lista de desejos"
+                    aria-pressed="false">&#10084;</button>
             </div>
 
             <p class="author">por @Model.Autor</p>

@@ -33,7 +33,10 @@
             <nav class="nav-icons">
                 <a asp-controller="Home" asp-action="Index" aria-label="Home"><i class="bx bx-home"></i></a>
                 <a asp-controller="Pedido" asp-action="Carrinho" aria-label="Carrinho"><i class="bx bx-cart"></i> <span id="cart-count">@carrinhoCount</span></a>
-                <a href="#" aria-label="Favoritos"><i class="bx bx-heart"></i></a>
+                <button type="button" class="wishlist-header" id="wishlistToggle" aria-label="Favoritos">
+                    <i class="bx bx-heart"></i>
+                    <span id="wishlistCount">0</span>
+                </button>
                 <a asp-controller="Cliente" asp-action="AreaCliente" aria-label="Area do cliente"><i class="bx bx-user"></i></a>
 
                 @if (isAdmin) {
@@ -54,6 +57,25 @@
             <p>&copy; 2026 BookStore - Todos os direitos reservados</p>
         </div>
     </footer>
+
+    <div
+        id="wishlistRoot"
+        data-list-url="@Url.Action("List", "Wishlist")"
+        data-add-url="@Url.Action("Add", "Wishlist")"
+        data-remove-url="@Url.Action("Remove", "Wishlist")"
+        data-login-url="@Url.Action("Login", "Auth")"
+        data-details-url-template="@Url.Action("Detalhes", "Home", new { id = "__ID__" })">
+    </div>
+
+    <div class="modal-overlay" id="wishlistModal">
+        <div class="modal wishlist-modal">
+            <div class="modal-header">
+                <h3>Minha lista de desejos</h3>
+                <button type="button" id="closeWishlist" aria-label="Fechar">&times;</button>
+            </div>
+            <div class="wishlist-content"></div>
+        </div>
+    </div>
 
     @if (!isAdmin) {
         <div class="chatbot-shell" data-chatbot-root data-endpoint="@Url.Action("Recommend", "Chatbot")">

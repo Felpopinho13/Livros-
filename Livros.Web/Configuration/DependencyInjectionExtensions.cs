@@ -16,6 +16,7 @@ using Livros.Application.CustomerCart;
 using Livros.Application.CustomerCheckout;
 using Livros.Application.CustomerIdentity;
 using Livros.Application.CustomerOrders;
+using Livros.Application.CustomerWishlist;
 using Livros.Application.Recommendations;
 using Livros.Application.SalesAnalysis;
 using Livros.Infrastructure.Data;
@@ -69,6 +70,8 @@ public static class DependencyInjectionExtensions {
         services.AddScoped<CustomerOrderPlacementService>();
         services.AddScoped<ICustomerOrdersDataProvider, CustomerOrdersDataProvider>();
         services.AddScoped<CustomerOrdersService>();
+        services.AddScoped<ICustomerWishlistDataProvider, CustomerWishlistDataProvider>();
+        services.AddScoped<CustomerWishlistService>();
         services.AddScoped<IAdminCustomersDataProvider, AdminCustomersDataProvider>();
         services.AddScoped<AdminCustomersService>();
         services.AddScoped<IAdminDashboardDataProvider, AdminDashboardDataProvider>();

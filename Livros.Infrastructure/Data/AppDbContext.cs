@@ -55,6 +55,32 @@ namespace Livros.Infrastructure.Data {
                 .HasForeignKey(e => e.ClienteId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<Wishlist>()
+                .HasOne(w => w.Cliente)
+                .WithOne(c => c.Wishlist)
+                .HasForeignKey<Wishlist>(w => w.ClienteId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Wishlist>()
+                .HasIndex(w => w.ClienteId)
+                .IsUnique();
+
+            modelBuilder.Entity<WishlistItem>()
+                .HasOne(item => item.Wishlist)
+                .WithMany(wishlist => wishlist.Itens)
+                .HasForeignKey(item => item.WishlistId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<WishlistItem>()
+                .HasOne(item => item.Livro)
+                .WithMany()
+                .HasForeignKey(item => item.LivroId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<WishlistItem>()
+                .HasIndex(item => new { item.WishlistId, item.LivroId })
+                .IsUnique();
+
             modelBuilder.Entity<Pedido>()
                 .HasOne(p => p.Cliente)
                 .WithMany()
@@ -152,5 +178,7 @@ namespace Livros.Infrastructure.Data {
         public DbSet<Troca> Trocas { get; set; }
         public DbSet<CupomDesconto> CuponsDesconto { get; set; }
         public DbSet<ReservaCarrinho> ReservasCarrinho { get; set; }
+        public DbSet<Wishlist> Wishlists { get; set; }
+        public DbSet<WishlistItem> WishlistItems { get; set; }
     }
 }

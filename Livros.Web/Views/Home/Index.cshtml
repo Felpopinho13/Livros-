@@ -54,7 +54,12 @@
                             R$ @livro.Preco.ToString("N2")
                         </p>
 
-                        <button class="btn-wishlist">&#10084;</button>
+                        <button
+                            type="button"
+                            class="btn-wishlist"
+                            data-id="@livro.Id"
+                            aria-label="Adicionar a lista de desejos"
+                            aria-pressed="false">&#10084;</button>
 
                         <form asp-controller="Pedido" asp-action="AdicionarAoCarrinho" method="post">
                             @Html.AntiForgeryToken()
