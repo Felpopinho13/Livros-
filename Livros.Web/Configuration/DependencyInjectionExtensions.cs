@@ -1,5 +1,6 @@
 using Livros.Application.AdminBooks;
 using Livros.Application.AdminCustomers;
+using Livros.Application.AdminDashboard;
 using Livros.Application.AdminExchanges;
 using Livros.Application.AdminInventory;
 using Livros.Application.AdminOrders;
@@ -67,6 +68,8 @@ public static class DependencyInjectionExtensions {
         services.AddScoped<CustomerOrdersService>();
         services.AddScoped<IAdminCustomersDataProvider, AdminCustomersDataProvider>();
         services.AddScoped<AdminCustomersService>();
+        services.AddScoped<IAdminDashboardDataProvider, AdminDashboardDataProvider>();
+        services.AddScoped<AdminDashboardService>();
         services.AddScoped<IAdminBooksDataProvider, AdminBooksDataProvider>();
         services.AddScoped<AdminBooksService>();
         services.AddScoped<IAdminSalesHistorySeedDataProvider, AdminSalesHistorySeedDataProvider>();

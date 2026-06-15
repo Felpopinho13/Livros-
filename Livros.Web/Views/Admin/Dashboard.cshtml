@@ -1,26 +1,140 @@
-﻿@{
+@model Livros.Web.Models.ViewModels.AdminDashboardViewModel
+@{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Dashboard";
 }
 
+<section class="dashboard-hero">
+    <h2>Visao geral operacional</h2>
+    <p>
+        Resumo consolidado do admin com base no periodo de @Model.PeriodStart.ToString("dd/MM/yyyy")
+        ate @Model.ReferenceDate.ToString("dd/MM/yyyy").
+    </p>
+</section>
+
 <div class="dashboard-cards">
+    @foreach (var metric in Model.Metrics) {
+        <div class="dashboard-card">
+            <h3>@metric.Title</h3>
+            <p class="card-number">@metric.Value</p>
+            <span class="@metric.InfoCssClass">@metric.Info</span>
+        </div>
+    }
+</div>
 
-    <div class="dashboard-card">
-        <h3>Total de Pedidos</h3>
-        <p class="card-number">--</p>
-        <span class="card-info">Em breve</span>
-    </div>
+<div class="dashboard-row dashboard-row-split">
+    <section class="dashboard-box">
+        <div class="dashboard-box-header">
+            <div>
+                <h3>Pedidos recentes</h3>
+                <p>Ultimas movimentacoes registradas no sistema.</p>
+            </div>
+        </div>
 
-    <div class="dashboard-card">
-        <h3>Faturamento</h3>
-        <p class="card-number">--</p>
-        <span class="card-info">Em breve</span>
-    </div>
+        @if (Model.RecentOrders.Any()) {
+            <table class="dashboard-table">
+                <thead>
+                    <tr>
+                        <th>Pedido</th>
+                        <th>Cliente</th>
+                        <th>Data</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in Model.RecentOrders) {
+                        <tr>
+                            <td>#@order.OrderId</td>
+                            <td>@order.CustomerName</td>
+                            <td>@order.Date.ToString("dd/MM/yyyy")</td>
+                            <td>@order.Total.ToString("C")</td>
+                            <td><span class="status @order.StatusCssClass">@order.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else {
+            <div class="dashboard-empty-state">Nenhum pedido encontrado ate o momento.</div>
+        }
+    </section>
 
-    <div class="dashboard-card">
-        <h3>Clientes</h3>
-        <p class="card-number">--</p>
-        <span class="card-info">Em breve</span>
-    </div>
+    <section class="dashboard-box">
+        <div class="dashboard-box-header">
+            <div>
+                <h3>Estoque em alerta</h3>
+                <p>Livros ativos no limite minimo ou sem saldo.</p>
+            </div>
+        </div>
 
+        @if (Model.StockAlerts.Any()) {
+            <table class="dashboard-table">
+                <thead>
+                    <tr>
+                        <th>Livro</th>
+                        <th>Autor</th>
+                        <th>Qtd.</th>
+                        <th>Min.</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var stock in Model.StockAlerts) {
+                        <tr>
+                            <td>@stock.Title</td>
+                            <td>@stock.Author</td>
+                            <td>@stock.Quantity</td>
+                            <td>@stock.MinimumQuantity</td>
+                            <td><span class="status @stock.StatusCssClass">@stock.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else {
+            <div class="dashboard-empty-state">Nenhum alerta de estoque no momento.</div>
+        }
+    </section>
+</div>
+
+<div class="dashboard-row">
+    <section class="dashboard-box">
+        <div class="dashboard-box-header">
+            <div>
+                <h3>Trocas recentes</h3>
+                <p>Solicitacoes abertas e historico mais recente de trocas.</p>
+            </div>
+        </div>
+
+        @if (Model.RecentExchanges.Any()) {
+            <table class="dashboard-table">
+                <thead>
+                    <tr>
+                        <th>Troca</th>
+                        <th>Pedido</th>
+                        <th>Cliente</th>
+                        <th>Livro</th>
+                        <th>Data</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var exchange in Model.RecentExchanges) {
+                        <tr>
+                            <td>#@exchange.ExchangeId</td>
+                            <td>#@exchange.OrderId</td>
+                            <td>@exchange.CustomerName</td>
+                            <td>@exchange.BookTitle</td>
+                            <td>@exchange.RequestedAt.ToString("dd/MM/yyyy")</td>
+                            <td><span class="status @exchange.StatusCssClass">@exchange.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else {
+            <div class="dashboard-empty-state">Nenhuma solicitacao de troca encontrada.</div>
+        }
+    </section>
 </div>

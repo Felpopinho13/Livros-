@@ -1,5 +1,6 @@
 using Livros.Application.AdminBooks;
 using Livros.Application.AdminCustomers;
+using Livros.Application.AdminDashboard;
 using Livros.Application.AdminExchanges;
 using Livros.Application.AdminInventory;
 using Livros.Application.AdminOrders;
@@ -14,6 +15,7 @@ using System.Globalization;
 
 public class AdminController : Controller {
     private readonly AdminCustomersService _adminCustomersService;
+    private readonly AdminDashboardService _adminDashboardService;
     private readonly AdminBooksService _adminBooksService;
     private readonly AdminExchangesService _adminExchangesService;
     private readonly AdminInventoryService _adminInventoryService;
@@ -24,6 +26,7 @@ public class AdminController : Controller {
 
     public AdminController(
         AdminCustomersService adminCustomersService,
+        AdminDashboardService adminDashboardService,
         AdminBooksService adminBooksService,
         AdminExchangesService adminExchangesService,
         AdminInventoryService adminInventoryService,
@@ -32,6 +35,7 @@ public class AdminController : Controller {
         AdminSalesHistorySeedService adminSalesHistorySeedService,
         BookImageStorageService bookImageStorageService) {
         _adminCustomersService = adminCustomersService;
+        _adminDashboardService = adminDashboardService;
         _adminBooksService = adminBooksService;
         _adminExchangesService = adminExchangesService;
         _adminInventoryService = adminInventoryService;
@@ -41,8 +45,9 @@ public class AdminController : Controller {
         _bookImageStorageService = bookImageStorageService;
     }
 
-    public IActionResult Dashboard() {
-        return View();
+    public async Task<IActionResult> Dashboard(CancellationToken cancellationToken = default) {
+        var dashboard = await _adminDashboardService.BuildAsync(cancellationToken);
+        return View(AdminDashboardViewModelMapper.Map(dashboard));
     }
 
     public async Task<IActionResult> Clientes(
