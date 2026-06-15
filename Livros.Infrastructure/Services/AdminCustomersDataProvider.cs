@@ -92,6 +92,38 @@ namespace Livros.Infrastructure.Services {
                 Cupons = cupons
             };
         }
+
+        public Cliente? LoadCustomerById(int clienteId) {
+            return _context.Clientes.FirstOrDefault(c => c.Id == clienteId);
+        }
+
+        public Cliente? LoadCustomerByIdWithAddressesAndCards(int clienteId) {
+            return _context.Clientes
+                .Include(c => c.Enderecos)
+                .Include(c => c.Cartoes)
+                .FirstOrDefault(c => c.Id == clienteId);
+        }
+
+        public void AddCustomer(Cliente cliente) {
+            _context.Clientes.Add(cliente);
+        }
+
+        public void RemoveCustomer(Cliente cliente) {
+            _context.Clientes.Remove(cliente);
+        }
+
+        public void RemoveAddresses(IEnumerable<Endereco> enderecos) {
+            _context.Enderecos.RemoveRange(enderecos);
+        }
+
+        public void RemoveCards(IEnumerable<Cartao> cartoes) {
+            _context.Cartoes.RemoveRange(cartoes);
+        }
+
+        public void SaveChanges() {
+            _context.SaveChanges();
+        }
+
         private static IQueryable<Cliente> ApplyFilters(IQueryable<Cliente> query, AdminCustomersQuery filters) {
             if (!string.IsNullOrWhiteSpace(filters.Busca)) {
                 query = query.Where(c =>

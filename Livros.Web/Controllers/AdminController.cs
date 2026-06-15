@@ -1,34 +1,38 @@
-﻿using Livros.Domain;
-using Livros.Application.SalesAnalysis;
-using Livros.Application.AdminOrders;
+using Livros.Application.AdminBooks;
 using Livros.Application.AdminCustomers;
 using Livros.Application.AdminExchanges;
-using Livros.Infrastructure.Data;
+using Livros.Application.AdminOrders;
+using Livros.Application.SalesAnalysis;
+using Livros.Domain;
 using Livros.Infrastructure.Services;
 using Livros.Web.Helpers;
 using Livros.Web.Models.ViewModels;
 using Livros.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
 public class AdminController : Controller {
-        private readonly AppDbContext _context;
     private readonly AdminCustomersService _adminCustomersService;
+    private readonly AdminBooksService _adminBooksService;
     private readonly AdminExchangesService _adminExchangesService;
     private readonly AdminOrdersService _adminOrdersService;
     private readonly SalesAnalysisService _salesAnalysisService;
-    private readonly LivroService _livroService;
     private readonly EstoqueService _estoqueService;
     private readonly AdminSalesHistorySeedService _adminSalesHistorySeedService;
 
-        public AdminController(AppDbContext context, AdminCustomersService adminCustomersService, AdminExchangesService adminExchangesService, AdminOrdersService adminOrdersService, SalesAnalysisService salesAnalysisService, LivroService livroService, EstoqueService estoqueService, AdminSalesHistorySeedService adminSalesHistorySeedService) {
-        _context = context;
+    public AdminController(
+        AdminCustomersService adminCustomersService,
+        AdminBooksService adminBooksService,
+        AdminExchangesService adminExchangesService,
+        AdminOrdersService adminOrdersService,
+        SalesAnalysisService salesAnalysisService,
+        EstoqueService estoqueService,
+        AdminSalesHistorySeedService adminSalesHistorySeedService) {
         _adminCustomersService = adminCustomersService;
+        _adminBooksService = adminBooksService;
         _adminExchangesService = adminExchangesService;
         _adminOrdersService = adminOrdersService;
         _salesAnalysisService = salesAnalysisService;
-        _livroService = livroService;
         _estoqueService = estoqueService;
         _adminSalesHistorySeedService = adminSalesHistorySeedService;
     }
@@ -37,7 +41,7 @@ public class AdminController : Controller {
         return View();
     }
 
-        public async Task<IActionResult> Clientes(
+    public async Task<IActionResult> Clientes(
         string? busca,
         string? nome,
         string? email,
@@ -68,7 +72,7 @@ public class AdminController : Controller {
     }
 
     [HttpGet]
-        public async Task<IActionResult> ClienteTransacoes(int id, CancellationToken cancellationToken = default) {
+    public async Task<IActionResult> ClienteTransacoes(int id, CancellationToken cancellationToken = default) {
         var result = await _adminCustomersService.BuildTransactionsAsync(id, cancellationToken);
 
         if (result == null) {
@@ -81,111 +85,76 @@ public class AdminController : Controller {
 
     [HttpPost]
     public IActionResult CriarClienteAdmin(Cliente cliente) {
-        if (cliente == null)
-            return RedirectToAction("Clientes");
-
-        if (string.IsNullOrWhiteSpace(cliente.Nome)) {
-            TempData["Erro"] = "Nome é obrigatório.";
+        if (cliente == null) {
             return RedirectToAction("Clientes");
         }
 
-        if (string.IsNullOrWhiteSpace(cliente.Email)) {
-            TempData["Erro"] = "Email é obrigatório.";
-            return RedirectToAction("Clientes");
+        if (!string.IsNullOrWhiteSpace(cliente.Senha)) {
+            cliente.Senha = BCrypt.Net.BCrypt.HashPassword(cliente.Senha);
         }
 
-        if (string.IsNullOrWhiteSpace(cliente.Senha)) {
-            TempData["Erro"] = "Senha é obrigatória.";
-            return RedirectToAction("Clientes");
-        }
+        var result = _adminCustomersService.Create(new AdminCustomerCreateCommand {
+            Cliente = cliente
+        });
 
-        if (!string.IsNullOrEmpty(cliente.CPF)) {
-            cliente.CPF = cliente.CPF.Replace(".", "").Replace("-", "");
-        }
-
-        cliente.Senha = BCrypt.Net.BCrypt.HashPassword(cliente.Senha);
-        cliente.IsAtivo = true;
-
-        _context.Clientes.Add(cliente);
-        _context.SaveChanges();
-
-        TempData["Sucesso"] = "Cliente criado com sucesso!";
+        TempData[result.Succeeded ? "Sucesso" : "Erro"] = result.Message;
         return RedirectToAction("Clientes");
     }
 
     [HttpPost]
     public IActionResult DesativarCliente(int id) {
-        var cliente = _context.Clientes.FirstOrDefault(c => c.Id == id);
+        var result = _adminCustomersService.UpdateStatus(new AdminCustomerStatusCommand {
+            ClienteId = id,
+            IsAtivo = false
+        });
 
-        if (cliente != null) {
-            cliente.IsAtivo = false;
-            _context.SaveChanges();
-        }
-
+        TempData[result.Succeeded ? "Sucesso" : "Erro"] = result.Message;
         return RedirectToAction("Clientes");
     }
 
     [HttpPost]
     public IActionResult AtivarCliente(int id) {
-        var cliente = _context.Clientes.FirstOrDefault(c => c.Id == id);
+        var result = _adminCustomersService.UpdateStatus(new AdminCustomerStatusCommand {
+            ClienteId = id,
+            IsAtivo = true
+        });
 
-        if (cliente != null) {
-            cliente.IsAtivo = true;
-            _context.SaveChanges();
-        }
-
+        TempData[result.Succeeded ? "Sucesso" : "Erro"] = result.Message;
         return RedirectToAction("Clientes");
     }
 
     [HttpPost]
     public IActionResult EditarClienteAdmin(Cliente cliente) {
-        var clienteDb = _context.Clientes.FirstOrDefault(c => c.Id == cliente.Id);
+        var result = _adminCustomersService.Update(new AdminCustomerUpdateCommand {
+            Cliente = cliente
+        });
 
-        if (clienteDb == null)
+        if (!result.Succeeded && result.Message == "Cliente nao encontrado.") {
             return NotFound();
+        }
 
-        clienteDb.Nome = cliente.Nome;
-        clienteDb.Email = cliente.Email;
-        clienteDb.CPF = cliente.CPF;
-        clienteDb.Telefone = cliente.Telefone;
-        clienteDb.Genero = cliente.Genero;
-        clienteDb.DataNascimento = cliente.DataNascimento;
-        clienteDb.IsAdmin = cliente.IsAdmin;
-
-        _context.SaveChanges();
-
+        TempData[result.Succeeded ? "Sucesso" : "Erro"] = result.Message;
         return RedirectToAction("Clientes");
     }
 
     [HttpPost]
     public IActionResult ExcluirClienteAdmin(int id) {
-        var cliente = _context.Clientes
-            .Include(c => c.Enderecos)
-            .Include(c => c.Cartoes)
-            .FirstOrDefault(c => c.Id == id);
+        var result = _adminCustomersService.Delete(new AdminCustomerDeletionCommand {
+            ClienteId = id
+        });
 
-        if (cliente == null)
+        if (!result.Succeeded && result.Message == "Cliente nao encontrado.") {
             return NotFound();
+        }
 
-        if (cliente.Enderecos != null)
-            _context.Enderecos.RemoveRange(cliente.Enderecos);
-
-        if (cliente.Cartoes != null)
-            _context.Cartoes.RemoveRange(cliente.Cartoes);
-
-        _context.Clientes.Remove(cliente);
-        _context.SaveChanges();
-
+        TempData[result.Succeeded ? "Sucesso" : "Erro"] = result.Message;
         return RedirectToAction("Clientes");
     }
 
     public IActionResult Livros() {
-        ViewBag.CategoriasDisponiveis = _context.Categorias
-            .OrderBy(c => c.Nome)
-            .ToList();
-
-        var livros = _livroService.Listar();
-        return View(livros);
+        var catalog = _adminBooksService.BuildCatalog();
+        ViewBag.CategoriasDisponiveis = catalog.CategoriasDisponiveis;
+        return View(catalog.Livros);
     }
 
     [HttpPost]
@@ -195,11 +164,6 @@ public class AdminController : Controller {
         livro.Largura = ObterDecimalFormulario("Largura", livro.Largura);
         livro.Peso = ObterDecimalFormulario("Peso", livro.Peso);
         livro.Profundidade = ObterDecimalFormulario("Profundidade", livro.Profundidade);
-        livro.Categorias = categoriasIds == null || categoriasIds.Length == 0
-            ? new List<Categoria>()
-            : _context.Categorias
-                .Where(c => categoriasIds.Contains(c.Id))
-                .ToList();
 
         if (ImagemArquivo != null && ImagemArquivo.Length > 0) {
             var nomeArquivo = Guid.NewGuid() + Path.GetExtension(ImagemArquivo.FileName);
@@ -233,50 +197,24 @@ public class AdminController : Controller {
             return RedirectToAction("Livros");
         }
 
-        if (livro.Categorias == null || !livro.Categorias.Any()) {
-            TempData["Erro"] = "Selecione pelo menos uma categoria para o livro.";
-            return RedirectToAction("Livros");
-        }
+        var result = _adminBooksService.Create(new AdminBookCreateCommand {
+            Livro = livro,
+            CategoriasIds = categoriasIds ?? Array.Empty<int>()
+        });
 
-        _livroService.Criar(livro);
-        TempData["Sucesso"] = "Livro cadastrado com sucesso!";
+        TempData[result.Succeeded ? "Sucesso" : "Erro"] = result.Message;
         return RedirectToAction("Livros");
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult EditarCategoriasLivro(int livroId, int[] categoriasIds) {
-        var livro = _context.Livros
-            .Include(l => l.Categorias)
-            .FirstOrDefault(l => l.Id == livroId);
+        var result = _adminBooksService.UpdateCategories(new AdminBookCategoryUpdateCommand {
+            LivroId = livroId,
+            CategoriasIds = categoriasIds ?? Array.Empty<int>()
+        });
 
-        if (livro == null) {
-            TempData["Erro"] = "Livro nao encontrado.";
-            return RedirectToAction("Livros");
-        }
-
-        var categoriasSelecionadas = (categoriasIds ?? Array.Empty<int>())
-            .Distinct()
-            .ToArray();
-
-        if (!categoriasSelecionadas.Any()) {
-            TempData["Erro"] = "Selecione pelo menos uma categoria para o livro.";
-            return RedirectToAction("Livros");
-        }
-
-        var categorias = _context.Categorias
-            .Where(c => categoriasSelecionadas.Contains(c.Id))
-            .ToList();
-
-        livro.Categorias ??= new List<Categoria>();
-        livro.Categorias.Clear();
-
-        foreach (var categoria in categorias) {
-            livro.Categorias.Add(categoria);
-        }
-
-        _context.SaveChanges();
-        TempData["Sucesso"] = $"Categorias do livro \"{livro.Titulo}\" atualizadas com sucesso!";
+        TempData[result.Succeeded ? "Sucesso" : "Erro"] = result.Message;
         return RedirectToAction("Livros");
     }
 
@@ -303,7 +241,7 @@ public class AdminController : Controller {
         return RedirectToAction(nameof(AnaliseVendas));
     }
 
-        [HttpGet]
+    [HttpGet]
     public async Task<IActionResult> AnaliseVendas(DateTime? dataInicio, DateTime? dataFim, int[]? categoriasIds, string? agrupamento, CancellationToken cancellationToken) {
         var analysis = await _salesAnalysisService.BuildAsync(
             new SalesAnalysisQuery {
@@ -366,7 +304,7 @@ public class AdminController : Controller {
     }
 
     [HttpGet]
-        public async Task<IActionResult> Pedidos(string? busca, string? status, int pagina = 1, CancellationToken cancellationToken = default) {
+    public async Task<IActionResult> Pedidos(string? busca, string? status, int pagina = 1, CancellationToken cancellationToken = default) {
         var result = await _adminOrdersService.BuildAsync(
             new AdminOrdersQuery {
                 Busca = busca,
@@ -378,7 +316,7 @@ public class AdminController : Controller {
         return View(AdminPedidosViewModelMapper.Map(result));
     }
 
-        [HttpPost]
+    [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AtualizarStatusPedido(int pedidoId, string novoStatus, CancellationToken cancellationToken = default) {
         var result = await _adminOrdersService.UpdateStatusAsync(
@@ -393,7 +331,7 @@ public class AdminController : Controller {
     }
 
     [HttpGet]
-        public async Task<IActionResult> Trocas(string? busca, string? status, int paginaTrocas = 1, int paginaCupons = 1, CancellationToken cancellationToken = default) {
+    public async Task<IActionResult> Trocas(string? busca, string? status, int paginaTrocas = 1, int paginaCupons = 1, CancellationToken cancellationToken = default) {
         var result = await _adminExchangesService.BuildAsync(
             new AdminExchangesQuery {
                 Busca = busca,
@@ -406,7 +344,7 @@ public class AdminController : Controller {
         return View(AdminTrocasViewModelMapper.Map(result));
     }
 
-        [HttpPost]
+    [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AnalisarTroca(int trocaId, string decisao, string? observacaoAdmin, CancellationToken cancellationToken = default) {
         var result = await _adminExchangesService.AnalyzeAsync(
@@ -423,7 +361,7 @@ public class AdminController : Controller {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ConfirmarRecebimentoTroca(int trocaId, bool retornarAoEstoque, string? observacaoAdmin, decimal? valorCupom, CancellationToken cancellationToken = default) {
+    public async Task<IActionResult> ConfirmarRecebimentoTroca(int trocaId, bool retornarAoEstoque, string? observacaoAdmin, decimal? valorCupom, CancellationToken cancellationToken = default) {
         var result = await _adminExchangesService.ConfirmReceiptAsync(
             new AdminExchangeReceiptCommand {
                 TrocaId = trocaId,
@@ -439,7 +377,7 @@ public class AdminController : Controller {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-        public async Task<IActionResult> GerarCupomDesconto(decimal? valor, string? destinatario, int? clienteId, CancellationToken cancellationToken = default) {
+    public async Task<IActionResult> GerarCupomDesconto(decimal? valor, string? destinatario, int? clienteId, CancellationToken cancellationToken = default) {
         var result = await _adminExchangesService.GeneratePromotionalCouponAsync(
             new AdminPromotionalCouponCommand {
                 Valor = ObterDecimalFormulario("valor", valor ?? 0),
@@ -454,7 +392,7 @@ public class AdminController : Controller {
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DesativarCupomDesconto(int id, CancellationToken cancellationToken = default) {
+    public async Task<IActionResult> DesativarCupomDesconto(int id, CancellationToken cancellationToken = default) {
         var result = await _adminExchangesService.DeactivateCouponAsync(
             new AdminCouponDeactivationCommand {
                 CupomId = id
@@ -513,12 +451,3 @@ public class AdminController : Controller {
         };
     }
 }
-
-
-
-
-
-
-
-
-

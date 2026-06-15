@@ -1,6 +1,9 @@
 ﻿using System.Text;
 using Livros.Domain;
 using Livros.Application.Checkout;
+using Livros.Application.CustomerCart;
+using Livros.Application.CustomerCheckout;
+using Livros.Application.CustomerOrders;
 using Livros.Infrastructure.Data;
 using Livros.Infrastructure.Services;
 using Livros.Web.Controllers;
@@ -297,13 +300,23 @@ public class PedidoControllerTests {
     }
 
     private static PedidoController CriarController(AppDbContext context, int clienteId, string valor1) {
-        var controller = new PedidoController(
-            context,
-            new EnderecoService(context),
-            new CheckoutPricingService(new CheckoutPricingDataProvider(context)),
+        var pricingService = new CheckoutPricingService(new CheckoutPricingDataProvider(context));
+        var cartService = new CustomerCartService(new CustomerCartDataProvider(context));
+        var checkoutService = new CustomerCheckoutService(new CustomerCheckoutDataProvider(context), pricingService);
+        var orderPlacementService = new CustomerOrderPlacementService(
+            new CustomerOrderPlacementDataProvider(context),
             new CheckoutAddressService(new CheckoutAddressDataProvider(context)),
+            pricingService,
+            new CheckoutPaymentService(new CheckoutPaymentDataProvider(context)),
             new CheckoutOrderService(),
-            new CheckoutPaymentService(new CheckoutPaymentDataProvider(context)));
+            checkoutService,
+            cartService);
+        var controller = new PedidoController(
+            pricingService,
+            cartService,
+            checkoutService,
+            orderPlacementService,
+            new CustomerOrdersService(new CustomerOrdersDataProvider(context)));
 
         var httpContext = new DefaultHttpContext();
         var session = new TestSession();

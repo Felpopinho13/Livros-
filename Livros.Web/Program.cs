@@ -2,8 +2,16 @@
 using Livros.Application.AdminExchanges;
 using Livros.Application.AdminCustomers;
 using Livros.Application.AdminOrders;
+using Livros.Application.AdminBooks;
+using Livros.Application.Authentication;
 using Livros.Application.SalesAnalysis;
 using Livros.Application.Checkout;
+using Livros.Application.CustomerAddresses;
+using Livros.Application.CustomerAccounts;
+using Livros.Application.CustomerCards;
+using Livros.Application.CustomerCart;
+using Livros.Application.CustomerCheckout;
+using Livros.Application.CustomerOrders;
 using Livros.Infrastructure.Data;
 using Livros.Infrastructure.Services;
 using Livros.Application.Recommendations;
@@ -27,10 +35,28 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer("Server=localhost;Database=LivrosDb;Trusted_Connection=True;TrustServerCertificate=True;"));
 
 builder.Services.AddScoped<ClienteService>();
+builder.Services.AddScoped<IAuthWorkflowDataProvider, AuthWorkflowDataProvider>();
+builder.Services.AddScoped<AuthWorkflowService>();
 builder.Services.AddScoped<LivroService>();
 builder.Services.AddScoped<EnderecoService>();
+builder.Services.AddScoped<ICustomerAddressDataProvider, CustomerAddressDataProvider>();
+builder.Services.AddScoped<CustomerAddressService>();
+builder.Services.AddScoped<ICustomerAccountDataProvider, CustomerAccountDataProvider>();
+builder.Services.AddScoped<CustomerAccountService>();
+builder.Services.AddScoped<ICustomerCardDataProvider, CustomerCardDataProvider>();
+builder.Services.AddScoped<CustomerCardService>();
+builder.Services.AddScoped<ICustomerCartDataProvider, CustomerCartDataProvider>();
+builder.Services.AddScoped<CustomerCartService>();
+builder.Services.AddScoped<ICustomerCheckoutDataProvider, CustomerCheckoutDataProvider>();
+builder.Services.AddScoped<CustomerCheckoutService>();
+builder.Services.AddScoped<ICustomerOrderPlacementDataProvider, CustomerOrderPlacementDataProvider>();
+builder.Services.AddScoped<CustomerOrderPlacementService>();
+builder.Services.AddScoped<ICustomerOrdersDataProvider, CustomerOrdersDataProvider>();
+builder.Services.AddScoped<CustomerOrdersService>();
 builder.Services.AddScoped<IAdminCustomersDataProvider, AdminCustomersDataProvider>();
 builder.Services.AddScoped<AdminCustomersService>();
+builder.Services.AddScoped<IAdminBooksDataProvider, AdminBooksDataProvider>();
+builder.Services.AddScoped<AdminBooksService>();
 builder.Services.AddScoped<IAdminExchangesDataProvider, AdminExchangesDataProvider>();
 builder.Services.AddScoped<AdminExchangesService>();
 builder.Services.AddScoped<IAdminOrdersDataProvider, AdminOrdersDataProvider>();
@@ -138,6 +164,7 @@ static string NormalizarCategoria(string? nome) {
         .ToString()
         .Normalize(NormalizationForm.FormC);
 }
+
 
 
 
