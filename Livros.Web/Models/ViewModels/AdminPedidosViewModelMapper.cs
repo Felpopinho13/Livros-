@@ -1,4 +1,4 @@
-using Livros.Application.AdminOrders;
+﻿using Livros.Application.AdminOrders;
 using Livros.Domain;
 
 public static class AdminPedidosViewModelMapper {
@@ -14,16 +14,16 @@ public static class AdminPedidosViewModelMapper {
                 ClienteNome = p.Cliente?.Nome ?? string.Empty,
                 ClienteEmail = p.Cliente?.Email ?? string.Empty,
                 Total = p.Total,
-                Status = NormalizarStatusPedidoExibicao(p.Status),
+                Status = OrderStatusHelper.NormalizeDisplayStatus(p.Status),
                 StatusPagamento = ObterStatusPagamentoPedido(p),
                 ResumoItens = MontarResumoItensPedido(p),
                 QuantidadeItens = p.Itens.Count,
                 QuantidadeLivros = p.Itens.Sum(i => i.Quantidade),
                 Destino = MontarDestinoPedido(p),
-                EstoqueBaixado = StatusExigeBaixaEstoque(p.Status),
+                EstoqueBaixado = OrderStatusHelper.RequiresStockDecrease(p.Status),
                 TemTroca = result.TrocasPorPedido.ContainsKey(p.Id),
                 QuantidadeTrocas = result.TrocasPorPedido.TryGetValue(p.Id, out var quantidadeTrocas) ? quantidadeTrocas : 0,
-                ProximosStatus = ObterProximosStatusPedido(p.Status).ToList()
+                ProximosStatus = OrderStatusHelper.GetNextStatuses(p.Status).ToList()
             }).ToList()
         };
     }
@@ -70,51 +70,5 @@ public static class AdminPedidosViewModelMapper {
         }
 
         return string.IsNullOrWhiteSpace(estado) ? cidade : $"{cidade}/{estado}";
-    }
-
-    private static bool StatusExigeBaixaEstoque(string? status) {
-        if (string.IsNullOrWhiteSpace(status)) {
-            return false;
-        }
-
-        return status.Equals("APROVADA", StringComparison.OrdinalIgnoreCase)
-            || status.Equals("PAGAMENTO APROVADO", StringComparison.OrdinalIgnoreCase)
-            || status.Equals("EM SEPARACAO", StringComparison.OrdinalIgnoreCase)
-            || status.Equals("EM TRANSPORTE", StringComparison.OrdinalIgnoreCase)
-            || status.Equals("ENVIADO", StringComparison.OrdinalIgnoreCase)
-            || status.Equals("ENTREGUE", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static IEnumerable<string> ObterProximosStatusPedido(string? statusAtual) {
-        var status = NormalizarStatusPedidoInterno(statusAtual);
-
-        return status switch {
-            "APROVADA" => new[] { "EM SEPARACAO", "CANCELADO" },
-            "EM SEPARACAO" => new[] { "EM TRANSPORTE", "CANCELADO" },
-            "EM TRANSPORTE" => new[] { "ENTREGUE" },
-            _ => Array.Empty<string>()
-        };
-    }
-
-    private static string NormalizarStatusPedidoInterno(string? statusAtual) {
-        return (statusAtual ?? string.Empty).Trim().ToUpperInvariant() switch {
-            "EM PROCESSAMENTO" => "APROVADA",
-            "PAGAMENTO APROVADO" => "APROVADA",
-            "PAGAMENTO RECUSADO" => "REPROVADA",
-            "ENVIADO" => "EM TRANSPORTE",
-            var status => status
-        };
-    }
-
-    private static string NormalizarStatusPedidoExibicao(string? statusAtual) {
-        return NormalizarStatusPedidoInterno(statusAtual) switch {
-            "APROVADA" => "APROVADA",
-            "REPROVADA" => "REPROVADA",
-            "EM SEPARACAO" => "EM SEPARACAO",
-            "EM TRANSPORTE" => "EM TRANSPORTE",
-            "ENTREGUE" => "ENTREGUE",
-            "CANCELADO" => "CANCELADO",
-            _ => statusAtual ?? "NAO INFORMADO"
-        };
     }
 }

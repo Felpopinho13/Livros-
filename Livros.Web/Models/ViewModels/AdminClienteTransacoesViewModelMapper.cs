@@ -1,4 +1,5 @@
-using Livros.Application.AdminCustomers;
+﻿using Livros.Application.AdminCustomers;
+using Livros.Application.AdminOrders;
 using Livros.Domain;
 using Livros.Web.Helpers;
 
@@ -33,7 +34,7 @@ namespace Livros.Web.Models.ViewModels {
                 Pedidos = result.Pedidos.Select(p => new AdminClientePedidoTransacaoViewModel {
                     PedidoId = p.Id,
                     Data = p.Data,
-                    Status = NormalizarStatusPedidoExibicao(p.Status),
+                    Status = OrderStatusHelper.NormalizeDisplayStatus(p.Status),
                     Total = p.Total,
                     ResumoItens = MontarResumoItensPedido(p)
                 }).ToList(),
@@ -67,22 +68,6 @@ namespace Livros.Web.Models.ViewModels {
             }
 
             return $"{itemPrincipal.Livro?.Titulo ?? "Livro"} + {pedido.Itens.Count - 1} item(ns)";
-        }
-
-        private static string NormalizarStatusPedidoExibicao(string? statusAtual) {
-            return (statusAtual ?? string.Empty).Trim().ToUpperInvariant() switch {
-                "EM PROCESSAMENTO" => "APROVADA",
-                "PAGAMENTO APROVADO" => "APROVADA",
-                "PAGAMENTO RECUSADO" => "REPROVADA",
-                "ENVIADO" => "EM TRANSPORTE",
-                "APROVADA" => "APROVADA",
-                "REPROVADA" => "REPROVADA",
-                "EM SEPARACAO" => "EM SEPARACAO",
-                "EM TRANSPORTE" => "EM TRANSPORTE",
-                "ENTREGUE" => "ENTREGUE",
-                "CANCELADO" => "CANCELADO",
-                _ => statusAtual ?? "NAO INFORMADO"
-            };
         }
 
         private static bool TrocaEstaAutorizada(Troca troca) {

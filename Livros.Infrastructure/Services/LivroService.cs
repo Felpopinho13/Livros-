@@ -1,4 +1,4 @@
-using Livros.Infrastructure.Data;
+﻿using Livros.Infrastructure.Data;
 using Livros.Domain;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,7 +34,7 @@ namespace Livros.Infrastructure.Services {
             _context.SaveChanges();
         }
 
-        public Livro ObterPorId(int id) {
+        public Livro? ObterPorId(int id) {
             AplicarInativacaoAutomaticaSemEstoque();
 
             return _context.Livros

@@ -1,4 +1,4 @@
-using Livros.Application.AdminOrders;
+﻿using Livros.Application.AdminOrders;
 using Livros.Domain;
 using Livros.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -90,30 +90,11 @@ namespace Livros.Infrastructure.Services {
             }
 
             if (!string.IsNullOrWhiteSpace(filters.Status)) {
-                var statusEquivalentes = ObterStatusEquivalentesFiltroPedido(filters.Status);
+                var statusEquivalentes = OrderStatusHelper.GetEquivalentStatusesForFilter(filters.Status);
                 query = query.Where(p => statusEquivalentes.Contains(p.Status));
             }
 
             return query;
-        }
-
-        private static string NormalizarStatusPedidoInterno(string? statusAtual) {
-            return (statusAtual ?? string.Empty).Trim().ToUpperInvariant() switch {
-                "EM PROCESSAMENTO" => "APROVADA",
-                "PAGAMENTO APROVADO" => "APROVADA",
-                "PAGAMENTO RECUSADO" => "REPROVADA",
-                "ENVIADO" => "EM TRANSPORTE",
-                var status => status
-            };
-        }
-
-        private static string[] ObterStatusEquivalentesFiltroPedido(string status) {
-            return NormalizarStatusPedidoInterno(status) switch {
-                "APROVADA" => new[] { "APROVADA", "PAGAMENTO APROVADO", "EM PROCESSAMENTO" },
-                "REPROVADA" => new[] { "REPROVADA", "PAGAMENTO RECUSADO" },
-                "EM TRANSPORTE" => new[] { "EM TRANSPORTE", "ENVIADO" },
-                var statusNormalizado => new[] { statusNormalizado }
-            };
         }
     }
 }

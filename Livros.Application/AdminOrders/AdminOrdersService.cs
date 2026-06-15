@@ -1,4 +1,4 @@
-using Livros.Domain;
+﻿using Livros.Domain;
 
 namespace Livros.Application.AdminOrders {
     public sealed class AdminOrdersService {
@@ -48,7 +48,7 @@ namespace Livros.Application.AdminOrders {
 
             var statusAtual = pedido.Status ?? string.Empty;
             var novoStatus = command.NovoStatus.Trim();
-            var proximosStatus = GetNextStatuses(statusAtual).ToList();
+            var proximosStatus = OrderStatusHelper.GetNextStatuses(statusAtual).ToList();
             if (!proximosStatus.Contains(novoStatus)) {
                 return new AdminOrderStatusUpdateResult {
                     Succeeded = false,
@@ -59,8 +59,8 @@ namespace Livros.Application.AdminOrders {
             var livroIds = pedido.Itens.Select(i => i.LivroId).Distinct().ToList();
             var estoquesPorLivro = await _dataProvider.LoadStocksForBooksAsync(livroIds, cancellationToken);
 
-            var estoqueEstaBaixado = RequiresStockDecrease(statusAtual);
-            var estoqueDeveFicarBaixado = RequiresStockDecrease(novoStatus);
+            var estoqueEstaBaixado = OrderStatusHelper.RequiresStockDecrease(statusAtual);
+            var estoqueDeveFicarBaixado = OrderStatusHelper.RequiresStockDecrease(novoStatus);
 
             if (!estoqueEstaBaixado && estoqueDeveFicarBaixado) {
                 var erroBaixa = TryDecreaseStock(pedido, estoquesPorLivro);
@@ -82,30 +82,6 @@ namespace Livros.Application.AdminOrders {
             return new AdminOrderStatusUpdateResult {
                 Succeeded = true,
                 Message = $"Pedido #{pedido.Id} atualizado para {novoStatus}."
-            };
-        }
-
-        private static bool RequiresStockDecrease(string? status) {
-            if (string.IsNullOrWhiteSpace(status)) {
-                return false;
-            }
-
-            return status.Equals("APROVADA", StringComparison.OrdinalIgnoreCase)
-                || status.Equals("PAGAMENTO APROVADO", StringComparison.OrdinalIgnoreCase)
-                || status.Equals("EM SEPARACAO", StringComparison.OrdinalIgnoreCase)
-                || status.Equals("EM TRANSPORTE", StringComparison.OrdinalIgnoreCase)
-                || status.Equals("ENVIADO", StringComparison.OrdinalIgnoreCase)
-                || status.Equals("ENTREGUE", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static IEnumerable<string> GetNextStatuses(string? statusAtual) {
-            var status = NormalizeInternalStatus(statusAtual);
-
-            return status switch {
-                "APROVADA" => new[] { "EM SEPARACAO", "CANCELADO" },
-                "EM SEPARACAO" => new[] { "EM TRANSPORTE", "CANCELADO" },
-                "EM TRANSPORTE" => new[] { "ENTREGUE" },
-                _ => Array.Empty<string>()
             };
         }
 
@@ -144,7 +120,7 @@ namespace Livros.Application.AdminOrders {
                 return;
             }
 
-            var statusPagamento = NormalizeInternalStatus(novoStatus) switch {
+            var statusPagamento = OrderStatusHelper.NormalizeInternalStatus(novoStatus) switch {
                 "APROVADA" => "Aprovado",
                 "EM SEPARACAO" => "Aprovado",
                 "EM TRANSPORTE" => "Aprovado",
@@ -157,16 +133,6 @@ namespace Livros.Application.AdminOrders {
             foreach (var pagamento in pedido.Pagamentos) {
                 pagamento.Status = statusPagamento;
             }
-        }
-
-        private static string NormalizeInternalStatus(string? statusAtual) {
-            return (statusAtual ?? string.Empty).Trim().ToUpperInvariant() switch {
-                "EM PROCESSAMENTO" => "APROVADA",
-                "PAGAMENTO APROVADO" => "APROVADA",
-                "PAGAMENTO RECUSADO" => "REPROVADA",
-                "ENVIADO" => "EM TRANSPORTE",
-                var status => status
-            };
         }
     }
 }

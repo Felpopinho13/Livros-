@@ -84,7 +84,7 @@ public class ClienteController : Controller {
             Email = cliente.Email,
             TotalPedidos = pedidos.Count,
             ValorTotalCompras = pedidos.Sum(p => p.Total),
-            QuantidadeEnderecos = cliente.Enderecos?.Count ?? 0,
+            QuantidadeEnderecos = cliente.Enderecos?.Count(e => e.IsEntrega || e.IsCobranca) ?? 0,
             QuantidadeCartoes = cliente.Cartoes?.Count ?? 0,
             QuantidadeCuponsDisponiveis = cuponsDisponiveis.Count,
             QuantidadeTrocasAbertas = trocasAbertas,
@@ -236,7 +236,7 @@ public class ClienteController : Controller {
                 .ThenInclude(b => b.Cidade)
             .Include(e => e.Cidade)
                 .ThenInclude(c => c.Estado)
-            .FirstOrDefault(e => e.Id == id);
+            .FirstOrDefault(e => e.Id == id && (e.IsEntrega || e.IsCobranca));
 
         if (endereco == null)
             return NotFound();
@@ -267,7 +267,7 @@ public class ClienteController : Controller {
             .Include(e => e.Cliente)
             .Include(e => e.Cidade)
             .Include(e => e.Bairro)
-            .FirstOrDefault(e => e.Id == vm.Id);
+            .FirstOrDefault(e => e.Id == vm.Id && (e.IsEntrega || e.IsCobranca));
 
         if (endereco == null)
             return NotFound();
@@ -349,6 +349,7 @@ public class ClienteController : Controller {
             return RedirectToAction("Login", "Auth"); 
 
         var enderecos = cliente.Enderecos
+            .Where(e => e.IsEntrega || e.IsCobranca)
             .OrderByDescending(e => e.IsPadrao)
             .ThenByDescending(e => e.IsEntrega)
             .ThenBy(e => e.NomeEndereco)
@@ -453,7 +454,7 @@ public class ClienteController : Controller {
         if (cliente == null)
             return RedirectToAction("Login", "Auth");
 
-        var endereco = cliente.Enderecos.FirstOrDefault(e => e.Id == id);
+        var endereco = cliente.Enderecos.FirstOrDefault(e => e.Id == id && (e.IsEntrega || e.IsCobranca));
         if (endereco == null || !endereco.IsEntrega) {
             TempData["Erro"] = "Somente enderecos de entrega podem ser definidos como padrao.";
             return RedirectToAction("Enderecos");
@@ -479,7 +480,7 @@ public class ClienteController : Controller {
 
         var endereco = _context.Enderecos
             .Include(e => e.Cliente)
-            .FirstOrDefault(e => e.Id == id && e.Cliente.Email == email);
+            .FirstOrDefault(e => e.Id == id && e.Cliente.Email == email && (e.IsEntrega || e.IsCobranca));
 
         if (endereco == null) {
             TempData["Erro"] = "Endereço não encontrado.";
@@ -608,6 +609,11 @@ public class ClienteController : Controller {
         var cliente = _context.Clientes
             .Include(c => c.Cartoes)
             .FirstOrDefault(c => c.Email == email);
+
+        if (cliente?.Cartoes == null || !cliente.Cartoes.Any()) {
+            TempData["Erro"] = "Cliente ou cartoes nao encontrados.";
+            return RedirectToAction("Cartoes");
+        }
 
         foreach (var c in cliente.Cartoes)
             c.IsPadrao = false;
@@ -770,4 +776,9 @@ public class ClienteController : Controller {
         return new string(valor.Where(char.IsDigit).ToArray());
     }
 }
+
+
+
+
+
 

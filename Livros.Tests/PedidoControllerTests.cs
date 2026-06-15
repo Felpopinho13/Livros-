@@ -1,5 +1,6 @@
-using System.Text;
+﻿using System.Text;
 using Livros.Domain;
+using Livros.Application.Checkout;
 using Livros.Infrastructure.Data;
 using Livros.Infrastructure.Services;
 using Livros.Web.Controllers;
@@ -92,6 +93,113 @@ public class PedidoControllerTests {
         Assert.False(controller.ModelState.IsValid);
         Assert.True(controller.ModelState.ContainsKey(nameof(CheckoutFormData.DataEntregaPrevista)));
         Assert.Empty(context.Pedidos);
+    }
+
+    [Fact]
+    public void FinalizarPedido_ComNovoEnderecoSemSalvarNaoDeveExibirEnderecoComoSalvoNoPerfil() {
+        using var context = CriarContexto();
+        var cliente = CriarCliente(context);
+        var enderecoSalvo = CriarEndereco(context, cliente.Id);
+        var livro = CriarLivroComEstoque(context);
+
+        var controller = CriarController(context, cliente.Id, "32,00");
+        var form = new CheckoutFormData {
+            LivroId = livro.Id,
+            Quantidade = 1,
+            EnderecoId = 0,
+            NomeEndereco = "Endereco do pedido",
+            CEP = "01001-000",
+            TipoLogradouro = "Rua",
+            Logradouro = "Rua Nova",
+            Numero = "200",
+            Complemento = "Casa 2",
+            TipoResidencia = "Casa",
+            Pais = "Brasil",
+            Bairro = "Centro",
+            Cidade = "Sao Paulo",
+            Estado = "SP",
+            SalvarNovoEndereco = false,
+            TipoEntrega = "PROGRAMADA",
+            DataEntregaPrevista = DateTime.Today.AddDays(8),
+            Metodo1 = "pix",
+            Valor1 = 32m
+        };
+
+        var resultado = controller.FinalizarPedido(form);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(resultado);
+        Assert.Equal("PedidoConfirmado", redirect.ActionName);
+
+        var pedido = context.Pedidos.Single();
+        var enderecosCliente = context.Enderecos
+            .Where(e => e.ClienteId == cliente.Id)
+            .OrderBy(e => e.Id)
+            .ToList();
+
+        Assert.Equal(2, enderecosCliente.Count);
+
+        var enderecoDoPedido = Assert.Single(enderecosCliente, e => e.Id != enderecoSalvo.Id);
+        Assert.Equal(enderecoDoPedido.Id, pedido.EnderecoId);
+        Assert.False(enderecoDoPedido.IsEntrega);
+        Assert.False(enderecoDoPedido.IsCobranca);
+        Assert.False(enderecoDoPedido.IsPadrao);
+
+        var enderecosSalvos = new EnderecoService(context).ListarPorCliente(cliente.Id);
+        var unicoEnderecoSalvo = Assert.Single(enderecosSalvos);
+        Assert.Equal(enderecoSalvo.Id, unicoEnderecoSalvo.Id);
+    }
+
+    [Fact]
+    public void FinalizarPedido_ComNovoEnderecoESalvarDeveManterEnderecoDisponivelNoPerfil() {
+        using var context = CriarContexto();
+        var cliente = CriarCliente(context);
+        var enderecoSalvo = CriarEndereco(context, cliente.Id);
+        var livro = CriarLivroComEstoque(context);
+
+        var controller = CriarController(context, cliente.Id, "32,00");
+        var form = new CheckoutFormData {
+            LivroId = livro.Id,
+            Quantidade = 1,
+            EnderecoId = 0,
+            NomeEndereco = "Endereco salvo",
+            CEP = "01001-000",
+            TipoLogradouro = "Rua",
+            Logradouro = "Rua Nova",
+            Numero = "300",
+            Complemento = "Apto 5",
+            TipoResidencia = "Apartamento",
+            Pais = "Brasil",
+            Bairro = "Centro",
+            Cidade = "Sao Paulo",
+            Estado = "SP",
+            SalvarNovoEndereco = true,
+            TipoEntrega = "PROGRAMADA",
+            DataEntregaPrevista = DateTime.Today.AddDays(8),
+            Metodo1 = "pix",
+            Valor1 = 32m
+        };
+
+        var resultado = controller.FinalizarPedido(form);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(resultado);
+        Assert.Equal("PedidoConfirmado", redirect.ActionName);
+
+        var enderecosCliente = context.Enderecos
+            .Where(e => e.ClienteId == cliente.Id)
+            .OrderBy(e => e.Id)
+            .ToList();
+
+        Assert.Equal(2, enderecosCliente.Count);
+
+        var novoEnderecoSalvo = Assert.Single(enderecosCliente, e => e.Id != enderecoSalvo.Id);
+        Assert.True(novoEnderecoSalvo.IsEntrega);
+        Assert.False(novoEnderecoSalvo.IsCobranca);
+        Assert.False(novoEnderecoSalvo.IsPadrao);
+
+        var enderecosSalvos = new EnderecoService(context).ListarPorCliente(cliente.Id);
+        Assert.Equal(2, enderecosSalvos.Count);
+        Assert.Contains(enderecosSalvos, e => e.Id == enderecoSalvo.Id);
+        Assert.Contains(enderecosSalvos, e => e.Id == novoEnderecoSalvo.Id);
     }
 
     private static AppDbContext CriarContexto() {
@@ -191,8 +299,11 @@ public class PedidoControllerTests {
     private static PedidoController CriarController(AppDbContext context, int clienteId, string valor1) {
         var controller = new PedidoController(
             context,
-            new LivroService(context),
-            new EnderecoService(context));
+            new EnderecoService(context),
+            new CheckoutPricingService(new CheckoutPricingDataProvider(context)),
+            new CheckoutAddressService(new CheckoutAddressDataProvider(context)),
+            new CheckoutOrderService(),
+            new CheckoutPaymentService(new CheckoutPaymentDataProvider(context)));
 
         var httpContext = new DefaultHttpContext();
         var session = new TestSession();
@@ -209,3 +320,9 @@ public class PedidoControllerTests {
         return controller;
     }
 }
+
+
+
+
+
+

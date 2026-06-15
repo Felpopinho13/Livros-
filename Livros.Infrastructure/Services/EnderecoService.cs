@@ -16,7 +16,7 @@ namespace Livros.Infrastructure.Services {
 
         public List<Endereco> ListarPorCliente(int clienteId) {
             return _context.Enderecos
-                .Where(e => e.ClienteId == clienteId)
+                .Where(e => e.ClienteId == clienteId && (e.IsEntrega || e.IsCobranca))
                 .Include(e => e.Bairro)
                 .Include(e => e.Cidade)
                     .ThenInclude(c => c.Estado)
@@ -24,3 +24,4 @@ namespace Livros.Infrastructure.Services {
         }
     }
 }
+

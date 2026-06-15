@@ -3,6 +3,7 @@ using Livros.Application.AdminExchanges;
 using Livros.Application.AdminCustomers;
 using Livros.Application.AdminOrders;
 using Livros.Application.SalesAnalysis;
+using Livros.Application.Checkout;
 using Livros.Infrastructure.Data;
 using Livros.Infrastructure.Services;
 using Livros.Application.Recommendations;
@@ -35,6 +36,13 @@ builder.Services.AddScoped<AdminExchangesService>();
 builder.Services.AddScoped<IAdminOrdersDataProvider, AdminOrdersDataProvider>();
 builder.Services.AddScoped<AdminOrdersService>();
 builder.Services.AddScoped<EstoqueService>();
+builder.Services.AddScoped<ICheckoutPricingDataProvider, CheckoutPricingDataProvider>();
+builder.Services.AddScoped<CheckoutPricingService>();
+builder.Services.AddScoped<ICheckoutAddressDataProvider, CheckoutAddressDataProvider>();
+builder.Services.AddScoped<CheckoutAddressService>();
+builder.Services.AddScoped<CheckoutOrderService>();
+builder.Services.AddScoped<ICheckoutPaymentDataProvider, CheckoutPaymentDataProvider>();
+builder.Services.AddScoped<CheckoutPaymentService>();
 builder.Services.AddScoped<ILivroRecommendationDataProvider, LivroRecommendationDataProvider>();
 builder.Services.AddScoped<ISalesAnalysisDataProvider, SalesAnalysisDataProvider>();
 builder.Services.AddScoped<SalesAnalysisService>();
@@ -130,6 +138,10 @@ static string NormalizarCategoria(string? nome) {
         .ToString()
         .Normalize(NormalizationForm.FormC);
 }
+
+
+
+
 
 
 
