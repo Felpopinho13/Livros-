@@ -11,6 +11,12 @@ public class DetalhesPedidoItemViewModel {
     public string? CodigoCupomTroca { get; set; }
     public decimal? ValorCupomTroca { get; set; }
     public bool PedidoEntregue { get; set; }
+    public bool JaAvaliado { get; set; }
+    public int? NotaAvaliacao { get; set; }
+    public string? ComentarioAvaliacao { get; set; }
+    public DateTime? DataAvaliacao { get; set; }
+    public bool PodeAvaliar => PedidoEntregue && !JaAvaliado;
+    public bool AguardandoEntregaParaAvaliacao => !PedidoEntregue && !JaAvaliado;
     public bool PodeSolicitarTroca => PedidoEntregue && !TrocaId.HasValue;
     public bool AguardandoEntregaParaTroca => !PedidoEntregue && !TrocaId.HasValue;
     public bool TemCupomTroca => !string.IsNullOrWhiteSpace(CodigoCupomTroca) && ValorCupomTroca.HasValue && ValorCupomTroca.Value > 0;

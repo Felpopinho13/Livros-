@@ -7,6 +7,7 @@ using Livros.Application.AdminOrders;
 using Livros.Application.AdminSalesHistory;
 using Livros.Application.Common.Logging;
 using Livros.Application.Authentication;
+using Livros.Application.BookReviews;
 using Livros.Application.Catalog;
 using Livros.Application.Checkout;
 using Livros.Application.CustomerAccounts;
@@ -52,6 +53,8 @@ public static class DependencyInjectionExtensions {
 
         services.AddScoped<IAuthWorkflowDataProvider, AuthWorkflowDataProvider>();
         services.AddScoped<AuthWorkflowService>();
+        services.AddScoped<IBookReviewDataProvider, BookReviewDataProvider>();
+        services.AddScoped<BookReviewService>();
         services.AddScoped<ICatalogDataProvider, CatalogDataProvider>();
         services.AddScoped<CatalogService>();
         services.AddScoped<ICustomerIdentityDataProvider, CustomerIdentityDataProvider>();

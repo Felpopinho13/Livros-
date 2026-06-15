@@ -8,6 +8,7 @@ namespace Livros.Application.CustomerOrders {
         Pedido? LoadDetailedOrder(int orderId, int customerId);
         List<Troca> LoadExchangesByOrderIdWithCoupon(int orderId);
         List<CupomDesconto> LoadCouponsByOrderId(int orderId);
+        List<Avaliacao> LoadReviewsByCustomerAndOrder(int customerId, int orderId);
         PedidoItem? LoadOrderItemForExchange(int orderItemId, int orderId, int customerId);
         Troca? LoadExchangeByOrderItemId(int orderItemId);
         void AddOrderItem(PedidoItem orderItem);

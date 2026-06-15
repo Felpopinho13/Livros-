@@ -16,6 +16,7 @@
         public List<Cartao> Cartoes { get; set; } = new();
         public string? CarrinhoPersistidoJson { get; set; }
         public List<ReservaCarrinho> ReservasCarrinho { get; set; } = new();
+        public List<Avaliacao> Avaliacoes { get; set; } = new();
         public Wishlist? Wishlist { get; set; }
         public bool IsAtivo { get; set; } = true;
     }

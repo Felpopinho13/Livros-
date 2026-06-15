@@ -321,6 +321,29 @@ h1 {
     color: #4b5563;
 }
 
+.order-review-summary {
+    grid-column: 1 / -1;
+    margin-top: 6px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+}
+
+.order-review-summary strong {
+    margin-right: 8px;
+}
+
+.order-review-summary small {
+    margin-left: 8px;
+    color: #64748b;
+}
+
+.order-review-summary p {
+    margin: 8px 0 0;
+}
+
 .order-exchange-thumb {
     width: 72px;
     height: 100px;

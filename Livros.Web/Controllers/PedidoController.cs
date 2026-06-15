@@ -396,7 +396,11 @@ namespace Livros.Web.Controllers {
                     TrocaId = item.TrocaId,
                     TrocaStatus = item.TrocaStatus,
                     CodigoCupomTroca = item.CodigoCupomTroca,
-                    ValorCupomTroca = item.ValorCupomTroca
+                    ValorCupomTroca = item.ValorCupomTroca,
+                    JaAvaliado = item.JaAvaliado,
+                    NotaAvaliacao = item.NotaAvaliacao,
+                    ComentarioAvaliacao = item.ComentarioAvaliacao,
+                    DataAvaliacao = item.DataAvaliacao
                 }).ToList(),
                 Pagamentos = result.Pagamentos.Select(payment => new DetalhesPedidoPagamentoViewModel {
                     Metodo = payment.Metodo,

@@ -82,6 +82,10 @@ namespace Livros.Application.CustomerOrders {
         public string? CodigoCupomTroca { get; set; }
         public decimal? ValorCupomTroca { get; set; }
         public bool PedidoEntregue { get; set; }
+        public bool JaAvaliado { get; set; }
+        public int? NotaAvaliacao { get; set; }
+        public string? ComentarioAvaliacao { get; set; }
+        public DateTime? DataAvaliacao { get; set; }
     }
 
     public sealed class CustomerOrderPaymentData {

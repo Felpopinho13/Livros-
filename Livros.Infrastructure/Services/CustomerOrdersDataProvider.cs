@@ -65,6 +65,12 @@ namespace Livros.Infrastructure.Services {
                 .ToList();
         }
 
+        public List<Avaliacao> LoadReviewsByCustomerAndOrder(int customerId, int orderId) {
+            return _context.Avaliacoes
+                .Where(review => review.ClienteId == customerId && review.PedidoId == orderId)
+                .ToList();
+        }
+
         public PedidoItem? LoadOrderItemForExchange(int orderItemId, int orderId, int customerId) {
             return _context.PedidoItens
                 .Include(i => i.Pedido)

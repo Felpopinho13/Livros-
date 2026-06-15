@@ -1,4 +1,5 @@
 using Livros.Application.Catalog;
+using Livros.Application.BookReviews;
 using Livros.Web.Models;
 using Livros.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Diagnostics;
@@ -7,10 +8,15 @@ using System.Diagnostics;
 
 public class HomeController : Controller {
     private readonly CatalogService _catalogService;
+    private readonly BookReviewService _bookReviewService;
     private readonly ILogger<HomeController> _logger;
 
-    public HomeController(CatalogService catalogService, ILogger<HomeController> logger) {
+    public HomeController(
+        CatalogService catalogService,
+        BookReviewService bookReviewService,
+        ILogger<HomeController> logger) {
         _catalogService = catalogService;
+        _bookReviewService = bookReviewService;
         _logger = logger;
     }
 
@@ -29,7 +35,19 @@ public class HomeController : Controller {
             return NotFound();
         }
 
-        return View(livro);
+        var reviewSummary = _bookReviewService.GetSummary(id);
+
+        return View(new LivroDetalhesViewModel {
+            Livro = livro,
+            MediaAvaliacoes = reviewSummary.AverageRating,
+            QuantidadeAvaliacoes = reviewSummary.ReviewCount,
+            Comentarios = reviewSummary.Comments.Select(comment => new LivroDetalhesComentarioViewModel {
+                NomeCliente = comment.CustomerName,
+                Nota = comment.Rating,
+                Comentario = comment.Comment,
+                DataAvaliacao = comment.ReviewDate
+            }).ToList()
+        });
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

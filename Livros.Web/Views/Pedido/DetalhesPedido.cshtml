@@ -25,6 +25,14 @@
             <div class="checkout-alert checkout-alert-error">@TempData["ErroTroca"]</div>
         }
 
+        @if (TempData["SucessoAvaliacao"] != null) {
+            <div class="checkout-alert checkout-alert-success">@TempData["SucessoAvaliacao"]</div>
+        }
+
+        @if (TempData["ErroAvaliacao"] != null) {
+            <div class="checkout-alert checkout-alert-error">@TempData["ErroAvaliacao"]</div>
+        }
+
         @if (itemPrincipal != null) {
             <div class="order-top-box a-box">
                 @if (!string.IsNullOrWhiteSpace(itemPrincipal.ImagemUrl)) {
@@ -176,7 +184,38 @@
                                         @textoBotaoTroca
                                     </button>
                                 }
+
+                                @if (item.PodeAvaliar) {
+                                    <button type="button"
+                                            class="btn-amazon btn-primary"
+                                            onclick="abrirModalAvaliacao(@Model.PedidoId, @item.PedidoItemId, '@tituloEscapado')">
+                                        Avaliar livro
+                                    </button>
+                                }
+                                else if (item.JaAvaliado) {
+                                    <button type="button" class="btn-amazon btn-secondary" disabled>
+                                        Avaliado: @item.NotaAvaliacao/5
+                                    </button>
+                                }
+                                else if (item.AguardandoEntregaParaAvaliacao) {
+                                    <button type="button" class="btn-amazon btn-secondary" disabled>
+                                        Avaliacao apos entrega
+                                    </button>
+                                }
                             </div>
+
+                            @if (item.JaAvaliado) {
+                                <div class="order-review-summary">
+                                    <strong>Sua avaliação:</strong>
+                                    <span>@item.NotaAvaliacao/5</span>
+                                    @if (item.DataAvaliacao.HasValue) {
+                                        <small>em @item.DataAvaliacao.Value.ToString("dd/MM/yyyy")</small>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(item.ComentarioAvaliacao)) {
+                                        <p>@item.ComentarioAvaliacao</p>
+                                    }
+                                </div>
+                            }
                         </div>
                     }
                 </div>
@@ -232,6 +271,48 @@
     </div>
 </div>
 
+<div class="admin-modal-overlay" id="avaliacaoModal" style="display:none;">
+    <div class="admin-modal exchange-modal">
+        <div class="admin-modal-header">
+            <h3>Avaliar livro</h3>
+            <button type="button" class="modal-close" onclick="fecharModalAvaliacao()">&times;</button>
+        </div>
+
+        <form asp-controller="Avaliacao" asp-action="Criar" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="admin-modal-body">
+                <input type="hidden" id="avaliacaoPedidoId" name="pedidoId" />
+                <input type="hidden" id="avaliacaoPedidoItemId" name="pedidoItemId" />
+
+                <div class="stock-modal-book" id="avaliacaoLivroTitulo"></div>
+
+                <div class="admin-form-group">
+                    <label for="avaliacaoNota">Nota</label>
+                    <select id="avaliacaoNota" name="nota" class="admin-select" required>
+                        <option value="">Selecione</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                    </select>
+                </div>
+
+                <div class="admin-form-group">
+                    <label for="avaliacaoComentario">Comentário</label>
+                    <textarea id="avaliacaoComentario" name="comentario" class="admin-input" rows="4" placeholder="Se quiser, conte o que achou do livro."></textarea>
+                </div>
+            </div>
+
+            <div class="admin-modal-footer">
+                <button type="button" class="btn-secondary" onclick="fecharModalAvaliacao()">Cancelar</button>
+                <button type="submit" class="btn-primary">Enviar avaliação</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     function abrirModalTroca(pedidoId, pedidoItemId, titulo, quantidadeMaxima) {
@@ -250,6 +331,19 @@
         document.getElementById('trocaModal').style.display = 'none';
     }
 
+    function abrirModalAvaliacao(pedidoId, pedidoItemId, titulo) {
+        document.getElementById('avaliacaoPedidoId').value = pedidoId;
+        document.getElementById('avaliacaoPedidoItemId').value = pedidoItemId;
+        document.getElementById('avaliacaoLivroTitulo').textContent = titulo;
+        document.getElementById('avaliacaoNota').value = '';
+        document.getElementById('avaliacaoComentario').value = '';
+        document.getElementById('avaliacaoModal').style.display = 'flex';
+    }
+
+    function fecharModalAvaliacao() {
+        document.getElementById('avaliacaoModal').style.display = 'none';
+    }
+
     function copiarCupom(codigo) {
         navigator.clipboard.writeText(codigo);
         alert('Cupom copiado: ' + codigo);
@@ -258,12 +352,19 @@
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
             fecharModalTroca();
+            fecharModalAvaliacao();
         }
     });
 
     document.getElementById('trocaModal').addEventListener('click', function (event) {
         if (event.target === this) {
             fecharModalTroca();
+        }
+    });
+
+    document.getElementById('avaliacaoModal').addEventListener('click', function (event) {
+        if (event.target === this) {
+            fecharModalAvaliacao();
         }
     });
 </script>

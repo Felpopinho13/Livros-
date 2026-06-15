@@ -29,6 +29,65 @@
     margin-bottom: 20px;
 }
 
+.book-review-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+    color: #475569;
+}
+
+.book-review-summary strong {
+    color: #0f172a;
+}
+
+.book-reviews-section {
+    padding: 0 20px 50px;
+}
+
+.book-reviews-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 24px;
+}
+
+.book-reviews-panel h2 {
+    margin: 0 0 18px;
+    font-size: 22px;
+}
+
+.book-reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.book-review-card {
+    padding: 16px 18px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.book-review-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.book-review-card small {
+    color: #64748b;
+}
+
+.book-review-card p {
+    margin: 10px 0 0;
+    color: #334155;
+    line-height: 1.6;
+}
+
 .book-category-list {
     display: flex;
     flex-wrap: wrap;

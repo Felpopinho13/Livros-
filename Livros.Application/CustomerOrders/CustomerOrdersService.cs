@@ -68,6 +68,7 @@ namespace Livros.Application.CustomerOrders {
             }
 
             var exchanges = _dataProvider.LoadExchangesByOrderIdWithCoupon(order.Id);
+            var reviews = _dataProvider.LoadReviewsByCustomerAndOrder(query.CustomerId, order.Id);
             var subtotal = order.Itens.Sum(i => i.PrecoUnitario * i.Quantidade);
             var orderCoupons = _dataProvider.LoadCouponsByOrderId(order.Id);
             var discount = orderCoupons.Sum(c => c.Valor);
@@ -96,6 +97,7 @@ namespace Livros.Application.CustomerOrders {
                 Total = order.Total,
                 Itens = order.Itens.Select(item => {
                     var exchange = exchanges.FirstOrDefault(t => t.PedidoItemId == item.Id);
+                    var review = reviews.FirstOrDefault(entry => entry.LivroId == item.LivroId);
                     return new CustomerOrderDetailItemData {
                         PedidoItemId = item.Id,
                         LivroId = item.LivroId,
@@ -108,7 +110,11 @@ namespace Livros.Application.CustomerOrders {
                         TrocaId = exchange?.Id,
                         TrocaStatus = NormalizeExchangeDisplayStatus(exchange),
                         CodigoCupomTroca = exchange?.CupomDesconto?.Codigo,
-                        ValorCupomTroca = exchange?.CupomDesconto?.Valor
+                        ValorCupomTroca = exchange?.CupomDesconto?.Valor,
+                        JaAvaliado = review != null,
+                        NotaAvaliacao = review?.Nota,
+                        ComentarioAvaliacao = review?.Comentario,
+                        DataAvaliacao = review?.DataAvaliacao
                     };
                 }).ToList(),
                 Pagamentos = order.Pagamentos.Select(payment => new CustomerOrderPaymentData {

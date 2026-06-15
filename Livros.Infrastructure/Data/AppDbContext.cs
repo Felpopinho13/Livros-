@@ -55,6 +55,32 @@ namespace Livros.Infrastructure.Data {
                 .HasForeignKey(e => e.ClienteId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<Avaliacao>()
+                .HasOne(review => review.Cliente)
+                .WithMany(customer => customer.Avaliacoes)
+                .HasForeignKey(review => review.ClienteId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Avaliacao>()
+                .HasOne(review => review.Pedido)
+                .WithMany()
+                .HasForeignKey(review => review.PedidoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Avaliacao>()
+                .HasOne(review => review.Livro)
+                .WithMany(book => book.Avaliacoes)
+                .HasForeignKey(review => review.LivroId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Avaliacao>()
+                .Property(review => review.Comentario)
+                .HasMaxLength(1000);
+
+            modelBuilder.Entity<Avaliacao>()
+                .HasIndex(review => new { review.ClienteId, review.PedidoId, review.LivroId })
+                .IsUnique();
+
             modelBuilder.Entity<Wishlist>()
                 .HasOne(w => w.Cliente)
                 .WithOne(c => c.Wishlist)
@@ -167,6 +193,7 @@ namespace Livros.Infrastructure.Data {
         public DbSet<Estado> Estados { get; set; }
         public DbSet<Cidade> Cidades { get; set; }
         public DbSet<Bairro> Bairros { get; set; }
+        public DbSet<Avaliacao> Avaliacoes { get; set; }
         public DbSet<BandeiraCartao> BandeirasCartao { get; set; }
         public DbSet<Cartao> Cartoes { get; set; }
         public DbSet<Livro> Livros { get; set; }

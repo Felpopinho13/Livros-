@@ -42,6 +42,7 @@ namespace Livros.Domain {
 
         public bool IsAtivo { get; set; } = true;
         public List<Categoria> Categorias { get; set; } = new();
+        public List<Avaliacao> Avaliacoes { get; set; } = new();
         public Estoque Estoque { get; set; } = null!;
     }
 }

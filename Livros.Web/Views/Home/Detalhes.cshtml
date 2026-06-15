@@ -1,50 +1,61 @@
-@model Livros.Domain.Livro
+@model Livros.Web.Models.ViewModels.LivroDetalhesViewModel
 
 @{
-    var estoqueDisponivel = Model.Estoque?.Quantidade ?? 0;
-    var emEstoque = Model.IsAtivo && estoqueDisponivel > 0;
+    var livro = Model.Livro;
+    var estoqueDisponivel = livro.Estoque?.Quantidade ?? 0;
+    var emEstoque = livro.IsAtivo && estoqueDisponivel > 0;
 }
 
 <section class="book-detail">
     <div class="container book-detail-grid">
         <div class="book-gallery">
-            <img src="@Model.ImagemUrl" alt="@Model.Titulo">
+            <img src="@livro.ImagemUrl" alt="@livro.Titulo">
         </div>
 
         <div class="book-info">
             <div class="book-title-row">
-                <h1>@Model.Titulo</h1>
+                <h1>@livro.Titulo</h1>
 
                 <button
                     type="button"
                     class="btn-wishlist"
-                    data-id="@Model.Id"
+                    data-id="@livro.Id"
                     aria-label="Adicionar a lista de desejos"
                     aria-pressed="false">&#10084;</button>
             </div>
 
-            <p class="author">por @Model.Autor</p>
+            <p class="author">por @livro.Autor</p>
 
-            @if (Model.Categorias != null && Model.Categorias.Any()) {
+            <div class="book-review-summary">
+                @if (Model.PossuiAvaliacoes) {
+                    <strong>@Model.MediaAvaliacoes.ToString("N1")/5</strong>
+                    <span>com base em @Model.QuantidadeAvaliacoes avaliação(ões).</span>
+                }
+                else {
+                    <span>Ainda sem avaliações de clientes.</span>
+                }
+            </div>
+
+            @if (livro.Categorias != null && livro.Categorias.Any()) {
                 <div class="book-category-list">
-                    @foreach (var categoria in Model.Categorias.OrderBy(c => c.Nome)) {
+                    @foreach (var categoria in livro.Categorias.OrderBy(c => c.Nome)) {
                         <span class="book-category-tag">@categoria.Nome</span>
                     }
                 </div>
             }
 
             <p class="description">
-                @Model.Sinopse
+                @livro.Sinopse
             </p>
 
-            <p><strong>Editora:</strong> @Model.Editora</p>
-            <p><strong>Ano:</strong> @Model.Ano</p>
-            <p><strong>Páginas:</strong> @Model.NumeroPaginas</p>
+            <p><strong>Editora:</strong> @livro.Editora</p>
+            <p><strong>Ano:</strong> @livro.Ano</p>
+            <p><strong>Páginas:</strong> @livro.NumeroPaginas</p>
         </div>
 
         <div class="book-buy-box">
             <p class="price">
-                R$ @Model.Preco.ToString("N2")
+                R$ @livro.Preco.ToString("N2")
             </p>
 
             <p class="stock-summary @(emEstoque ? "in-stock" : "out-of-stock")">
@@ -65,7 +76,7 @@
 
             <form asp-controller="Pedido" asp-action="AdicionarAoCarrinho" method="post" id="formAdicionarCarrinho">
                 @Html.AntiForgeryToken()
-                <input type="hidden" name="livroId" value="@Model.Id" />
+                <input type="hidden" name="livroId" value="@livro.Id" />
                 <input type="hidden" name="quantidade" id="quantidadeCarrinho" value="@(emEstoque ? 1 : 0)" />
                 <button type="submit" class="btn btn-primary btn-block" @(emEstoque ? "" : "disabled")>
                     Adicionar ao carrinho
@@ -90,6 +101,29 @@
         </div>
     </div>
 </section>
+
+@if (Model.PossuiComentarios) {
+    <section class="book-reviews-section">
+        <div class="container">
+            <div class="book-reviews-panel">
+                <h2>Avaliações de leitores</h2>
+
+                <div class="book-reviews-list">
+                    @foreach (var comentario in Model.Comentarios.Where(item => !string.IsNullOrWhiteSpace(item.Comentario))) {
+                        <article class="book-review-card">
+                            <div class="book-review-card-header">
+                                <strong>@comentario.NomeCliente</strong>
+                                <span>@comentario.Nota/5</span>
+                            </div>
+                            <small>@comentario.DataAvaliacao.ToString("dd/MM/yyyy")</small>
+                            <p>@comentario.Comentario</p>
+                        </article>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+}
 
 <script>
     const quantidadeInput = document.getElementById("quantidade");
@@ -122,7 +156,7 @@
         if (quantidade < 1) quantidade = 1;
         if (quantidade > estoqueDisponivel) quantidade = estoqueDisponivel;
 
-        let livroId = @Model.Id;
+        let livroId = @livro.Id;
 
         window.location.href = `/Pedido/Checkout/${livroId}?quantidade=${quantidade}`;
     });
