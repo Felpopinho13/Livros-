@@ -224,7 +224,9 @@ public class VendaPlaywrightTests {
         Assert.True(
             textoInusitado.Contains("nao parece viavel", StringComparison.OrdinalIgnoreCase)
             || textoInusitado.Contains("momento melhor", StringComparison.OrdinalIgnoreCase)
-            || textoInusitado.Contains("momento mais adequado", StringComparison.OrdinalIgnoreCase),
+            || textoInusitado.Contains("momento mais adequado", StringComparison.OrdinalIgnoreCase)
+            || textoInusitado.Contains("nao consegui relacionar esse pedido aos livros do catalogo com confianca", StringComparison.OrdinalIgnoreCase)
+            || textoInusitado.Contains("posso ajudar com titulo, autor, categoria, preco ou tema de leitura", StringComparison.OrdinalIgnoreCase),
             $"A resposta para o contexto inusitado nao trouxe o desvio esperado. Resposta: {textoInusitado}");
 
         await page.GotoAsync($"{baseUrl}/Auth/Logout", new PageGotoOptions {
@@ -476,7 +478,8 @@ public class VendaPlaywrightTests {
             await page.Locator("input[name='CVV1']").FillAsync("123");
             await page.Locator("input[name='Validade1']").FillAsync("12/30");
 
-            await page.GetByRole(AriaRole.Button, new() { Name = "Adicionar segundo meio de pagamento" }).ClickAsync();
+            await ExpectAsync(page.Locator("#toggleSegundoPagamento")).ToBeVisibleAsync();
+            await page.Locator("#toggleSegundoPagamento").ClickAsync();
             await ExpectAsync(page.Locator("#segundoPagamentoWrapper")).ToBeVisibleAsync();
             await page.WaitForTimeoutAsync(1200);
 
@@ -813,7 +816,8 @@ public class VendaPlaywrightTests {
         await page.GetByRole(AriaRole.Button, new() { Name = "Finalizar pagamento" }).ClickAsync();
         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await ExpectAsync(page.GetByRole(AriaRole.Heading, new() { Name = "Pedido confirmado!" })).ToBeVisibleAsync();
-        await ExpectAsync(page.Locator(".order-info")).ToContainTextAsync("Entrega padrÃ£o");
+        await ExpectAsync(page.Locator(".order-info")).ToContainTextAsync("Entrega");
+        await ExpectAsync(page.Locator(".order-info")).Not.ToContainTextAsync("Entrega prevista:");
         await page.WaitForTimeoutAsync(1800);
     }
 

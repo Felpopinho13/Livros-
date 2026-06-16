@@ -104,6 +104,13 @@ namespace Livros.Infrastructure.Services {
                 .FirstOrDefault(c => c.Id == clienteId);
         }
 
+        public bool HasDeletionDependencies(int clienteId) {
+            return _context.Pedidos.Any(order => order.ClienteId == clienteId)
+                || _context.Trocas.Any(exchange => exchange.ClienteId == clienteId)
+                || _context.CuponsDesconto.Any(coupon => coupon.ClienteId == clienteId)
+                || _context.Avaliacoes.Any(review => review.ClienteId == clienteId);
+        }
+
         public void AddCustomer(Cliente cliente) {
             _context.Clientes.Add(cliente);
         }

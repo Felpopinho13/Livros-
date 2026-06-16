@@ -7,6 +7,7 @@ namespace Livros.Application.AdminCustomers {
         Task<AdminCustomerTransactionsData> LoadTransactionsAsync(int clienteId, CancellationToken cancellationToken = default);
         Cliente? LoadCustomerById(int clienteId);
         Cliente? LoadCustomerByIdWithAddressesAndCards(int clienteId);
+        bool HasDeletionDependencies(int clienteId);
         void AddCustomer(Cliente cliente);
         void RemoveCustomer(Cliente cliente);
         void RemoveAddresses(IEnumerable<Endereco> enderecos);

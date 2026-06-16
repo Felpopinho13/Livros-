@@ -151,6 +151,13 @@ namespace Livros.Application.AdminCustomers {
                 };
             }
 
+            if (_dataProvider.HasDeletionDependencies(command.ClienteId)) {
+                return new AdminCustomerOperationResult {
+                    Succeeded = false,
+                    Message = "Nao e possivel excluir um cliente com historico vinculado. Desative o cadastro para manter pedidos, trocas, cupons e avaliacoes."
+                };
+            }
+
             if (cliente.Enderecos != null && cliente.Enderecos.Count > 0) {
                 _dataProvider.RemoveAddresses(cliente.Enderecos);
             }
