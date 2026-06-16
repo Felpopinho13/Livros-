@@ -271,6 +271,78 @@ public class VendaPlaywrightTests {
         await ExpectAsync(page.Locator(".admin-sales-chart-card").Nth(1)).ToContainTextAsync("Fic");
     }
 
+    [Fact]
+    public async Task DeveAdicionarLivroNaWishlistComprarValidarEntregaEAvaliarLivro() {
+        var baseUrl = Environment.GetEnvironmentVariable("LIVROS_BASE_URL") ?? "https://localhost:44357";
+
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions {
+            Headless = false,
+            SlowMo = 900
+        });
+
+        var artifactsDir = Path.Combine(AppContext.BaseDirectory, "playwright-artifacts");
+        Directory.CreateDirectory(artifactsDir);
+
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions {
+            IgnoreHTTPSErrors = true,
+            ViewportSize = new ViewportSize { Width = 1550, Height = 730 },
+            RecordVideoDir = artifactsDir,
+            RecordVideoSize = new RecordVideoSize { Width = 1550, Height = 730 }
+        });
+
+        var page = await context.NewPageAsync();
+
+        await FazerLoginAsync(page, baseUrl, ClienteChatbotEmail, ClienteChatbotSenha);
+        await AdicionarPrimeiroLivroNaWishlistAsync(page, baseUrl);
+
+        var compra = await ExecutarFluxoCompraVisualNaPaginaAsync(page, baseUrl, new CenarioCompraVisual {
+            TipoEntrega = "PADRAO",
+            UsarCartao = true,
+            EmailLoginExistente = ClienteChatbotEmail,
+            SenhaLoginExistente = ClienteChatbotSenha
+        });
+
+        await page.GotoAsync($"{baseUrl}/Auth/Logout", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+        await page.WaitForTimeoutAsync(1200);
+
+        await FazerLoginAsync(page, baseUrl, AdminEmail, AdminSenha);
+        await ValidarPedidoNoAdminAteEntregueAsync(page, baseUrl, compra.PedidoId);
+
+        await page.GotoAsync($"{baseUrl}/Auth/Logout", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+        await page.WaitForTimeoutAsync(1200);
+
+        await FazerLoginAsync(page, baseUrl, ClienteChatbotEmail, ClienteChatbotSenha);
+        await page.GotoAsync($"{baseUrl}/Pedido/DetalhesPedido?id={compra.PedidoId}", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+
+        await ExpectAsync(page.GetByRole(AriaRole.Heading, new() { Name = "Detalhes do pedido" })).ToBeVisibleAsync();
+        await ExpectAsync(page.Locator(".delivery-status")).ToContainTextAsync("ENTREGUE");
+        var tituloLivroComprado = (await page.Locator(".product-info h5").InnerTextAsync()).Trim();
+
+        await page.GetByRole(AriaRole.Button, new() { Name = "Avaliar livro" }).First.ClickAsync();
+        await Assertions.Expect(page.Locator("#avaliacaoModal")).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await page.Locator("#avaliacaoNota").SelectOptionAsync(new[] { "5" });
+        await page.Locator("#avaliacaoComentario").FillAsync("Comentário teste");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Enviar avaliação" }).ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await ExpectAsync(page.Locator(".checkout-alert-success")).ToContainTextAsync("Avaliacao enviada com sucesso");
+        await ExpectAsync(page.Locator(".order-review-summary")).ToContainTextAsync("Comentário teste");
+        await ExpectAsync(page.GetByRole(AriaRole.Button, new() { Name = "Avaliado: 5/5" }).First).ToBeVisibleAsync();
+
+        await page.GetByRole(AriaRole.Link, new() { Name = "Comprar novamente" }).ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await ExpectAsync(page.Locator("h1")).ToContainTextAsync(tituloLivroComprado);
+        await ExpectAsync(page.Locator(".book-review-card")).ToContainTextAsync("Comentário teste");
+    }
+
     private static async Task<ResultadoCompraVisual> ExecutarFluxoCompraVisualAsync(CenarioCompraVisual cenario) {
         var baseUrl = Environment.GetEnvironmentVariable("LIVROS_BASE_URL") ?? "https://localhost:44357";
 
@@ -470,6 +542,68 @@ public class VendaPlaywrightTests {
         await page.WaitForTimeoutAsync(1200);
     }
 
+    private static async Task<string> AdicionarPrimeiroLivroNaWishlistAsync(IPage page, string baseUrl) {
+        await page.GotoAsync(baseUrl, new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+
+        var primeiroCard = page.Locator(".product-card").First;
+        await ExpectAsync(primeiroCard).ToBeVisibleAsync();
+
+        var titulo = (await primeiroCard.Locator("h3").InnerTextAsync()).Trim();
+        var wishlistButton = primeiroCard.Locator(".btn-wishlist");
+
+        var estavaAtivo = await wishlistButton.EvaluateAsync<bool>(
+            "button => button.classList.contains('active') || button.getAttribute('aria-pressed') === 'true'");
+
+        if (estavaAtivo) {
+            var removeResponse = await page.RunAndWaitForResponseAsync(
+                async () => {
+                    await wishlistButton.ClickAsync();
+                },
+                response => response.Url.Contains("/Wishlist/Remove", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(response.Request.Method, "POST", StringComparison.OrdinalIgnoreCase),
+                new() {
+                    Timeout = 10000
+                });
+
+            Assert.True(removeResponse.Ok, $"A remocao previa da wishlist falhou com status HTTP {(int)removeResponse.Status}.");
+            await page.WaitForTimeoutAsync(800);
+        }
+
+        var addResponse = await page.RunAndWaitForResponseAsync(
+            async () => {
+                await wishlistButton.ClickAsync();
+            },
+            response => response.Url.Contains("/Wishlist/Add", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(response.Request.Method, "POST", StringComparison.OrdinalIgnoreCase),
+            new() {
+                Timeout = 10000
+            });
+
+        Assert.True(addResponse.Ok, $"A adicao na wishlist falhou com status HTTP {(int)addResponse.Status}.");
+        await ExpectAsync(wishlistButton).ToHaveAttributeAsync("aria-pressed", "true");
+
+        var listResponse = await page.RunAndWaitForResponseAsync(
+            async () => {
+                await page.Locator("#wishlistToggle").ClickAsync();
+            },
+            response => response.Url.Contains("/Wishlist/List", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(response.Request.Method, "GET", StringComparison.OrdinalIgnoreCase),
+            new() {
+                Timeout = 10000
+            });
+
+        Assert.True(listResponse.Ok, $"A abertura da wishlist falhou com status HTTP {(int)listResponse.Status}.");
+        await Assertions.Expect(page.Locator("#wishlistModal")).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await ExpectAsync(page.Locator(".wishlist-item").Filter(new() { HasText = titulo }).First).ToBeVisibleAsync();
+
+        await page.Locator("#closeWishlist").ClickAsync();
+        await Assertions.Expect(page.Locator("#wishlistModal")).Not.ToBeVisibleAsync(new() { Timeout = 10000 });
+
+        return titulo;
+    }
+
     private static async Task AbrirChatbotAsync(IPage page) {
         var toggle = page.Locator("[data-chatbot-toggle]");
         await ExpectAsync(toggle).ToBeVisibleAsync();
@@ -522,7 +656,31 @@ public class VendaPlaywrightTests {
         };
     }
 
-    private static async Task AtualizarStatusPedidoNoAdminAsync(IPage page, ILocator linhaPedido, string statusAtualEsperado, string novoStatus, string statusPagamentoEsperado) {
+    private static async Task<ILocator> LocalizarLinhaPedidoNoAdminAsync(IPage page, string baseUrl, string pedidoId) {
+        await page.GotoAsync($"{baseUrl}/Admin/Pedidos?busca={pedidoId}", new PageGotoOptions {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+
+        await ExpectAsync(page.Locator(".admin-page-header h2")).ToContainTextAsync("Pedidos");
+        await ExpectAsync(page.Locator(".admin-orders-table")).ToBeVisibleAsync();
+
+        var linhaPedido = page.Locator(".admin-orders-table tbody tr")
+            .Filter(new() { HasText = pedidoId })
+            .First;
+
+        await ExpectAsync(linhaPedido).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await linhaPedido.ScrollIntoViewIfNeededAsync();
+        return linhaPedido;
+    }
+
+    private static async Task<ILocator> AtualizarStatusPedidoNoAdminAsync(
+        IPage page,
+        string baseUrl,
+        string pedidoId,
+        ILocator linhaPedido,
+        string statusAtualEsperado,
+        string novoStatus,
+        string statusPagamentoEsperado) {
         await ExpectAsync(linhaPedido).ToBeVisibleAsync();
         await linhaPedido.ScrollIntoViewIfNeededAsync();
         await ExpectAsync(linhaPedido.Locator(".admin-order-status")).ToContainTextAsync(statusAtualEsperado);
@@ -542,28 +700,22 @@ public class VendaPlaywrightTests {
         await page.Locator("#pedidoModalSubmit").ClickAsync();
         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
+        linhaPedido = await LocalizarLinhaPedidoNoAdminAsync(page, baseUrl, pedidoId);
         await ExpectAsync(linhaPedido).ToBeVisibleAsync();
         await ExpectAsync(linhaPedido.Locator(".admin-order-payment")).ToContainTextAsync(statusPagamentoEsperado);
         await ExpectAsync(linhaPedido.Locator(".admin-order-status")).ToContainTextAsync(novoStatus);
         await page.WaitForTimeoutAsync(1500);
+        return linhaPedido;
     }
 
     private static async Task ValidarPedidoNoAdminAteEntregueAsync(IPage page, string baseUrl, string pedidoId) {
-        await page.GotoAsync($"{baseUrl}/Admin/Pedidos?busca={pedidoId}", new PageGotoOptions {
-            WaitUntil = WaitUntilState.NetworkIdle
-        });
-
-        await ExpectAsync(page.Locator(".admin-page-header h2")).ToContainTextAsync("Pedidos");
-
-        var linhaPedido = page.Locator("tbody tr").Filter(new() { HasText = $"#{pedidoId}" }).First;
-        await ExpectAsync(linhaPedido).ToBeVisibleAsync();
-        await linhaPedido.ScrollIntoViewIfNeededAsync();
+        var linhaPedido = await LocalizarLinhaPedidoNoAdminAsync(page, baseUrl, pedidoId);
         await ExpectAsync(linhaPedido.Locator(".admin-order-status")).ToContainTextAsync("APROVADA");
         await page.WaitForTimeoutAsync(1500);
 
-        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "APROVADA", "EM SEPARACAO", "Aprovado");
-        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "EM SEPARACAO", "EM TRANSPORTE", "Aprovado");
-        await AtualizarStatusPedidoNoAdminAsync(page, linhaPedido, "EM TRANSPORTE", "ENTREGUE", "Aprovado");
+        linhaPedido = await AtualizarStatusPedidoNoAdminAsync(page, baseUrl, pedidoId, linhaPedido, "APROVADA", "EM SEPARACAO", "Aprovado");
+        linhaPedido = await AtualizarStatusPedidoNoAdminAsync(page, baseUrl, pedidoId, linhaPedido, "EM SEPARACAO", "EM TRANSPORTE", "Aprovado");
+        await AtualizarStatusPedidoNoAdminAsync(page, baseUrl, pedidoId, linhaPedido, "EM TRANSPORTE", "ENTREGUE", "Aprovado");
     }
 
     private static async Task AprovarTrocaNoAdminAsync(IPage page, ILocator linhaTroca) {
