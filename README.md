@@ -123,46 +123,25 @@ Projeto de testes automatizados.
 ## Screenshots
 
 ### Home
-
-```md
 ![Home](./docs/images/Home.png)
-```
 
 ### Detalhes do livro
-
-```md
 ![Detalhes do livro](./docs/images/DetalheDoLivro.png)
-```
 
 ### Carrinho
-
-```md
 ![Carrinho](./docs/images/Carrinho.png)
-```
 
 ### Checkout
-
-```md
 ![Checkout](./docs/images/Checkout.png)
-```
 
 ### Área do cliente
-
-```md
 ![Área do cliente](./docs/images/AreaCliente.png)
-```
 
 ### Painel administrativo
-
-```md
 ![Painel administrativo](./docs/images/PainelAdministrativo.png)
-```
 
 ### Chatbot de recomendação
-
-```md
 ![Chatbot](./docs/images/ChatBot.png)
-```
 
 ## Como executar
 
