@@ -265,16 +265,6 @@ Se a chave não for informada, a aplicação continua funcionando com fallback l
 
 ## Licença
 
-Este projeto pode ser apresentado como projeto acadêmico/portfólio. Se desejar disponibilizá-lo publicamente no GitHub, uma boa opção é utilizar a licença MIT.
-
-Exemplo:
-
-```text
-MIT License
-```
-
-Caso ainda não tenha definido uma licença, você também pode manter temporariamente:
-
 ```text
 Este projeto foi desenvolvido para fins acadêmicos e de portfólio.
 ```
